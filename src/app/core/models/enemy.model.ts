@@ -6,17 +6,20 @@ export interface Enemy {
   currentHp: number;
   ac: number;
   initiative: number;
-  // Firebase (Realtime Database) strips empty objects on write, so a fresh
-  // enemy with no active statuses will have this field missing entirely.
-  status?: EnemyStatus;
+  status: Record<string, { name: string; duration: number }> | null;
+  actions?: EnemyAction[];
+  statuses?: string[];
+  resistances?: string[];
   lastUpdated: number;
 }
 
-export interface EnemyStatus {
-  [key: string]: {
-    name: string;
-    duration: number; // -1 = permanent until removed
-  };
+export interface EnemyAction {
+  name: string;
+  description: string;
+  toHit: string;
+  damage: string;
+  damageType: string;
+  fullText?: string;
 }
 
 export interface EnemyInput {
@@ -24,4 +27,7 @@ export interface EnemyInput {
   type: string;
   maxHp: number;
   ac: number;
+  actions?: EnemyAction[];
+  statuses?: string[];
+  resistances?: string[];
 }

@@ -1,50 +1,56 @@
-// Battle Forge — design tokens
-// Shared across the whole app via :root custom properties.
-
 :root {
-  // Surfaces
-  --bf-bg-deep: #0a0a12;
-  --bf-bg-base: #12111f;
-  --bf-bg-surface: #1a1830;
-  --bf-bg-elevated: #23213e;
-  --bf-bg-glass: rgba(35, 33, 62, 0.55);
+  // Surfaces — ink, leather, aged page
+  --bf-bg-deep: #141414;
+  --bf-bg-base: #1a1a1a;
+  --bf-bg-surface: #2a2a2a;
+  --bf-bg-elevated: #322d24;
+  --bf-bg-glass: rgba(42, 42, 42, 0.86);
 
-  // Accents
-  --bf-gold: #d9b054;
-  --bf-gold-bright: #f6dd8b;
-  --bf-gold-dim: rgba(217, 176, 84, 0.25);
-  --bf-arcane: #8b6cf0;
-  --bf-arcane-bright: #b39dff;
+  // Accents — gold leaf & candlelight
+  --bf-gold: #c9a84c;
+  --bf-gold-bright: #f1c40f;
+  --bf-gold-dim: rgba(201, 168, 76, 0.22);
+  --bf-gold-dim-strong: rgba(201, 168, 76, 0.38);
+  // "Arcane" accent repurposed as an ember/candle-flame highlight (active turn, magic glow)
+  --bf-arcane: #b5651d;
+  --bf-arcane-bright: #e08a3e;
+  --bf-arcane-dim: rgba(224, 138, 62, 0.16);
 
   // Semantic
-  --bf-danger: #e2493d;
-  --bf-danger-bright: #ff6b5e;
-  --bf-warning: #e2953d;
-  --bf-success: #3fb87f;
-  --bf-success-bright: #63d99e;
-  --bf-info: #4f9eea;
+  --bf-danger: #e74c3c;
+  --bf-danger-bright: #ff6b5a;
+  --bf-danger-dim: rgba(231, 76, 60, 0.16);
+  --bf-warning: #d98e2b;
+  --bf-warning-dim: rgba(217, 142, 43, 0.16);
+  --bf-success: #5a7d3a;
+  --bf-success-bright: #8bb35c;
+  --bf-success-dim: rgba(139, 179, 92, 0.16);
+  --bf-info: #8a9a8c;
+  --bf-info-bright: #b9c9ba;
+  --bf-info-dim: rgba(138, 154, 140, 0.16);
 
-  // Text
-  --bf-text-primary: #f1ecdf;
-  --bf-text-muted: #a29ecb;
-  --bf-text-faint: #6e6a94;
+  // Text — parchment ink
+  --bf-text-primary: #e8e0d0;
+  --bf-text-muted: #a89f8c;
+  --bf-text-faint: #6e6656;
 
   // Borders / shadows
-  --bf-border: rgba(217, 176, 84, 0.22);
-  --bf-border-strong: rgba(217, 176, 84, 0.5);
-  --bf-shadow-soft: 0 8px 30px rgba(0, 0, 0, 0.35);
-  --bf-shadow-deep: 0 20px 60px rgba(0, 0, 0, 0.55);
-  --bf-glow-gold: 0 0 24px rgba(217, 176, 84, 0.35);
-  --bf-glow-arcane: 0 0 24px rgba(139, 108, 240, 0.4);
+  --bf-border: rgba(201, 168, 76, 0.28);
+  --bf-border-strong: rgba(201, 168, 76, 0.65);
+  --bf-shadow-soft: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --bf-shadow-deep: 0 20px 55px rgba(0, 0, 0, 0.7);
+  --bf-glow-gold: 0 0 22px rgba(241, 196, 15, 0.4);
+  --bf-glow-arcane: 0 0 22px rgba(224, 138, 62, 0.45);
+  --bf-glow-danger: 0 0 18px rgba(231, 76, 60, 0.45);
 
   // Typography
   --bf-font-display: 'Cinzel', 'Georgia', serif;
-  --bf-font-body: 'Inter', 'Segoe UI', sans-serif;
+  --bf-font-body: 'Georgia', 'Times New Roman', serif;
 
   // Radii / spacing
-  --bf-radius-sm: 8px;
-  --bf-radius-md: 14px;
-  --bf-radius-lg: 20px;
+  --bf-radius-sm: 6px;
+  --bf-radius-md: 12px;
+  --bf-radius-lg: 18px;
   --bf-space-1: 4px;
   --bf-space-2: 8px;
   --bf-space-3: 12px;

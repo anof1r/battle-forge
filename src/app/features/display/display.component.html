@@ -1,9 +1,24 @@
-<div class="stage" [class.stage--battle]="battleStatus() === 'battle'">
-  <!-- Preparation / Initiative / Ended -->
-  @if (battleStatus() !== 'battle') {
-    <div class="stage__intro">
+@if (battleStatus() !== 'battle') {
+  <div class="stage__intro">
+    <div class="stage__intro-frame">
+      <span class="stage__corner stage__corner--tl"></span>
+      <span class="stage__corner stage__corner--tr"></span>
+      <span class="stage__corner stage__corner--bl"></span>
+      <span class="stage__corner stage__corner--br"></span>
+
       <div class="stage__intro-content">
-        <h1 class="stage__title">Battle Forge</h1>
+        <h1 class="stage__title">
+          <span class="stage__title-icon">⚔️</span>
+          Battle Forge
+          <span class="stage__title-icon">⚔️</span>
+        </h1>
+
+        <div class="stage__divider">
+          <span class="stage__divider-line"></span>
+          <span class="stage__divider-diamond">✦</span>
+          <span class="stage__divider-line"></span>
+        </div>
+
         @if (battleStatus() === 'preparation') {
           <p class="stage__subtitle">Awaiting the Dungeon Master&hellip;</p>
         }
@@ -15,68 +30,125 @@
         }
       </div>
     </div>
-  }
+  </div>
+}
 
-  <!-- Battle Phase -->
-  @if (battleStatus() === 'battle') {
-    <div class="arena">
-      <header class="arena__header">
-        <div class="arena__stat">
-          <span class="arena__stat-label">Round</span>
-          <span class="arena__stat-value">{{ currentRound() }}</span>
-        </div>
-        <h1 class="arena__title">Battle</h1>
-        <div class="arena__stat">
-          <span class="arena__stat-label">Enemies</span>
-          <span class="arena__stat-value">{{ aliveEnemies().length }}</span>
-        </div>
-      </header>
+@if (battleStatus() === 'battle') {
+  <div class="arena">
+    <header class="arena__header">
+      <div class="arena__stat">
+        <span class="arena__stat-label">Round</span>
+        <span class="arena__stat-value">{{ currentRound() }}</span>
+      </div>
+      <h1 class="arena__title">Battle</h1>
+      <div class="arena__stat">
+        <span class="arena__stat-label">Enemies</span>
+        <span class="arena__stat-value">{{ aliveEnemies().length }}</span>
+      </div>
+    </header>
 
-      <main class="arena__grid">
-        @for (enemy of aliveEnemies(); track enemy.id) {
-          <article class="enemy-card" [class.enemy-card--active]="currentEnemy() === enemy">
-            <div class="enemy-card__icon">
-              <bf-enemy-icon [type]="enemy.type"></bf-enemy-icon>
+    <main class="arena__grid">
+      @for (enemy of aliveEnemies(); track enemy.id) {
+        <article class="bestiary-card" [class.bestiary-card--active]="currentEnemy() === enemy">
+          @if (currentEnemy() === enemy) {
+            <span class="bestiary-card__turn-flag">⚔ Current Turn</span>
+          }
+
+          <div class="bestiary-card__scroll">
+            <header class="bestiary-card__banner">
+              <h2 class="bestiary-card__name">{{ enemy.name }}</h2>
+            </header>
+            <p class="bestiary-card__type">{{ enemy.type | uppercase }}</p>
+
+            <div class="bestiary-card__body">
+              <div class="bestiary-card__portrait">
+                <bf-enemy-icon [type]="enemy.type"></bf-enemy-icon>
+              </div>
+              <div class="bestiary-card__seals">
+                <div class="seal seal--ac">
+                  <span class="seal__value">{{ enemy.ac }}</span>
+                  <span class="seal__label">AC</span>
+                </div>
+                <div class="seal seal--hp">
+                  <span class="seal__value">{{ enemy.currentHp }}</span>
+                  <span class="seal__label">/ {{ enemy.maxHp }} HP</span>
+                </div>
+              </div>
             </div>
 
-            <h2 class="enemy-card__name">{{ enemy.name }}</h2>
-            <p class="enemy-card__type">{{ enemy.type | uppercase }}</p>
-
             <bf-hp-bar
-              class="enemy-card__hp"
+              class="bestiary-card__hp-bar"
               [current]="enemy.currentHp"
               [max]="enemy.maxHp"
               size="lg"
+              [showLabel]="false"
             ></bf-hp-bar>
 
-            <div class="enemy-card__stats">
-              <div class="enemy-card__stat">
-                <span class="enemy-card__stat-label">AC</span>
-                <span class="enemy-card__stat-value">{{ enemy.ac }}</span>
+            <div class="bestiary-card__divider" aria-hidden="true"></div>
+
+            <div class="bestiary-card__stats">
+              <div class="bestiary-card__stat-box">
+                <span class="bestiary-card__stat-value">{{ enemy.initiative }}</span>
+                <span class="bestiary-card__stat-label">INIT</span>
               </div>
-              <div class="enemy-card__stat">
-                <span class="enemy-card__stat-label">Initiative</span>
-                <span class="enemy-card__stat-value">{{ enemy.initiative }}</span>
+              <div class="bestiary-card__stat-box">
+                <span class="bestiary-card__stat-value">{{ enemy.maxHp }}</span>
+                <span class="bestiary-card__stat-label">MAX HP</span>
               </div>
             </div>
 
-            @if (statusEffects(enemy).length > 0) {
-              <div class="enemy-card__statuses">
-                @for (statusKey of statusEffects(enemy); track statusKey) {
+            @if (enemy.actions && enemy.actions.length > 0) {
+              <div class="bestiary-card__actions-wrapper">
+                <div class="bestiary-card__actions-header">
+                  <span class="bestiary-card__actions-icon">⚔️</span>
+                  <h4 class="bestiary-card__actions-title">Actions</h4>
+                </div>
+                <div class="bestiary-card__actions">
+                  @for (action of enemy.actions; track action.name + $index) {
+                    <div class="bestiary-card__action">
+                      <div class="action__line">
+                        <span class="action__name">{{ action.name }}</span>
+                        <span class="action__details">{{ action.description }}</span>
+                      </div>
+                      <div class="action__line">
+                        <span class="action__tohit">To Hit: {{ action.toHit }}</span>
+                        <span class="action__damage">{{ action.damage }}</span>
+                        <span class="action__type">{{ action.damageType }}</span>
+                      </div>
+                      @if (action.fullText) {
+                        <div class="action__description">{{ action.fullText }}</div>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+
+            @if (enemy.resistances && enemy.resistances.length > 0) {
+              <div class="bestiary-card__resistances">
+                @for (res of enemy.resistances; track res) {
+                  <span class="resistance-tag resistance-tag--resistance">🛡️ {{ res }}</span>
+                }
+              </div>
+            }
+
+            @if (enemy.statuses && enemy.statuses.length > 0) {
+              <div class="bestiary-card__statuses">
+                @for (statusKey of enemy.statuses; track statusKey) {
                   <span class="status-chip">{{ statusKey }}</span>
                 }
               </div>
             }
-          </article>
-        }
-      </main>
-
-      @if (currentEnemy(); as current) {
-        <footer class="arena__footer">
-          <span class="arena__footer-label">Current turn</span>
-          <span class="arena__footer-name">{{ current.name }}</span>
-        </footer>
+          </div>
+        </article>
       }
-    </div>
-  }
-</div>
+    </main>
+
+    @if (currentEnemy(); as current) {
+      <footer class="arena__footer">
+        <span class="arena__footer-label">Current turn</span>
+        <span class="arena__footer-name">{{ current.name }}</span>
+      </footer>
+    }
+  </div>
+}

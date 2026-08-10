@@ -72,6 +72,9 @@ export class BattleService {
       ac: input.ac,
       initiative: 0,
       status: {},
+      actions: input.actions || [],
+      statuses: input.statuses || [],
+      resistances: input.resistances || [],
       lastUpdated: Date.now(),
     };
 
@@ -81,6 +84,21 @@ export class BattleService {
 
   async removeEnemy(enemyId: string): Promise<void> {
     await this.firebaseService.remove(`${this.roomPath}/enemies/${enemyId}`);
+  }
+
+  async updateEnemy(enemyId: string, updates: Partial<Enemy>): Promise<void> {
+    const enemy = this.enemies()[enemyId];
+    if (!enemy) {
+      console.warn(`Enemy with id ${enemyId} not found`);
+      return;
+    }
+
+    const payload = {
+      ...updates,
+      lastUpdated: Date.now(),
+    };
+
+    await this.firebaseService.update(`${this.roomPath}/enemies/${enemyId}`, payload);
   }
 
   async setInitiative(enemyId: string, initiative: number): Promise<void> {

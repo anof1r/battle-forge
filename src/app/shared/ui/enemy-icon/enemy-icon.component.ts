@@ -31,6 +31,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
     :host {
       display: inline-flex;
       line-height: 1;
+      filter: sepia(20%) drop-shadow(0 4px 6px rgba(0, 0, 0, 0.6));
     }
   `,
 })

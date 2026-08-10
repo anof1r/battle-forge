@@ -9,6 +9,101 @@ const DEFAULT_ENEMY_TYPE = 'goblin';
 const DEFAULT_MAX_HP = 10;
 const DEFAULT_AC = 12;
 
+const WEAPON_NAMES = [
+  'Shortsword',
+  'Longsword',
+  'Greatsword',
+  'Dagger',
+  'Rapier',
+  'Scimitar',
+  'Battleaxe',
+  'Greataxe',
+  'Maul',
+  'Warhammer',
+  'Spear',
+  'Javelin',
+  'Longbow',
+  'Shortbow',
+  'Crossbow',
+  'Handaxe',
+  'Light Hammer',
+  'Mace',
+  'Morningstar',
+  'Flail',
+];
+
+const DAMAGE_TYPES = [
+  'slashing',
+  'piercing',
+  'bludgeoning',
+  'fire',
+  'cold',
+  'lightning',
+  'acid',
+  'poison',
+  'psychic',
+  'necrotic',
+  'radiant',
+  'thunder',
+  'force',
+];
+
+const ACTION_DESCRIPTIONS = [
+  'Melee Attack',
+  'Ranged Attack',
+  'Reach Attack',
+  'Multiattack',
+  'Special Attack',
+  'Area Attack',
+  'Bite',
+  'Claw',
+  'Tail Slap',
+];
+
+const STATUSES = [
+  'poisoned',
+  'charmed',
+  'paralyzed',
+  'frightened',
+  'restrained',
+  'blinded',
+  'deafened',
+  'stunned',
+  'burning',
+  'frozen',
+  'shocked',
+  'exhausted',
+  'grappled',
+  'incapacitated',
+  'prone',
+];
+
+const RESISTANCES = [
+  'fire',
+  'cold',
+  'lightning',
+  'acid',
+  'poison',
+  'necrotic',
+  'psychic',
+  'radiant',
+  'thunder',
+  'force',
+];
+
+function randomItem<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function randomInt(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function pickRandomItems<T>(arr: T[], maxCount: number): T[] {
+  const shuffled = [...arr].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, randomInt(0, Math.min(maxCount, shuffled.length)));
+}
+
 @Component({
   selector: 'app-dm-control',
   standalone: true,
@@ -43,21 +138,74 @@ export class DmControlComponent {
     () => this.damageAmount() > 0 && (this.damageMode() === 'all' || !!this.damageTargetId()),
   );
 
+  private generateRandomEnemyData() {
+    const actionCount = randomInt(1, 3);
+    const actions = [];
+    for (let i = 0; i < actionCount; i++) {
+      const weapon = randomItem(WEAPON_NAMES);
+      const damageType = randomItem(DAMAGE_TYPES);
+      const description = randomItem(ACTION_DESCRIPTIONS);
+      const toHit = randomInt(2, 6);
+      const diceCount = randomInt(1, 3);
+      const diceSides = [4, 6, 8, 10, 12][randomInt(0, 4)];
+      const damageBonus = randomInt(0, 4);
+      const damageFormula = `${diceCount}d${diceSides} + ${damageBonus}`;
+
+      actions.push({
+        name: weapon,
+        description: description,
+        toHit: `+${toHit}`,
+        damage: damageFormula,
+        damageType: damageType,
+        fullText: `${weapon}. ${description}: +${toHit} to hit, reach 5 ft., one target. Hit ${damageFormula} ${damageType} damage.`,
+      });
+    }
+
+    const statuses = pickRandomItems(STATUSES, 2);
+
+    const resistances = pickRandomItems(RESISTANCES, 2);
+
+    return { actions, statuses, resistances };
+  }
+
   addEnemy(): void {
     const name = this.newEnemyName().trim();
     if (!name || this.newEnemyMaxHp() <= 0) return;
+
+    const randomData = this.generateRandomEnemyData();
 
     const input: EnemyInput = {
       name,
       type: this.newEnemyType(),
       maxHp: this.newEnemyMaxHp(),
       ac: this.newEnemyAc(),
+      actions: randomData.actions,
+      statuses: randomData.statuses,
+      resistances: randomData.resistances,
     };
 
     this.battleService
       .addEnemy(input)
       .then(() => this.resetEnemyForm())
       .catch((error: unknown) => console.error('Error adding enemy:', error));
+  }
+
+  randomizeAllEnemies(): void {
+    const enemies = this.enemiesList();
+    if (enemies.length === 0) return;
+
+    const updates = enemies.map((enemy) => {
+      const randomData = this.generateRandomEnemyData();
+      return this.battleService.updateEnemy(enemy.id, {
+        actions: randomData.actions,
+        statuses: randomData.statuses,
+        resistances: randomData.resistances,
+      });
+    });
+
+    Promise.all(updates)
+      .then(() => console.log('All enemies randomized!'))
+      .catch((err) => console.error('Error randomizing enemies:', err));
   }
 
   removeEnemy(id: string): void {
