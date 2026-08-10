@@ -1,0 +1,58 @@
+// Battle Forge — design tokens
+// Shared across the whole app via :root custom properties.
+
+:root {
+  // Surfaces
+  --bf-bg-deep: #0a0a12;
+  --bf-bg-base: #12111f;
+  --bf-bg-surface: #1a1830;
+  --bf-bg-elevated: #23213e;
+  --bf-bg-glass: rgba(35, 33, 62, 0.55);
+
+  // Accents
+  --bf-gold: #d9b054;
+  --bf-gold-bright: #f6dd8b;
+  --bf-gold-dim: rgba(217, 176, 84, 0.25);
+  --bf-arcane: #8b6cf0;
+  --bf-arcane-bright: #b39dff;
+
+  // Semantic
+  --bf-danger: #e2493d;
+  --bf-danger-bright: #ff6b5e;
+  --bf-warning: #e2953d;
+  --bf-success: #3fb87f;
+  --bf-success-bright: #63d99e;
+  --bf-info: #4f9eea;
+
+  // Text
+  --bf-text-primary: #f1ecdf;
+  --bf-text-muted: #a29ecb;
+  --bf-text-faint: #6e6a94;
+
+  // Borders / shadows
+  --bf-border: rgba(217, 176, 84, 0.22);
+  --bf-border-strong: rgba(217, 176, 84, 0.5);
+  --bf-shadow-soft: 0 8px 30px rgba(0, 0, 0, 0.35);
+  --bf-shadow-deep: 0 20px 60px rgba(0, 0, 0, 0.55);
+  --bf-glow-gold: 0 0 24px rgba(217, 176, 84, 0.35);
+  --bf-glow-arcane: 0 0 24px rgba(139, 108, 240, 0.4);
+
+  // Typography
+  --bf-font-display: 'Cinzel', 'Georgia', serif;
+  --bf-font-body: 'Inter', 'Segoe UI', sans-serif;
+
+  // Radii / spacing
+  --bf-radius-sm: 8px;
+  --bf-radius-md: 14px;
+  --bf-radius-lg: 20px;
+  --bf-space-1: 4px;
+  --bf-space-2: 8px;
+  --bf-space-3: 12px;
+  --bf-space-4: 16px;
+  --bf-space-5: 24px;
+  --bf-space-6: 32px;
+
+  // Motion
+  --bf-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --bf-duration: 220ms;
+}

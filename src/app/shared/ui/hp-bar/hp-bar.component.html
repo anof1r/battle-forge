@@ -1,0 +1,12 @@
+<div class="hp-bar" [class.hp-bar--lg]="size() === 'lg'">
+  <div
+    class="hp-bar__fill"
+    [class.hp-bar__fill--healthy]="state() === 'healthy'"
+    [class.hp-bar__fill--low]="state() === 'low'"
+    [class.hp-bar__fill--critical]="state() === 'critical'"
+    [style.width.%]="percent()"
+  ></div>
+</div>
+@if (showLabel()) {
+  <span class="hp-bar__label">{{ current() }} / {{ max() }} HP</span>
+}

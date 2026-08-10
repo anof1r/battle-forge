@@ -1,0 +1,82 @@
+<div class="stage" [class.stage--battle]="battleStatus() === 'battle'">
+  <!-- Preparation / Initiative / Ended -->
+  @if (battleStatus() !== 'battle') {
+    <div class="stage__intro">
+      <div class="stage__intro-content">
+        <h1 class="stage__title">Battle Forge</h1>
+        @if (battleStatus() === 'preparation') {
+          <p class="stage__subtitle">Awaiting the Dungeon Master&hellip;</p>
+        }
+        @if (battleStatus() === 'initiative') {
+          <p class="stage__subtitle">Rolling initiative&hellip;</p>
+        }
+        @if (battleStatus() === 'ended') {
+          <p class="stage__subtitle">The battle has ended.</p>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- Battle Phase -->
+  @if (battleStatus() === 'battle') {
+    <div class="arena">
+      <header class="arena__header">
+        <div class="arena__stat">
+          <span class="arena__stat-label">Round</span>
+          <span class="arena__stat-value">{{ currentRound() }}</span>
+        </div>
+        <h1 class="arena__title">Battle</h1>
+        <div class="arena__stat">
+          <span class="arena__stat-label">Enemies</span>
+          <span class="arena__stat-value">{{ aliveEnemies().length }}</span>
+        </div>
+      </header>
+
+      <main class="arena__grid">
+        @for (enemy of aliveEnemies(); track enemy.id) {
+          <article class="enemy-card" [class.enemy-card--active]="currentEnemy() === enemy">
+            <div class="enemy-card__icon">
+              <bf-enemy-icon [type]="enemy.type"></bf-enemy-icon>
+            </div>
+
+            <h2 class="enemy-card__name">{{ enemy.name }}</h2>
+            <p class="enemy-card__type">{{ enemy.type | uppercase }}</p>
+
+            <bf-hp-bar
+              class="enemy-card__hp"
+              [current]="enemy.currentHp"
+              [max]="enemy.maxHp"
+              size="lg"
+            ></bf-hp-bar>
+
+            <div class="enemy-card__stats">
+              <div class="enemy-card__stat">
+                <span class="enemy-card__stat-label">AC</span>
+                <span class="enemy-card__stat-value">{{ enemy.ac }}</span>
+              </div>
+              <div class="enemy-card__stat">
+                <span class="enemy-card__stat-label">Initiative</span>
+                <span class="enemy-card__stat-value">{{ enemy.initiative }}</span>
+              </div>
+            </div>
+
+            @if (statusEffects(enemy).length > 0) {
+              <div class="enemy-card__statuses">
+                @for (statusKey of statusEffects(enemy); track statusKey) {
+                  <span class="status-chip">{{ statusKey }}</span>
+                }
+              </div>
+            }
+          </article>
+        }
+      </main>
+
+      @if (currentEnemy(); as current) {
+        <footer class="arena__footer">
+          <span class="arena__footer-label">Current turn</span>
+          <span class="arena__footer-name">{{ current.name }}</span>
+        </footer>
+      }
+    </div>
+  }
+</div>

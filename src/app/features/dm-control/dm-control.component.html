@@ -1,0 +1,270 @@
+<div class="dm">
+  <header class="dm__header">
+    <h1 class="dm__title">Battle Forge</h1>
+    <span class="status-pill" [class]="'status-pill--' + battleStatus()">
+      {{ battleStatus() | uppercase }}
+    </span>
+    @if (battleStatus() !== 'preparation') {
+      <span class="dm__round">Round {{ currentRound() }}</span>
+    }
+  </header>
+
+  <main class="dm__layout">
+    <section class="dm__column">
+      @if (showAddForm()) {
+        <section class="panel">
+          <h2 class="panel__title">Add Enemy</h2>
+
+          <div class="field">
+            <label class="field__label" for="enemy-name">Name</label>
+            <input
+              id="enemy-name"
+              type="text"
+              class="field__input"
+              [(ngModel)]="newEnemyName"
+              placeholder="Dragon, Goblin…"
+            />
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="enemy-type">Type</label>
+            <select id="enemy-type" class="field__input" [(ngModel)]="newEnemyType">
+              <option value="goblin">Goblin</option>
+              <option value="orc">Orc</option>
+              <option value="dragon">Dragon</option>
+              <option value="undead">Undead</option>
+              <option value="beast">Beast</option>
+            </select>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label class="field__label" for="enemy-hp">Max HP</label>
+              <input
+                id="enemy-hp"
+                type="number"
+                class="field__input"
+                min="1"
+                [(ngModel)]="newEnemyMaxHp"
+              />
+            </div>
+            <div class="field">
+              <label class="field__label" for="enemy-ac">AC</label>
+              <input
+                id="enemy-ac"
+                type="number"
+                class="field__input"
+                min="1"
+                max="30"
+                [(ngModel)]="newEnemyAc"
+              />
+            </div>
+          </div>
+
+          <button type="button" class="btn btn--primary btn--block" (click)="addEnemy()">
+            Add Enemy
+          </button>
+        </section>
+      }
+
+      <section class="panel">
+        <h2 class="panel__title">Enemies ({{ enemiesList().length }})</h2>
+
+        <div class="roster">
+          @for (enemy of enemiesList(); track enemy.id) {
+            <div class="roster-item" [class.roster-item--dead]="enemy.currentHp <= 0">
+              <div class="roster-item__head">
+                <span class="roster-item__name">{{ enemy.name }}</span>
+                <span class="roster-item__type">{{ enemy.type }}</span>
+              </div>
+
+              <bf-hp-bar [current]="enemy.currentHp" [max]="enemy.maxHp"></bf-hp-bar>
+
+              <div class="roster-item__meta">
+                <span>AC {{ enemy.ac }}</span>
+                <span>Init {{ enemy.initiative }}</span>
+                <button
+                  type="button"
+                  class="link-btn link-btn--danger"
+                  [disabled]="battleStatus() !== 'preparation'"
+                  (click)="removeEnemy(enemy.id)"
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+          } @empty {
+            <p class="empty-hint">No enemies yet — add one above to begin.</p>
+          }
+        </div>
+
+        @if (enemiesList().length > 0) {
+          <div class="panel__actions">
+            @if (!showInitiativeRolls() && battleStatus() === 'preparation') {
+              <button
+                type="button"
+                class="btn btn--secondary btn--block"
+                (click)="startInitiativeRolls()"
+              >
+                Roll Initiative
+              </button>
+            }
+
+            @if (showInitiativeRolls()) {
+              <div class="initiative-editor">
+                <h3 class="subsection__title">Set Initiative</h3>
+                @for (enemy of enemiesList(); track enemy.id) {
+                  <div class="initiative-editor__row">
+                    <label>{{ enemy.name }}</label>
+                    <input
+                      type="number"
+                      class="field__input field__input--sm"
+                      [ngModel]="initiativeRolls()[enemy.id]"
+                      (ngModelChange)="setInitiative(enemy.id, $event)"
+                    />
+                  </div>
+                }
+                <button
+                  type="button"
+                  class="btn btn--success btn--block"
+                  (click)="confirmInitiative()"
+                >
+                  Confirm &amp; Start Battle
+                </button>
+              </div>
+            }
+          </div>
+        }
+      </section>
+    </section>
+
+    <section class="dm__column">
+      @if (battleStatus() !== 'preparation') {
+        <section class="panel">
+          <h2 class="panel__title">Battle State</h2>
+
+          <div class="subsection">
+            <h3 class="subsection__title">Initiative Order</h3>
+            <div class="initiative-list">
+              @for (enemy of sortedByInitiative(); let i = $index; track enemy.id) {
+                <div
+                  class="initiative-list__row"
+                  [class.initiative-list__row--active]="battleStatus() === 'battle' && i === 0"
+                >
+                  <span class="initiative-list__index">{{ i + 1 }}</span>
+                  <span class="initiative-list__name">{{ enemy.name }}</span>
+                  <span
+                    class="initiative-list__hp"
+                    [class.initiative-list__hp--dead]="enemy.currentHp <= 0"
+                  >
+                    {{ enemy.currentHp }}/{{ enemy.maxHp }} HP
+                  </span>
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="subsection">
+            <h3 class="subsection__title">Alive Enemies ({{ aliveEnemies().length }})</h3>
+            <div class="chip-list">
+              @for (enemy of aliveEnemies(); track enemy.id) {
+                <button
+                  type="button"
+                  class="chip"
+                  [class.chip--selected]="damageTargetId() === enemy.id"
+                  (click)="damageTargetId.set(enemy.id)"
+                >
+                  {{ enemy.name }}
+                </button>
+              }
+            </div>
+          </div>
+
+          <div class="subsection subsection--danger">
+            <h3 class="subsection__title">Apply Damage</h3>
+
+            <div class="segmented">
+              <button
+                type="button"
+                class="segmented__option"
+                [class.segmented__option--active]="damageMode() === 'single'"
+                (click)="damageMode.set('single')"
+              >
+                Single Target
+              </button>
+              <button
+                type="button"
+                class="segmented__option"
+                [class.segmented__option--active]="damageMode() === 'all'"
+                (click)="damageMode.set('all')"
+              >
+                All Enemies
+              </button>
+            </div>
+
+            @if (damageMode() === 'single') {
+              <div class="field">
+                <label class="field__label">Target</label>
+                <select class="field__input" [(ngModel)]="damageTargetId">
+                  <option [value]="null">— Choose enemy —</option>
+                  @for (enemy of aliveEnemies(); track enemy.id) {
+                    <option [value]="enemy.id">
+                      {{ enemy.name }} ({{ enemy.currentHp }}/{{ enemy.maxHp }})
+                    </option>
+                  }
+                </select>
+              </div>
+            }
+
+            <div class="field">
+              <label class="field__label">Amount</label>
+              <input
+                type="number"
+                min="0"
+                class="field__input"
+                [(ngModel)]="damageAmount"
+                placeholder="Damage amount"
+              />
+            </div>
+
+            <div class="field-row">
+              <button
+                type="button"
+                class="btn btn--danger btn--block"
+                [disabled]="!canApplyDamage()"
+                (click)="applyDamage()"
+              >
+                Apply Damage
+              </button>
+              <button type="button" class="btn btn--ghost btn--block" (click)="cancelDamage()">
+                Cancel
+              </button>
+            </div>
+          </div>
+
+          <div class="battle-controls">
+            @if (battleStatus() === 'initiative') {
+              <button type="button" class="btn btn--success btn--block" (click)="startBattle()">
+                Start Battle
+              </button>
+            }
+
+            @if (battleStatus() === 'battle') {
+              <button type="button" class="btn btn--primary btn--block" (click)="nextTurn()">
+                Next Turn
+              </button>
+            }
+
+            <button type="button" class="btn btn--ghost btn--block" (click)="undoLastAction()">
+              Undo Last Action
+            </button>
+          </div>
+        </section>
+      }
+
+      <button type="button" class="btn btn--outline-danger btn--block" (click)="resetScene()">
+        Reset Scene
+      </button>
+    </section>
+  </main>
+</div>

@@ -1,52 +1,92 @@
-# BattleForge
+# 🗡️ Battle Forge — Цифровой помощник D&D DM
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.
+> **Цифровой помощник, который не мешает магии живого стола**
 
-## Development server
+Battle Forge — это приложение для управления боями в D&D. Простое, красивое, не отвлекающее от истории.
 
-To start a local development server, run:
-
-```bash
-ng serve
-```
-
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+## 🚀 Быстрый старт
 
 ```bash
-ng generate component component-name
+npm start
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+Затем откройте в браузере:
 
-```bash
-ng generate --help
-```
+- **DM Control:** http://localhost:4200/dm
+- **Display (TV):** http://localhost:4200/display
 
-## Building
+**[→ Полный гайд в START_HERE.md](./START_HERE.md)**
 
-To build the project run:
+## ✨ Основные возможности
 
-```bash
-ng build
-```
+✅ Добавлять врагов на лету
+✅ Управлять инициативой
+✅ Наносить урон (одному или всем)
+✅ Откатывать ошибки
+✅ Real-time синхронизация между двумя экранами
+✅ Фэнтез-оформление
+✅ Адаптивный дизайн
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+## 📚 Быстрые ссылки
 
-## Running unit tests
+| Документ                                   | Время         |
+| ------------------------------------------ | ------------- |
+| [START_HERE.md](./START_HERE.md)           | 2 мин ⭐      |
+| [DM_CHEATSHEET.md](./DM_CHEATSHEET.md)     | 5 мин         |
+| [QUICK_START.md](./QUICK_START.md)         | 5 мин         |
+| [USAGE_RU.md](./USAGE_RU.md)               | 15 мин        |
+| [PHASE_1_SUMMARY.md](./PHASE_1_SUMMARY.md) | 20 мин        |
+| [INDEX.md](./INDEX.md)                     | Полный индекс |
 
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
+## 🏗️ Технический стек
 
-```bash
-ng test
-```
+- Angular 20 (Standalone Components)
+- Firebase Realtime Database
+- TypeScript 5.9
+- SCSS (с анимациями)
+- Angular Signals
 
-## Running end-to-end tests
+## 🎯 Как использовать
 
-For end-to-end (e2e) testing, run:
+### Подготовка
+
+1. Добавить врагов через форму на `/dm`
+2. Раскатать инициативу
+3. Начать бой
+
+### Боевая фаза
+
+1. Выбрать врага
+2. Ввести урон
+3. Нажать "Apply Damage"
+4. Переход к следующему врагу
+
+**[→ Полное руководство](./DM_CHEATSHEET.md)**
+
+## 🔥 Что дальше?
+
+Планируется добавить в ФАЗА 2:
+
+- 📱 Мобильное приложение для игроков
+- ⚙️ Полный редактор врагов
+- 📝 История боя
+- 🎵 Звуки
+
+**[→ Дорожная карта](./ROADMAP.md)**
+
+## 📊 Статус проекта
+
+| Фаза              | Статус         |
+| ----------------- | -------------- |
+| ФАЗА 1 (ЯДРО)     | ✅ ГОТОВО      |
+| ФАЗА 2 (УДОБСТВО) | 📋 Планируется |
+| ФАЗА 3 (БОНУСЫ)   | 💭 Идеи        |
+
+---
+
+**Начните играть:** `npm start`
+
+**[Все документы →](./INDEX.md)**
 
 ```bash
 ng e2e

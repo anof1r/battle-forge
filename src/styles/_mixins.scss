@@ -1,0 +1,48 @@
+// Battle Forge — shared mixins
+
+@mixin glass-card {
+  background: linear-gradient(160deg, var(--bf-bg-elevated), var(--bf-bg-surface));
+  border: 1px solid var(--bf-border);
+  border-radius: var(--bf-radius-md);
+  box-shadow: var(--bf-shadow-soft);
+  backdrop-filter: blur(14px);
+}
+
+@mixin focus-ring {
+  &:focus-visible {
+    outline: 2px solid var(--bf-arcane-bright);
+    outline-offset: 2px;
+  }
+}
+
+@mixin button-base {
+  font-family: var(--bf-font-body);
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  border-radius: var(--bf-radius-sm);
+  padding: 0.7rem 1.1rem;
+  cursor: pointer;
+  transition:
+    transform var(--bf-duration) var(--bf-ease),
+    box-shadow var(--bf-duration) var(--bf-ease),
+    background var(--bf-duration) var(--bf-ease),
+    border-color var(--bf-duration) var(--bf-ease),
+    opacity var(--bf-duration) var(--bf-ease);
+  @include focus-ring;
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  &:not(:disabled):hover {
+    transform: translateY(-1px);
+  }
+
+  &:not(:disabled):active {
+    transform: translateY(0);
+  }
+}
