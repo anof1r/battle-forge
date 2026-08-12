@@ -1,12 +1,12 @@
 import { BattleStatus } from '../constants/battle-status.constants';
 import { Combatant } from './combatant.model';
 
-export interface BattleScene {
-  roomId: string;
+/** Shape of the data synced to/from Firebase for a room. */
+export interface BattleRoom {
   status: BattleStatus;
   currentRound: number;
-  /** index in initiativeOrder */
   currentTurnIndex: number;
-  enemies: Record<string, Combatant>;
+  combatants: Record<string, Combatant>;
+  initiativeOrder: string[];
   lastUpdated: number;
 }

@@ -1,4 +1,4 @@
-@if (battleStatus() !== 'battle') {
+@if (battleStatus() !== BATTLE_STATUS.BATTLE) {
   <div class="stage__intro">
     <div class="stage__intro-frame">
       <span class="stage__corner stage__corner--tl"></span>
@@ -19,13 +19,13 @@
           <span class="stage__divider-line"></span>
         </div>
 
-        @if (battleStatus() === 'preparation') {
+        @if (battleStatus() === BATTLE_STATUS.PREPARATION) {
           <p class="stage__subtitle">Awaiting the Dungeon Master&hellip;</p>
         }
-        @if (battleStatus() === 'initiative') {
+        @if (battleStatus() === BATTLE_STATUS.INITIATIVE) {
           <p class="stage__subtitle">Rolling initiative&hellip;</p>
         }
-        @if (battleStatus() === 'ended') {
+        @if (battleStatus() === BATTLE_STATUS.ENDED) {
           <p class="stage__subtitle">The battle has ended.</p>
         }
       </div>
@@ -33,7 +33,7 @@
   </div>
 }
 
-@if (battleStatus() === 'battle') {
+@if (battleStatus() === BATTLE_STATUS.BATTLE) {
   <div class="arena">
     <header class="arena__header">
       <div class="arena__stat">
@@ -58,11 +58,11 @@
             <header class="bestiary-card__banner">
               <h2 class="bestiary-card__name">{{ enemy.name }}</h2>
             </header>
-            <p class="bestiary-card__type">{{ enemy.type | uppercase }}</p>
+            <p class="bestiary-card__type">{{ enemy.subtype | uppercase }}</p>
 
             <div class="bestiary-card__body">
               <div class="bestiary-card__portrait">
-                <bf-enemy-icon [type]="enemy.type"></bf-enemy-icon>
+                <bf-enemy-icon [type]="enemy.subtype ?? DEFAULT_ENEMY_TYPE"></bf-enemy-icon>
               </div>
               <div class="bestiary-card__seals">
                 <div class="seal seal--ac">

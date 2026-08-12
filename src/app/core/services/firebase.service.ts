@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { FirebaseApp, initializeApp } from 'firebase/app';
 import {
   getDatabase,
@@ -13,11 +13,13 @@ import {
 } from 'firebase/database';
 import { environment } from '../../../environments/environment';
 import { Observable } from 'rxjs';
+import { LoggerService } from './logger.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class FirebaseService {
+  private readonly logger = inject(LoggerService);
   private readonly app: FirebaseApp = initializeApp(environment.firebase);
   private readonly db: Database = getDatabase(this.app);
 
@@ -26,7 +28,7 @@ export class FirebaseService {
       const snapshot = await get(child(ref(this.db), path));
       return snapshot.exists() ? (snapshot.val() as T) : null;
     } catch (error) {
-      console.error('Firebase get error:', error);
+      this.logger.error('FirebaseService.get', error);
       throw error;
     }
   }
@@ -35,7 +37,7 @@ export class FirebaseService {
     try {
       await set(ref(this.db, path), data);
     } catch (error) {
-      console.error('Firebase set error:', error);
+      this.logger.error('FirebaseService.set', error);
       throw error;
     }
   }
@@ -44,7 +46,7 @@ export class FirebaseService {
     try {
       await update(ref(this.db, path), data);
     } catch (error) {
-      console.error('Firebase update error:', error);
+      this.logger.error('FirebaseService.update', error);
       throw error;
     }
   }
@@ -53,13 +55,13 @@ export class FirebaseService {
     try {
       await remove(ref(this.db, path));
     } catch (error) {
-      console.error('Firebase remove error:', error);
+      this.logger.error('FirebaseService.remove', error);
       throw error;
     }
   }
 
   subscribe<T>(path: string): Observable<T | null> {
-    return new Observable((observer) => {
+    return new Observable<T | null>((observer) => {
       const unsubscribe = onValue(
         ref(this.db, path),
         (snapshot) => {

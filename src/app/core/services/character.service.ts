@@ -1,0 +1,43 @@
+import { Injectable, inject } from '@angular/core';
+import { FirebaseService } from './firebase.service';
+import { Observable } from 'rxjs';
+import { ParsedCharacter } from '../models/character.model';
+import { FIREBASE_ROOT, playerPath } from '../constants/firebase-paths.constants';
+
+@Injectable({ providedIn: 'root' })
+export class CharacterService {
+  private readonly firebase = inject(FirebaseService);
+
+  async characterExists(name: string): Promise<boolean> {
+    const data = await this.firebase.get(playerPath(name));
+    return data !== null;
+  }
+
+  async saveCharacter(character: ParsedCharacter): Promise<void> {
+    await this.firebase.set(playerPath(character.name), {
+      ...character,
+      lastUpdated: Date.now(),
+    });
+  }
+
+  async loadCharacter(name: string): Promise<ParsedCharacter | null> {
+    const data = await this.firebase.get<ParsedCharacter>(playerPath(name));
+    return data ?? null;
+  }
+
+  subscribeToCharacter(name: string): Observable<ParsedCharacter | null> {
+    return this.firebase.subscribe<ParsedCharacter>(playerPath(name));
+  }
+
+  async getAllPlayers(): Promise<ParsedCharacter[]> {
+    const snapshot = await this.firebase.get<Record<string, ParsedCharacter>>(
+      FIREBASE_ROOT.PLAYERS,
+    );
+    if (!snapshot) return [];
+    return Object.values(snapshot);
+  }
+
+  async updatePlayerHp(name: string, newHp: number): Promise<void> {
+    await this.firebase.set(`${playerPath(name)}/currentHp`, Math.max(0, newHp));
+  }
+}

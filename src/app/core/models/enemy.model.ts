@@ -1,18 +1,4 @@
-export interface Enemy {
-  id: string;
-  name: string;
-  type: string;
-  maxHp: number;
-  currentHp: number;
-  ac: number;
-  initiative: number;
-  status: Record<string, { name: string; duration: number }> | null;
-  actions?: EnemyAction[];
-  statuses?: string[];
-  resistances?: string[];
-  lastUpdated: number;
-}
-
+/** A single attack/action a creature can take, shown on its bestiary card. */
 export interface EnemyAction {
   name: string;
   description: string;
@@ -20,14 +6,4 @@ export interface EnemyAction {
   damage: string;
   damageType: string;
   fullText?: string;
-}
-
-export interface EnemyInput {
-  name: string;
-  type: string;
-  maxHp: number;
-  ac: number;
-  actions?: EnemyAction[];
-  statuses?: string[];
-  resistances?: string[];
 }

@@ -1,7 +1,9 @@
+import { BattleActionType } from '../constants/battle-action.constants';
+
 export interface BattleAction {
   id: string;
   timestamp: number;
-  type: 'damage' | 'heal' | 'statusChange' | 'initiative';
+  type: BattleActionType;
   targetId: string;
   value: number;
   description: string;

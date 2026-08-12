@@ -1,274 +1,350 @@
-<div class="dm">
-  <header class="dm__header">
-    <h1 class="dm__title">Battle Forge</h1>
-    <span class="status-pill" [class]="'status-pill--' + battleStatus()">
-      {{ battleStatus() | uppercase }}
-    </span>
-    @if (battleStatus() !== 'preparation') {
-      <span class="dm__round">Round {{ currentRound() }}</span>
-    }
+<div class="dm-container">
+  <header class="dm-header">
+    <h1 class="dm-title">⚔️ Battle Forge — DM</h1>
+    <div class="dm-status">
+      <span
+        class="status-pill"
+        [class.status-pill--preparation]="battleStatus() === BATTLE_STATUS.PREPARATION"
+        [class.status-pill--initiative]="battleStatus() === BATTLE_STATUS.INITIATIVE"
+        [class.status-pill--battle]="battleStatus() === BATTLE_STATUS.BATTLE"
+        [class.status-pill--ended]="battleStatus() === BATTLE_STATUS.ENDED"
+      >
+        {{ battleStatus() | uppercase }}
+      </span>
+      <span class="dm-round">Раунд {{ currentRound() }}</span>
+    </div>
   </header>
 
-  <main class="dm__layout">
-    <section class="dm__column">
-      @if (showAddForm()) {
-        <section class="panel">
-          <h2 class="panel__title">Add Enemy</h2>
+  <!-- ===== ФОРМА ДОБАВЛЕНИЯ ВРАГА (исправлено) ===== -->
+  <section class="dm-section dm-section--add">
+    <h2 class="dm-section__title">➕ Добавить врага</h2>
+    <div class="dm-add-form">
+      <div class="field-row">
+        <div class="field">
+          <label class="field__label">Имя</label>
+          <input
+            class="field__input"
+            type="text"
+            placeholder="Гоблин"
+            [value]="newEnemyName()"
+            (input)="newEnemyName.set($any($event.target).value)"
+          />
+        </div>
+        <div class="field">
+          <label class="field__label">Тип</label>
+          <input
+            class="field__input"
+            type="text"
+            placeholder="goblin"
+            [value]="newEnemyType()"
+            (input)="newEnemyType.set($any($event.target).value)"
+          />
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label class="field__label">HP</label>
+          <input
+            class="field__input"
+            type="number"
+            min="1"
+            [value]="newEnemyMaxHp()"
+            (input)="onHpInput($event)"
+          />
+        </div>
+        <div class="field">
+          <label class="field__label">AC</label>
+          <input
+            class="field__input"
+            type="number"
+            min="1"
+            [value]="newEnemyAc()"
+            (input)="onAcInput($event)"
+          />
+        </div>
+      </div>
+      <div class="dm-btn-group">
+        <button
+          class="dm-btn"
+          (click)="addEnemy()"
+          [disabled]="!newEnemyName() || newEnemyMaxHp() < 1"
+        >
+          + Добавить
+        </button>
+        <button class="dm-btn dm-btn--secondary" (click)="randomizeAllEnemies()">
+          🎲 Рандомизировать врагов
+        </button>
+      </div>
+    </div>
+  </section>
 
-          <div class="field">
-            <label class="field__label" for="enemy-name">Name</label>
+  <!-- ===== УПРАВЛЕНИЕ БОЕМ ===== -->
+  <section class="dm-section dm-section--controls">
+    <h2 class="dm-section__title">🎮 Управление боем</h2>
+    <div class="dm-controls-group">
+      <h3 class="dm-controls-group__title">⚙️ Подготовка</h3>
+      <div class="dm-controls">
+        <button class="dm-btn" (click)="loadPlayersToBattle()">🎮 Загрузить игроков</button>
+        @if (battleStatus() === BATTLE_STATUS.PREPARATION) {
+          <button class="dm-btn" (click)="startInitiativeRolls()">🎲 Бросить инициативу</button>
+        }
+        @if (battleStatus() === BATTLE_STATUS.INITIATIVE) {
+          <button class="dm-btn dm-btn--success" (click)="confirmInitiative()">
+            ✅ Подтвердить инициативу
+          </button>
+        }
+        @if (
+          battleStatus() === BATTLE_STATUS.PREPARATION ||
+          battleStatus() === BATTLE_STATUS.INITIATIVE
+        ) {
+          <button class="dm-btn dm-btn--success" (click)="startBattle()">⚔️ Начать битву</button>
+        }
+      </div>
+    </div>
+    <div class="dm-controls-group">
+      <h3 class="dm-controls-group__title">⏳ Управление ходом</h3>
+      <div class="dm-controls">
+        <button class="dm-btn" (click)="nextTurn()">➡️ Следующий ход</button>
+        <button class="dm-btn" (click)="undoLastAction()">↩️ Отменить</button>
+        <button class="dm-btn dm-btn--danger" (click)="resetScene()">🔄 Сбросить</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== ПАНЕЛЬ НАНЕСЕНИЯ УРОНА ===== -->
+  <section class="dm-section dm-section--damage">
+    <h2 class="dm-section__title">💥 Нанести урон</h2>
+    <div class="dm-damage-panel">
+      <div class="dm-damage__target-type">
+        <label class="dm-damage__radio">
+          <input
+            type="radio"
+            [value]="'enemies'"
+            [checked]="targetType() === 'enemies'"
+            (change)="targetType.set('enemies'); damageTargetId.set(null)"
+          />
+          Враги
+        </label>
+        <label class="dm-damage__radio">
+          <input
+            type="radio"
+            [value]="'players'"
+            [checked]="targetType() === 'players'"
+            (change)="targetType.set('players'); damageTargetId.set(null)"
+          />
+          Игроки
+        </label>
+        <label class="dm-damage__radio">
+          <input
+            type="radio"
+            [value]="'all'"
+            [checked]="targetType() === 'all'"
+            (change)="targetType.set('all'); damageTargetId.set(null)"
+          />
+          Все враги (массовый урон)
+        </label>
+      </div>
+
+      @if (targetType() !== 'all') {
+        <div class="dm-damage__target-select">
+          <label class="field__label">Цель</label>
+          <select
+            class="field__input"
+            [value]="damageTargetId() || ''"
+            (change)="onDamageTargetChange($event)"
+          >
+            <option value="" disabled selected>Выберите цель</option>
+            @for (target of availableTargets(); track target.id) {
+              <option [value]="target.id">
+                {{ target.name }} (HP: {{ target.currentHp }}/{{ target.maxHp }})
+              </option>
+            }
+          </select>
+        </div>
+      }
+
+      <div class="dm-damage__controls">
+        <div class="field">
+          <label class="field__label">Урон</label>
+          <input
+            class="field__input"
+            type="number"
+            min="0"
+            [value]="damageAmount()"
+            (input)="onDamageAmountInput($event)"
+          />
+        </div>
+        <button
+          class="dm-btn dm-btn--danger"
+          [disabled]="!canApplyDamage()"
+          (click)="applyDamage()"
+        >
+          💥 Нанести урон
+        </button>
+        <button class="dm-btn dm-btn--secondary" (click)="cancelDamage()">✕ Сбросить</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== РЕДАКТОР ИНИЦИАТИВЫ ===== -->
+  @if (showInitiativeRolls()) {
+    <section class="dm-section dm-section--initiative">
+      <h2 class="dm-section__title">🎲 Инициатива</h2>
+      <div class="initiative-editor">
+        @for (combatant of allCombatants(); track combatant.id) {
+          <div class="initiative-editor__row">
+            <span>{{ combatant.name }} ({{ combatant.type | uppercase }})</span>
             <input
-              id="enemy-name"
-              type="text"
-              class="field__input"
-              [(ngModel)]="newEnemyName"
-              placeholder="Dragon, Goblin…"
+              type="number"
+              class="field__input field__input--sm"
+              [value]="combatant.initiative || 0"
+              (input)="onInitiativeInput(combatant.id, $event)"
             />
           </div>
-
-          <div class="field">
-            <label class="field__label" for="enemy-type">Type</label>
-            <select id="enemy-type" class="field__input" [(ngModel)]="newEnemyType">
-              <option value="goblin">Goblin</option>
-              <option value="orc">Orc</option>
-              <option value="dragon">Dragon</option>
-              <option value="undead">Undead</option>
-              <option value="beast">Beast</option>
-            </select>
-          </div>
-
-          <div class="field-row">
-            <div class="field">
-              <label class="field__label" for="enemy-hp">Max HP</label>
-              <input
-                id="enemy-hp"
-                type="number"
-                class="field__input"
-                min="1"
-                [(ngModel)]="newEnemyMaxHp"
-              />
-            </div>
-            <div class="field">
-              <label class="field__label" for="enemy-ac">AC</label>
-              <input
-                id="enemy-ac"
-                type="number"
-                class="field__input"
-                min="1"
-                max="30"
-                [(ngModel)]="newEnemyAc"
-              />
-            </div>
-          </div>
-
-          <button type="button" class="btn btn--primary btn--block" (click)="addEnemy()">
-            Add Enemy
-          </button>
-
-          <button type="button" class="btn btn--primary btn--block" (click)="randomizeAllEnemies()">
-            🎲 Randomize stats
-          </button>
-        </section>
-      }
-
-      <section class="panel">
-        <h2 class="panel__title">Enemies ({{ enemiesList().length }})</h2>
-
-        <div class="roster">
-          @for (enemy of enemiesList(); track enemy.id) {
-            <div class="roster-item" [class.roster-item--dead]="enemy.currentHp <= 0">
-              <div class="roster-item__head">
-                <span class="roster-item__name">{{ enemy.name }}</span>
-                <span class="roster-item__type">{{ enemy.type }}</span>
-              </div>
-
-              <bf-hp-bar [current]="enemy.currentHp" [max]="enemy.maxHp"></bf-hp-bar>
-
-              <div class="roster-item__meta">
-                <span>AC {{ enemy.ac }}</span>
-                <span>Init {{ enemy.initiative }}</span>
-                <button
-                  type="button"
-                  class="link-btn link-btn--danger"
-                  [disabled]="battleStatus() !== 'preparation'"
-                  (click)="removeEnemy(enemy.id)"
-                >
-                  Remove
-                </button>
-              </div>
-            </div>
-          } @empty {
-            <p class="empty-hint">No enemies yet — add one above to begin.</p>
-          }
-        </div>
-
-        @if (enemiesList().length > 0) {
-          <div class="panel__actions">
-            @if (!showInitiativeRolls() && battleStatus() === 'preparation') {
-              <button
-                type="button"
-                class="btn btn--secondary btn--block"
-                (click)="startInitiativeRolls()"
-              >
-                Roll Initiative
-              </button>
-            }
-
-            @if (showInitiativeRolls()) {
-              <div class="initiative-editor">
-                <h3 class="subsection__title">Set Initiative</h3>
-                @for (enemy of enemiesList(); track enemy.id) {
-                  <div class="initiative-editor__row">
-                    <label>{{ enemy.name }}</label>
-                    <input
-                      type="number"
-                      class="field__input field__input--sm"
-                      [ngModel]="initiativeRolls()[enemy.id]"
-                      (ngModelChange)="setInitiative(enemy.id, $event)"
-                    />
-                  </div>
-                }
-                <button
-                  type="button"
-                  class="btn btn--success btn--block"
-                  (click)="confirmInitiative()"
-                >
-                  Confirm &amp; Start Battle
-                </button>
-              </div>
-            }
-          </div>
         }
-      </section>
+      </div>
     </section>
+  }
 
-    <section class="dm__column">
-      @if (battleStatus() !== 'preparation') {
-        <section class="panel">
-          <h2 class="panel__title">Battle State</h2>
-
-          <div class="subsection">
-            <h3 class="subsection__title">Initiative Order</h3>
-            <div class="initiative-list">
-              @for (enemy of sortedByInitiative(); let i = $index; track enemy.id) {
-                <div
-                  class="initiative-list__row"
-                  [class.initiative-list__row--active]="battleStatus() === 'battle' && i === 0"
-                >
-                  <span class="initiative-list__index">{{ i + 1 }}</span>
-                  <span class="initiative-list__name">{{ enemy.name }}</span>
-                  <span
-                    class="initiative-list__hp"
-                    [class.initiative-list__hp--dead]="enemy.currentHp <= 0"
-                  >
-                    {{ enemy.currentHp }}/{{ enemy.maxHp }} HP
-                  </span>
-                </div>
-              }
-            </div>
-          </div>
-
-          <div class="subsection">
-            <h3 class="subsection__title">Alive Enemies ({{ aliveEnemies().length }})</h3>
-            <div class="chip-list">
-              @for (enemy of aliveEnemies(); track enemy.id) {
-                <button
-                  type="button"
-                  class="chip"
-                  [class.chip--selected]="damageTargetId() === enemy.id"
-                  (click)="damageTargetId.set(enemy.id)"
-                >
-                  {{ enemy.name }}
-                </button>
-              }
-            </div>
-          </div>
-
-          <div class="subsection subsection--danger">
-            <h3 class="subsection__title">Apply Damage</h3>
-
-            <div class="segmented">
-              <button
-                type="button"
-                class="segmented__option"
-                [class.segmented__option--active]="damageMode() === 'single'"
-                (click)="damageMode.set('single')"
-              >
-                Single Target
-              </button>
-              <button
-                type="button"
-                class="segmented__option"
-                [class.segmented__option--active]="damageMode() === 'all'"
-                (click)="damageMode.set('all')"
-              >
-                All Enemies
-              </button>
-            </div>
-
-            @if (damageMode() === 'single') {
-              <div class="field">
-                <label class="field__label">Target</label>
-                <select class="field__input" [(ngModel)]="damageTargetId">
-                  <option [value]="null">— Choose enemy —</option>
-                  @for (enemy of aliveEnemies(); track enemy.id) {
-                    <option [value]="enemy.id">
-                      {{ enemy.name }} ({{ enemy.currentHp }}/{{ enemy.maxHp }})
-                    </option>
-                  }
-                </select>
-              </div>
+  <!-- ===== СПИСОК ВРАГОВ ===== -->
+  <section class="dm-section dm-section--enemies">
+    <h2 class="dm-section__title">👹 Враги ({{ aliveEnemies().length }})</h2>
+    <div class="enemy-list">
+      @for (enemy of aliveEnemies(); track enemy.id) {
+        <div class="enemy-item" [class.enemy-item--active]="currentEnemy()?.id === enemy.id">
+          <div class="enemy-item__info">
+            <span class="enemy-item__name">{{ enemy.name }}</span>
+            <span class="enemy-item__hp">HP: {{ enemy.currentHp }}/{{ enemy.maxHp }}</span>
+            <span class="enemy-item__ac">AC: {{ enemy.ac }}</span>
+            <span class="enemy-item__init">INIT: {{ enemy.initiative }}</span>
+            @if (currentEnemy()?.id === enemy.id) {
+              <span class="enemy-item__status">⚔️ Текущий</span>
             }
-
-            <div class="field">
-              <label class="field__label">Amount</label>
-              <input
-                type="number"
-                min="0"
-                class="field__input"
-                [(ngModel)]="damageAmount"
-                placeholder="Damage amount"
-              />
-            </div>
-
-            <div class="field-row">
-              <button
-                type="button"
-                class="btn btn--danger btn--block"
-                [disabled]="!canApplyDamage()"
-                (click)="applyDamage()"
-              >
-                Apply Damage
-              </button>
-              <button type="button" class="btn btn--ghost btn--block" (click)="cancelDamage()">
-                Cancel
-              </button>
-            </div>
           </div>
+          <div class="enemy-item__actions">
+            <button class="dm-btn dm-btn--small" (click)="removeEnemy(enemy.id)">✕</button>
+          </div>
+        </div>
+      } @empty {
+        <div class="empty-hint">Нет врагов. Добавьте их через форму выше.</div>
+      }
+    </div>
+  </section>
 
-          <div class="battle-controls">
-            @if (battleStatus() === 'initiative') {
-              <button type="button" class="btn btn--success btn--block" (click)="startBattle()">
-                Start Battle
-              </button>
+  <!-- ===== СПИСОК ИГРОКОВ ===== -->
+  <section class="dm-section dm-section--players">
+    <h2 class="dm-section__title">🎭 Игроки в бою ({{ (playersInBattle() | keyvalue).length }})</h2>
+    <div class="enemy-list">
+      @for (player of playersInBattle() | keyvalue; track player.value.id) {
+        <div class="enemy-item" [class.enemy-item--active]="currentEnemy()?.id === player.value.id">
+          <div class="enemy-item__info">
+            <span class="enemy-item__name">{{ player.value.name }}</span>
+            <span class="enemy-item__hp"
+              >HP: {{ player.value.currentHp }}/{{ player.value.maxHp }}</span
+            >
+            <span class="enemy-item__ac">AC: {{ player.value.ac }}</span>
+            <span class="enemy-item__init">INIT: {{ player.value.initiative }}</span>
+            @if (currentEnemy()?.id === player.value.id) {
+              <span class="enemy-item__status">⚔️ Текущий</span>
             }
-
-            @if (battleStatus() === 'battle') {
-              <button type="button" class="btn btn--primary btn--block" (click)="nextTurn()">
-                Next Turn
-              </button>
-            }
-
-            <button type="button" class="btn btn--ghost btn--block" (click)="undoLastAction()">
-              Undo Last Action
+          </div>
+          <div class="enemy-item__actions">
+            <button
+              class="dm-btn dm-btn--small"
+              (click)="removePlayerFromBattle(player.value.id)"
+              title="Убрать из боя"
+            >
+              ✕
             </button>
           </div>
-        </section>
+        </div>
+      } @empty {
+        <div class="empty-hint">Нет игроков в бою. Нажмите "Загрузить игроков".</div>
       }
+    </div>
+  </section>
 
-      <button type="button" class="btn btn--outline-danger btn--block" (click)="resetScene()">
-        Reset Scene
+  <!-- ===== ВЫДАЧА ПРЕДМЕТОВ ===== -->
+  <section class="dm-section dm-section--inventory">
+    <h2 class="dm-section__title">🎒 Выдать предмет игроку</h2>
+    <div class="dm-inventory-form">
+      <div class="field-row">
+        <div class="field">
+          <label class="field__label">Игрок</label>
+          <select
+            class="field__input"
+            [value]="selectedPlayerIdForItem() || ''"
+            (change)="onSelectPlayerForItem($event)"
+          >
+            <option value="" disabled selected>Выберите игрока</option>
+            @for (player of playersInBattle() | keyvalue; track player.value.id) {
+              <option [value]="player.value.id">{{ player.value.name }}</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label class="field__label">Предмет</label>
+          <input
+            class="field__input"
+            type="text"
+            placeholder="Зелье здоровья"
+            [value]="itemName()"
+            (input)="itemName.set($any($event.target).value)"
+          />
+        </div>
+        <div class="field">
+          <label class="field__label">Описание</label>
+          <input
+            class="field__input"
+            type="text"
+            placeholder="Зелье восстанавливает 2d4+2 HP"
+            [value]="itemDescription()"
+            (input)="itemDescription.set($any($event.target).value)"
+          />
+        </div>
+        <div class="field-row">
+          <div class="field" style="grid-column: 1 / -1">
+            <label class="field__label">Редкость</label>
+            <select
+              class="field__input"
+              [value]="itemRarity()"
+              (change)="itemRarity.set($any($event.target).value)"
+            >
+              <option value="common">Обычный</option>
+              <option value="uncommon">Необычный</option>
+              <option value="rare">Редкий</option>
+              <option value="epic">Эпический</option>
+              <option value="legendary">Легендарный</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field__label">Количество</label>
+          <input
+            class="field__input"
+            type="number"
+            min="1"
+            [value]="itemQuantity()"
+            (input)="onItemQuantityInput($event)"
+          />
+        </div>
+      </div>
+      <button
+        class="dm-btn"
+        (click)="giveItem()"
+        [disabled]="!selectedPlayerIdForItem() || !itemName() || itemQuantity() < 1"
+      >
+        🎒 Выдать предмет
       </button>
-    </section>
-  </main>
+    </div>
+  </section>
+
+  <!-- ===== ТЕКУЩИЙ ХОД ===== -->
+  @if (currentEnemy(); as current) {
+    <footer class="dm-footer">
+      <span class="dm-footer__label">Текущий ход:</span>
+      <span class="dm-footer__name">{{ current.name }}</span>
+      <span class="dm-footer__type">({{ current.type | uppercase }})</span>
+    </footer>
+  }
 </div>

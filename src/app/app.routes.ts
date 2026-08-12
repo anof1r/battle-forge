@@ -1,19 +1,20 @@
 import { Routes } from '@angular/router';
-import { DmControlComponent } from './features/dm-control/dm-control.component';
-import { DisplayComponent } from './features/display/display.component';
 
 export const routes: Routes = [
   {
     path: 'dm',
-    component: DmControlComponent,
+    loadComponent: () =>
+      import('./features/dm-control/dm-control.component').then((m) => m.DmControlComponent),
   },
   {
     path: 'display',
-    component: DisplayComponent,
+    loadComponent: () =>
+      import('./features/display/display.component').then((m) => m.DisplayComponent),
   },
   {
-    path: '',
-    redirectTo: '/dm',
-    pathMatch: 'full',
+    path: 'player',
+    loadComponent: () =>
+      import('./features/player/player.component').then((m) => m.PlayerComponent),
   },
+  { path: '', redirectTo: '/dm', pathMatch: 'full' },
 ];

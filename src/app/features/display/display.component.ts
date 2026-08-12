@@ -1,9 +1,10 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { UpperCasePipe } from '@angular/common';
 import { BattleService } from '../../core/services/battle.service';
-import { Enemy } from '../../core/models';
 import { HpBarComponent } from '../../shared/ui/hp-bar/hp-bar.component';
 import { EnemyIconComponent } from '../../shared/ui/enemy-icon/enemy-icon.component';
+import { BATTLE_STATUS } from '../../core/constants/battle-status.constants';
+import { DEFAULT_ENEMY_TYPE } from '../../core/constants/enemy-generator.constants';
 
 @Component({
   selector: 'app-display',
@@ -16,13 +17,11 @@ import { EnemyIconComponent } from '../../shared/ui/enemy-icon/enemy-icon.compon
 export class DisplayComponent {
   private readonly battleService = inject(BattleService);
 
+  readonly BATTLE_STATUS = BATTLE_STATUS;
+  readonly DEFAULT_ENEMY_TYPE = DEFAULT_ENEMY_TYPE;
+
   readonly battleStatus = this.battleService.battleStatus;
   readonly aliveEnemies = this.battleService.aliveEnemies;
   readonly currentRound = this.battleService.currentRound;
-  readonly currentEnemy = this.battleService.currentEnemy;
-
-  statusEffects(enemy: Enemy): string[] {
-    // Firebase omits empty objects, so `status` may be missing entirely.
-    return Object.keys(enemy.status ?? {});
-  }
+  readonly currentEnemy = this.battleService.currentCombatant;
 }

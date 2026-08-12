@@ -1,0 +1,338 @@
+<div class="player-stage">
+  @if (!isLoggedIn()) {
+    <div class="player__intro">
+      <div class="player__intro-frame">
+        <h1 class="player__title">⚔️ Battle Forge</h1>
+        <div class="player__divider">
+          <span class="player__divider-line"></span>
+          <span class="player__divider-diamond">✦</span>
+          <span class="player__divider-line"></span>
+        </div>
+        <p class="player__subtitle">Войдите как игрок</p>
+
+        <div class="player__login-form">
+          <input
+            class="player__login-input"
+            type="text"
+            placeholder="Имя персонажа"
+            [value]="loginName()"
+            (input)="onLoginInput($event)"
+            (keyup.enter)="login()"
+          />
+          <button class="player__login-btn" (click)="login()">Войти</button>
+        </div>
+
+        @if (loginError()) {
+          <p class="player__error">{{ loginError() }}</p>
+        }
+
+        @if (showUploadPrompt()) {
+          <div class="player__upload-section">
+            <p class="player__upload-hint">Или загрузите JSON-файл персонажа</p>
+            <label class="player__upload-btn">
+              <input type="file" accept=".json" (change)="onFileSelected($event)" hidden />
+              📂 Выбрать файл
+            </label>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  @if (isLoggedIn() && character(); as char) {
+    <div class="player__arena">
+      <div class="player__tabs">
+        <button
+          class="player__tab"
+          [class.player__tab--active]="activeTab() === 'character'"
+          (click)="switchTab('character')"
+        >
+          📖 Персонаж
+        </button>
+        <button
+          class="player__tab"
+          [class.player__tab--active]="activeTab() === 'arena'"
+          (click)="switchTab('arena')"
+        >
+          ⚔️ Арена
+          <span class="player__tab-badge">{{ aliveEnemies().length }}</span>
+        </button>
+      </div>
+
+      @if (activeTab() === 'character') {
+        <div class="player__character">
+          <header class="player__header">
+            <h1 class="player__header-title">{{ char.name }}</h1>
+            <div class="player__header-info">
+              <span class="player__header-tag">{{ char.race }}</span>
+              <span class="player__header-tag">{{ char.class }}</span>
+              <span class="player__header-tag">Уровень {{ char.level }}</span>
+            </div>
+          </header>
+
+          <div class="player__grid">
+            <section class="player__stats-panel">
+              <h2 class="player__panel-title">Характеристики</h2>
+              <div class="player__stats-grid">
+                @for (stat of ['str', 'dex', 'con', 'int', 'wis', 'cha']; track stat) {
+                  <div class="player__stat-box">
+                    <span class="player__stat-label">{{ stat | uppercase }}</span>
+                    <span class="player__stat-value">{{ getStatValue(stat) }}</span>
+                    <span class="player__stat-mod">{{ getStatModString(stat) }}</span>
+                  </div>
+                }
+              </div>
+
+              <div class="player__vitality">
+                <div class="player__vitality-item">
+                  <span class="player__vitality-label">HP</span>
+                  <span class="player__vitality-value"
+                    >{{ char.currentHp }} / {{ char.maxHp }}</span
+                  >
+                </div>
+                <div class="player__vitality-item">
+                  <span class="player__vitality-label">AC</span>
+                  <span class="player__vitality-value">{{ char.ac }}</span>
+                </div>
+                <div class="player__vitality-item">
+                  <span class="player__vitality-label">Скорость</span>
+                  <span class="player__vitality-value">{{ char.speed }}</span>
+                </div>
+              </div>
+
+              @if (char.resistances.length > 0) {
+                <div class="player__resistances">
+                  <h3 class="player__panel-title">Сопротивления</h3>
+                  <div class="player__resistance-tags">
+                    @for (res of char.resistances; track res) {
+                      <span class="player__resistance-tag">🛡️ {{ res }}</span>
+                    }
+                  </div>
+                </div>
+              }
+            </section>
+
+            <section class="player__abilities-panel">
+              @if (char.weapons.length > 0) {
+                <div class="player__weapons">
+                  <h2 class="player__panel-title">⚔️ Оружие</h2>
+                  <ul class="player__weapon-list">
+                    @for (weapon of char.weapons; track weapon.name) {
+                      <li class="player__weapon-item">
+                        <span class="player__weapon-name">{{ weapon.name }}</span>
+                        <span class="player__weapon-damage">{{ weapon.damage }}</span>
+                        <span class="player__weapon-type">{{ weapon.damageType }}</span>
+                        <span class="player__weapon-ability">{{ weapon.ability | uppercase }}</span>
+                      </li>
+                    }
+                  </ul>
+                </div>
+              }
+              <!-- Инвентарь -->
+              @if (char.inventory && char.inventory.length > 0) {
+                <div class="player__inventory">
+                  <h2 class="player__panel-title">🎒 Инвентарь</h2>
+                  <div class="player__inventory-grid">
+                    @for (item of char.inventory; track item.id) {
+                      <div
+                        class="player__inventory-card"
+                        [class.player__inventory-card--consumable]="item.isConsumable"
+                      >
+                        <div class="player__inventory-header">
+                          <span class="player__inventory-name">{{ item.name }}</span>
+                          @if (item.isStackable && item.quantity > 1) {
+                            <span class="player__inventory-quantity">X{{ item.quantity }}</span>
+                          }
+                          @if (item.rarity) {
+                            <span
+                              class="player__inventory-rarity"
+                              [class]="'player__inventory-rarity--' + item.rarity"
+                            >
+                              {{ item.rarity }}
+                            </span>
+                          }
+                        </div>
+                        <div class="player__inventory-actions">
+                          <button class="player__inventory-btn" (click)="useItem(item)">
+                            Использовать
+                          </button>
+                          <button
+                            class="player__inventory-btn player__inventory-btn--info"
+                            (click)="examineItem(item)"
+                          >
+                            📖 Изучить
+                          </button>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+
+              @if (char.abilities.length > 0) {
+                <div class="player__abilities">
+                  <h2 class="player__panel-title">📜 Способности</h2>
+                  <div class="player__ability-list">
+                    @for (ability of char.abilities; track ability.name) {
+                      <div
+                        class="player__ability-item"
+                        [class.player__ability-item--expanded]="expandedAbility() === ability.name"
+                      >
+                        <div class="player__ability-header" (click)="toggleAbility(ability.name)">
+                          <span class="player__ability-name">{{ ability.name }}</span>
+                          <span class="player__ability-toggle">
+                            {{ expandedAbility() === ability.name ? '▾' : '▸' }}
+                          </span>
+                        </div>
+                        @if (expandedAbility() === ability.name) {
+                          <div class="player__ability-description">{{ ability.description }}</div>
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            </section>
+          </div>
+        </div>
+      }
+
+      @if (activeTab() === 'arena') {
+        <div class="player__arena-view">
+          <div class="player__arena-header">
+            <span class="player__arena-round">Раунд {{ currentRound() }}</span>
+            <span class="player__arena-enemies">Врагов: {{ aliveEnemies().length }}</span>
+          </div>
+
+          <div class="player__enemy-grid">
+            @for (enemy of aliveEnemies(); track enemy.id) {
+              <div
+                class="player__enemy-card"
+                [class.player__enemy-card--selected]="selectedEnemyId() === enemy.id"
+                [class.player__enemy-card--current]="currentEnemy()?.id === enemy.id"
+                (click)="selectEnemy(enemy.id)"
+              >
+                <div class="player__enemy-name">{{ enemy.name }}</div>
+                <div class="player__enemy-hp">
+                  <span
+                    class="player__enemy-hp-bar"
+                    [style.width.%]="(enemy.currentHp / enemy.maxHp) * 100"
+                  ></span>
+                  <span class="player__enemy-hp-text"
+                    >{{ enemy.currentHp }} / {{ enemy.maxHp }}</span
+                  >
+                </div>
+                <div class="player__enemy-stats">
+                  <span>AC {{ enemy.ac }}</span>
+                  <span>INIT {{ enemy.initiative }}</span>
+                </div>
+                @if (currentEnemy().id === enemy.id) {
+                  <div class="player__enemy-turn">⚔️ Текущий ход</div>
+                }
+              </div>
+            } @empty {
+              <div class="player__enemy-empty">Нет активных врагов</div>
+            }
+          </div>
+
+          @if (selectedEnemy(); as enemy) {
+            <div class="player__attack-panel">
+              <h3 class="player__attack-title">Атака</h3>
+              <div class="player__attack-row">
+                <span class="player__attack-target"> Цель: {{ enemy.name }} </span>
+              </div>
+              <div class="player__attack-row">
+                <label class="player__attack-label">Оружие</label>
+                <select
+                  class="player__attack-select"
+                  [value]="selectedWeaponIndex()"
+                  (change)="onWeaponChange($event)"
+                >
+                  @for (weapon of weapons(); track weapon.name; let i = $index) {
+                    <option [value]="i">
+                      {{ weapon.name }} ({{ weapon.damage }} {{ weapon.damageType }})
+                    </option>
+                  }
+                </select>
+              </div>
+              <div class="player__attack-row">
+                <label class="player__attack-label">Урон</label>
+                <input
+                  type="number"
+                  class="player__attack-input"
+                  min="0"
+                  [value]="damageAmount()"
+                  (input)="onDamageInput($event)"
+                />
+              </div>
+              <div class="player__attack-row">
+                <button class="player__attack-btn" [disabled]="!canAttack()" (click)="attack()">
+                  ⚔️ Атаковать
+                </button>
+                <button class="player__attack-cancel" (click)="clearSelection()">Отмена</button>
+              </div>
+            </div>
+          } @else {
+            <div class="player__attack-placeholder">
+              <p>Выберите врага для атаки</p>
+            </div>
+          }
+        </div>
+      }
+
+      <footer class="player__footer">
+        <button class="player__reset-btn" (click)="logout()">Выйти</button>
+      </footer>
+    </div>
+  }
+</div>
+
+@if (showUseModal()) {
+  <div class="modal-overlay" (click)="closeUseModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <h3 class="modal-title">
+        @if (modalMode() === 'use') {
+          Использовать {{ selectedItemForUse()?.name }}
+        } @else {
+          📖 {{ selectedItemForUse()?.name }}
+        }
+      </h3>
+      <p class="modal-description">
+        {{ selectedItemForUse()?.description || 'Описание отсутствует' }}
+      </p>
+
+      @if (
+        modalMode() === 'use' &&
+        selectedItemForUse()?.isStackable &&
+        (selectedItemForUse()?.quantity ?? 0) > 1
+      ) {
+        <div class="modal-quantity">
+          <label>Количество:</label>
+          <input
+            type="number"
+            min="1"
+            [max]="selectedItemForUse()?.quantity || 1"
+            [value]="useQuantity()"
+            (input)="onUseQuantityInput($event)"
+          />
+          <span> / {{ selectedItemForUse()?.quantity }}</span>
+        </div>
+      }
+
+      <div class="modal-actions">
+        @if (modalMode() === 'use') {
+          <button class="modal-btn modal-btn--confirm" (click)="confirmAndUseItem()">
+            Применить
+          </button>
+        }
+        <button class="modal-btn modal-btn--cancel" (click)="closeUseModal()">
+          @if (modalMode() === 'use') {
+            Отмена
+          } @else {
+            Закрыть
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}
