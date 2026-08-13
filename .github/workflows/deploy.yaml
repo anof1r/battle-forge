@@ -31,8 +31,7 @@ jobs:
       - name: Create fake environment.ts
         run: |
           mkdir -p src/environments
-          echo "export const environment = { production: false, firebase: { apiKey: 'fake', authDomain: 'fake', databaseURL: 'fake', projectId: 'fake', storageBucket: 'fake', messagingSenderId: 'fake', appId: 'fake' } };" > src/environments/environment.ts
-
+          echo "export const environment = { production: false, firebase: { apiKey: 'fake', authDomain: 'fake.firebaseapp.com', databaseURL: 'https://fake.firebaseio.com', projectId: 'fake', storageBucket: 'fake.appspot.com', messagingSenderId: 'fake', appId: '1:fake:web:fake' } };" > src/environments/environment.ts
       - name: Run tests (Vitest)
         run: npm run test:ci
 

@@ -5,6 +5,11 @@ import { vi } from 'vitest';
 
 setupTestBed();
 
+vi.mock('@angular/fire/app', () => ({
+  initializeApp: vi.fn(),
+  provideFirebaseApp: vi.fn(),
+}));
+
 vi.mock('@angular/fire/database', () => ({
   Database: vi.fn(),
   ref: vi.fn(),

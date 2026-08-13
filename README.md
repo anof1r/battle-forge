@@ -87,8 +87,28 @@ npm start
 npm start        # ng serve
 npm run build    # production build
 npm run watch    # build в watch-режиме
-npm test         # unit tests (Karma/Jasmine)
+npm test         # unit tests (Vitest)
+npm run test:ci  # unit tests с coverage для CI
 ```
+
+## CI/CD и GitHub Pages
+
+Проект использует GitHub Actions для автоматической проверки и публикации приложения.
+Workflow находится в `.github/workflows/deploy.yaml`.
+
+При каждом Pull Request в `master` и при push в `master` выполняются:
+
+1. установка зависимостей через `npm ci`;
+2. запуск Vitest с coverage (`npm run test:ci`);
+3. production-сборка Angular-приложения;
+4. загрузка каталога `dist/battle-forge/browser` как артефакта GitHub Pages.
+
+После успешного push в `master` отдельная job автоматически публикует артефакт через
+`actions/deploy-pages@v4`. Для работы деплоя в настройках репозитория в разделе
+**Settings → Pages** в качестве источника должна быть выбрана опция **GitHub Actions**.
+
+Адрес опубликованного приложения GitHub Pages отображается в результате workflow и в
+настройках environment `github-pages`.
 
 ## Заметки по данным
 
