@@ -3,6 +3,7 @@ import { FirebaseService } from './firebase.service';
 import { Observable } from 'rxjs';
 import { ParsedCharacter } from '../models/character.model';
 import { FIREBASE_ROOT, playerPath } from '../constants/firebase-paths.constants';
+import { SpellData } from '../models';
 
 @Injectable({ providedIn: 'root' })
 export class CharacterService {
@@ -39,5 +40,29 @@ export class CharacterService {
 
   async updatePlayerHp(name: string, newHp: number): Promise<void> {
     await this.firebase.set(`${playerPath(name)}/currentHp`, Math.max(0, newHp));
+  }
+
+  async updatePlayerSpells(playerName: string, spellData: SpellData): Promise<void> {
+    const player = await this.loadCharacter(playerName);
+    if (!player) return;
+
+    const spells = player.spells || [];
+    const existingIndex = spells.findIndex((s) => s.name === spellData.name);
+
+    if (existingIndex !== -1) {
+      spells[existingIndex] = { ...spells[existingIndex], ...spellData };
+    } else {
+      spells.push(spellData);
+    }
+
+    await this.saveCharacter({ ...player, spells });
+  }
+
+  async removePlayerSpell(playerName: string, spellId: string): Promise<void> {
+    const player = await this.loadCharacter(playerName);
+    if (!player) return;
+
+    const spells = (player.spells || []).filter((s) => s.id !== spellId);
+    await this.saveCharacter({ ...player, spells });
   }
 }

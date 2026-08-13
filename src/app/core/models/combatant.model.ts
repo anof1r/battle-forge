@@ -19,3 +19,15 @@ export interface Combatant {
   statuses?: string[];
   lastUpdated?: number;
 }
+
+export interface SpellData {
+  id: string;
+  name: string;
+  level: number;
+  school?: string;
+  description?: string;
+  damageFormula?: string;
+  damageType?: string;
+  isCantrip: boolean;
+  isPrepared: boolean;
+}

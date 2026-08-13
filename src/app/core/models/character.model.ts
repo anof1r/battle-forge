@@ -1,3 +1,4 @@
+import { SpellData } from './combatant.model';
 import { InventoryItem } from './inventory-item.model';
 
 export interface CharacterStats {
@@ -37,7 +38,7 @@ export interface ParsedCharacter {
   inventory?: InventoryItem[];
   resistances?: string[];
   abilities: CharacterAbility[];
-  spells?: unknown[];
+  spells?: SpellData[];
 }
 
 // --- Raw LSS (Long Story Short) character sheet JSON shape ---

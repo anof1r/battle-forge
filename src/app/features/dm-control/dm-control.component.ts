@@ -7,7 +7,7 @@ import { CharacterService } from '../../core/services/character.service';
 import { InventoryService } from '../../core/services/inventory.service';
 import { EnemyGeneratorService } from '../../core/services/enemy-generator.service';
 import { LoggerService } from '../../core/services/logger.service';
-import { Combatant } from '../../core/models/combatant.model';
+import { Combatant, SpellData } from '../../core/models/combatant.model';
 import { EnemyIconComponent } from '../../shared/ui/enemy-icon/enemy-icon.component';
 import { BATTLE_STATUS } from '../../core/constants/battle-status.constants';
 import { COMBATANT_STATUS, COMBATANT_TYPE } from '../../core/constants/combatant.constants';
@@ -55,6 +55,16 @@ export class DmControlComponent {
   readonly itemDescription = signal('');
   readonly itemQuantity = signal(1);
   readonly itemRarity = signal<ItemRarity>(ITEM_RARITY.COMMON);
+
+  // --- Панель выдачи заклинаний ---
+  readonly selectedPlayerIdForSpell = signal<string | null>(null);
+  readonly spellName = signal('');
+  readonly spellLevel = signal(0);
+  readonly spellSchool = signal('');
+  readonly spellDescription = signal('');
+  readonly spellDamageFormula = signal('');
+  readonly spellDamageType = signal('');
+  readonly isSpellCantrip = computed(() => this.spellLevel() === 0);
 
   // --- UI подготовки/инициативы ---
   readonly showAddForm = signal(true);
@@ -139,6 +149,46 @@ export class DmControlComponent {
         this.selectedPlayerIdForItem.set(null);
       })
       .catch((error: unknown) => this.logger.error('DmControlComponent.giveItem', error));
+  }
+
+  onSelectPlayerForSpell(event: Event): void {
+    const select = event.target as HTMLSelectElement;
+    this.selectedPlayerIdForSpell.set(select.value || null);
+  }
+
+  giveSpell(): void {
+    const playerId = this.selectedPlayerIdForSpell();
+    const name = this.spellName().trim();
+    const level = this.spellLevel();
+    if (!playerId || !name) return;
+
+    const playerName = playerId.replace('player_', '');
+    const spell: SpellData = {
+      id: `spell-${crypto.randomUUID()}`,
+      name,
+      level,
+      school: this.spellSchool().trim(),
+      description: this.spellDescription().trim(),
+      damageFormula: this.spellDamageFormula().trim(),
+      damageType: this.spellDamageType().trim(),
+      isCantrip: level === 0,
+      isPrepared: true,
+    };
+
+    this.characterService
+      .updatePlayerSpells(playerName, spell)
+      .then(() => this.resetSpellForm())
+      .catch((error: unknown) => this.logger.error('DmControlComponent.giveSpell', error));
+  }
+
+  resetSpellForm(): void {
+    this.selectedPlayerIdForSpell.set(null);
+    this.spellName.set('');
+    this.spellLevel.set(0);
+    this.spellSchool.set('');
+    this.spellDescription.set('');
+    this.spellDamageFormula.set('');
+    this.spellDamageType.set('');
   }
 
   onDamageTargetChange(event: Event): void {

@@ -296,6 +296,77 @@
   }
 }
 
+.player__spells {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: var(--bf-radius-md);
+  padding: var(--bf-space-4);
+  border: 1px solid #3a2a1a;
+  margin-top: var(--bf-space-4);
+}
+
+.player__spells-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--bf-space-3);
+}
+
+.player__spell-card {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid #4a3a2a;
+  border-radius: var(--bf-radius-sm);
+  padding: var(--bf-space-3);
+  transition: border-color 0.2s;
+
+  &:hover {
+    border-color: #c9a84c;
+  }
+}
+
+.player__spell-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--bf-space-2);
+  margin-bottom: var(--bf-space-1);
+}
+
+.player__spell-name {
+  font-weight: 700;
+  color: #e8d5a0;
+  font-size: 1rem;
+  flex: 1;
+}
+
+.player__spell-level {
+  font-size: 0.7rem;
+  color: #b0a090;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0.1rem 0.5rem;
+  border-radius: 4px;
+}
+
+.player__spell-prepared {
+  font-size: 0.6rem;
+  color: #2ecc71;
+  border: 1px solid #2ecc71;
+  padding: 0.1rem 0.5rem;
+  border-radius: 4px;
+}
+
+.player__spell-school {
+  font-size: 0.7rem;
+  color: #5dade2;
+  font-style: italic;
+  margin-bottom: var(--bf-space-1);
+}
+
+.player__spell-description {
+  font-size: 0.8rem;
+  color: #b0a090;
+  margin: 0;
+  line-height: 1.4;
+}
+
 /* ===== МОДАЛЬНОЕ ОКНО ===== */
 .modal-overlay {
   position: fixed;

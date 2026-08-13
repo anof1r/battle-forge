@@ -339,6 +339,99 @@
     </div>
   </section>
 
+  <section class="dm-section dm-section--spells">
+    <h2 class="dm-section__title">🔮 Выдать заклинание игроку</h2>
+    <div class="dm-spell-form">
+      <div class="field-row">
+        <div class="field">
+          <label class="field__label">Игрок</label>
+          <select
+            class="field__input"
+            [value]="selectedPlayerIdForSpell() || ''"
+            (change)="onSelectPlayerForSpell($event)"
+          >
+            <option value="" disabled selected>Выберите игрока</option>
+            @for (player of playersInBattle() | keyvalue; track player.value.id) {
+              <option [value]="player.value.id">{{ player.value.name }}</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label class="field__label">Название заклинания</label>
+          <input
+            class="field__input"
+            type="text"
+            placeholder="Например: Огненный шар"
+            [value]="spellName()"
+            (input)="spellName.set($any($event.target).value)"
+          />
+        </div>
+        <div class="field">
+          <label class="field__label">Уровень (0 = заговор)</label>
+          <input
+            class="field__input"
+            type="number"
+            min="0"
+            max="9"
+            [value]="spellLevel()"
+            (input)="spellLevel.set($any($event.target).value || 0)"
+          />
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label class="field__label">Школа (необязательно)</label>
+          <input
+            class="field__input"
+            type="text"
+            placeholder="Воплощение"
+            [value]="spellSchool()"
+            (input)="spellSchool.set($any($event.target).value)"
+          />
+        </div>
+        <div class="field">
+          <label class="field__label">Урон (необязательно)</label>
+          <input
+            class="field__input"
+            type="text"
+            placeholder="8d6"
+            [value]="spellDamageFormula()"
+            (input)="spellDamageFormula.set($any($event.target).value)"
+          />
+        </div>
+        <div class="field">
+          <label class="field__label">Тип урона (необязательно)</label>
+          <input
+            class="field__input"
+            type="text"
+            placeholder="огонь"
+            [value]="spellDamageType()"
+            (input)="spellDamageType.set($any($event.target).value)"
+          />
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field" style="grid-column: 1 / -1">
+          <label class="field__label">Описание (необязательно)</label>
+          <input
+            class="field__input"
+            type="text"
+            placeholder="Взрыв пламени, все в радиусе 20 футов"
+            [value]="spellDescription()"
+            (input)="spellDescription.set($any($event.target).value)"
+          />
+        </div>
+      </div>
+      <button
+        class="dm-btn"
+        (click)="giveSpell()"
+        [disabled]="!selectedPlayerIdForSpell() || !spellName()"
+      >
+        🔮 Выдать заклинание
+      </button>
+    </div>
+  </section>
+
   <!-- ===== ТЕКУЩИЙ ХОД ===== -->
   @if (currentEnemy(); as current) {
     <footer class="dm-footer">

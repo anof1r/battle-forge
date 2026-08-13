@@ -174,6 +174,42 @@
                 </div>
               }
 
+              @if (char.spells && char.spells.length > 0) {
+                <div class="player__spells">
+                  <h2 class="player__panel-title">🔮 Заклинания</h2>
+                  <div class="player__spells-grid">
+                    @for (spell of char.spells; track spell.id) {
+                      <div class="player__spell-card">
+                        <div class="player__spell-header">
+                          <span class="player__spell-name">{{ spell.name }}</span>
+                          <span class="player__spell-level">
+                            @if (spell.isCantrip) {
+                              Заговор
+                            } @else {
+                              Уровень {{ spell.level }}
+                            }
+                          </span>
+                          @if (spell.isPrepared) {
+                            <span class="player__spell-prepared">✔ Подготовлено</span>
+                          }
+                        </div>
+                        @if (spell.school) {
+                          <div class="player__spell-school">{{ spell.school }}</div>
+                        }
+                        @if (spell.damageFormula && spell.damageType) {
+                          <div class="player__spell-damage">
+                            {{ spell.damageFormula }} {{ spell.damageType }}
+                          </div>
+                        }
+                        @if (spell.description) {
+                          <p class="player__spell-description">{{ spell.description }}</p>
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+
               @if (char.abilities.length > 0) {
                 <div class="player__abilities">
                   <h2 class="player__panel-title">📜 Способности</h2>

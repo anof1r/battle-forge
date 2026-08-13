@@ -121,6 +121,15 @@
   }
 }
 
+.dm-section--spells {
+  margin-top: var(--bf-space-4);
+}
+.dm-spell-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bf-space-3);
+}
+
 .dm-add-form {
   display: flex;
   flex-direction: column;
