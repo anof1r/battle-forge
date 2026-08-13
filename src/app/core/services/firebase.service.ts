@@ -11,7 +11,7 @@ import {
   remove,
   onValue,
 } from 'firebase/database';
-import { environment } from '../../../environments/environment';
+import { environment } from '../../../environments/environment.prod';
 import { Observable } from 'rxjs';
 import { LoggerService } from './logger.service';
 
