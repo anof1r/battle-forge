@@ -28,6 +28,11 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps # peer-deps conflicts
 
+      - name: Create fake environment.ts
+        run: |
+          mkdir -p src/environments
+          echo "export const environment = { production: false, firebase: { apiKey: 'fake', authDomain: 'fake', databaseURL: 'fake', projectId: 'fake', storageBucket: 'fake', messagingSenderId: 'fake', appId: 'fake' } };" > src/environments/environment.ts
+
       - name: Run tests (Vitest)
         run: npm run test:ci
 
