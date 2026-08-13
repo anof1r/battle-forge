@@ -35,7 +35,7 @@ export interface ParsedCharacter {
   speed: number;
   weapons: CharacterWeapon[];
   inventory?: InventoryItem[];
-  resistances: string[];
+  resistances?: string[];
   abilities: CharacterAbility[];
   spells?: unknown[];
 }

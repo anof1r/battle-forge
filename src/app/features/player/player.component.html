@@ -100,7 +100,7 @@
                 </div>
               </div>
 
-              @if (char.resistances.length > 0) {
+              @if (char.resistances?.length) {
                 <div class="player__resistances">
                   <h3 class="player__panel-title">Сопротивления</h3>
                   <div class="player__resistance-tags">
@@ -108,6 +108,11 @@
                       <span class="player__resistance-tag">🛡️ {{ res }}</span>
                     }
                   </div>
+                </div>
+              } @else {
+                <div class="player__resistances">
+                  <h3 class="player__panel-title">Сопротивления</h3>
+                  <p>Сопротивления отсутствуют</p>
                 </div>
               }
             </section>
@@ -209,7 +214,7 @@
               <div
                 class="player__enemy-card"
                 [class.player__enemy-card--selected]="selectedEnemyId() === enemy.id"
-                [class.player__enemy-card--current]="currentEnemy()?.id === enemy.id"
+                [class.player__enemy-card--current]="currentEnemy().id === enemy.id"
                 (click)="selectEnemy(enemy.id)"
               >
                 <div class="player__enemy-name">{{ enemy.name }}</div>
