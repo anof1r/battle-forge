@@ -1,7 +1,7 @@
 import { Routes } from '@angular/router';
 
 export const routes: Routes = [
-  { path: '', redirectTo: '/display', pathMatch: 'full' },
+  { path: '', redirectTo: '/player', pathMatch: 'full' },
 
   {
     path: 'dm',

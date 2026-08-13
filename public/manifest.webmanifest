@@ -1,9 +1,9 @@
 {
-  "name": "battle-forge",
-  "short_name": "battle-forge",
+  "name": "Battle Forge",
+  "short_name": "Battle Forge",
   "display": "standalone",
-  "scope": "./",
-  "start_url": "./",
+  "scope": "/battle-forge/",
+  "start_url": "/battle-forge/",
   "icons": [
     {
       "src": "icons/icon-72x72.png",
