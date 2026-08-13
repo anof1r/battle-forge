@@ -55,7 +55,7 @@ jobs:
         run: cp src/environments/environment.prod.ts src/environments/environment.ts
 
       - name: Build Angular app
-        run: npm run build -- --configuration production
+        run: npm run build -- --configuration production --base-href "/battle-forge/"
 
       - name: Create 404.html for routing
         run: cp ./dist/battle-forge/browser/index.html ./dist/battle-forge/browser/404.html
