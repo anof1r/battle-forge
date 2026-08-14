@@ -1,5 +1,5 @@
-import { Injectable, inject } from '@angular/core';
-import { FirebaseApp, initializeApp } from 'firebase/app';
+import { Injectable, InjectionToken, inject } from '@angular/core';
+import { getApp, getApps, initializeApp } from 'firebase/app';
 import {
   getDatabase,
   Database,
@@ -11,17 +11,24 @@ import {
   remove,
   onValue,
 } from 'firebase/database';
-import { environment } from '../../../environments/environment.prod';
+import { environment } from '../../../environments/environment';
 import { Observable } from 'rxjs';
 import { LoggerService } from './logger.service';
+
+export const FIREBASE_DATABASE = new InjectionToken<Database>('Firebase Realtime Database', {
+  providedIn: 'root',
+  factory: () => {
+    const app = getApps().length > 0 ? getApp() : initializeApp(environment.firebase);
+    return getDatabase(app);
+  },
+});
 
 @Injectable({
   providedIn: 'root',
 })
 export class FirebaseService {
   private readonly logger = inject(LoggerService);
-  private readonly app: FirebaseApp = initializeApp(environment.firebase);
-  private readonly db: Database = getDatabase(this.app);
+  private readonly db = inject(FIREBASE_DATABASE);
 
   async get<T>(path: string): Promise<T | null> {
     try {

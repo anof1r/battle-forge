@@ -1,6 +1,7 @@
-/// <reference types="vitest" />
+/// <reference types="vitest/config" />
 import angular from '@analogjs/vite-plugin-angular';
 import { defineConfig } from 'vite';
+import { coverageConfigDefaults } from 'vitest/config';
 
 export default defineConfig({
   plugins: [angular()],
@@ -9,5 +10,34 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test-setup.ts'],
     include: ['src/**/*.spec.ts'],
+    exclude: ['src/**/*.firebase.spec.ts'],
+    clearMocks: true,
+    restoreMocks: true,
+    unstubGlobals: true,
+    coverage: {
+      provider: 'v8',
+      include: ['src/app/**/*.ts'],
+      exclude: [
+        ...coverageConfigDefaults.exclude,
+        'src/app/core/models/**',
+        'src/app/core/constants/**',
+        'src/app/**/index.ts',
+        'src/app/app.config.ts',
+        'src/app/app.routes.ts',
+      ],
+      reporter: ['text', 'html', 'lcov'],
+      thresholds: {
+        statements: 25,
+        branches: 50,
+        functions: 25,
+        lines: 25,
+        'src/app/core/services/battle.service.ts': {
+          statements: 75,
+          branches: 65,
+          functions: 65,
+          lines: 75,
+        },
+      },
+    },
   },
 });

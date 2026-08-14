@@ -1,13 +1,18 @@
-import { describe, it, expect, vi } from 'vitest';
+import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
+import { describe, expect, it } from 'vitest';
+import { App } from './app';
 
-describe('Simple test', () => {
-  it('should pass', () => {
-    expect(1 + 1).toBe(2);
-  });
+describe('App', () => {
+  it('renders the router outlet', () => {
+    TestBed.configureTestingModule({
+      imports: [App],
+      providers: [provideRouter([])],
+    });
 
-  it('should use vi', () => {
-    const fn = vi.fn();
-    fn();
-    expect(fn).toHaveBeenCalled();
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('router-outlet')).not.toBeNull();
   });
 });
