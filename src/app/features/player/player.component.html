@@ -250,7 +250,7 @@
               <div
                 class="player__enemy-card"
                 [class.player__enemy-card--selected]="selectedEnemyId() === enemy.id"
-                [class.player__enemy-card--current]="currentEnemy().id === enemy.id"
+                [class.player__enemy-card--current]="currentEnemy() === enemy"
                 (click)="selectEnemy(enemy.id)"
               >
                 <div class="player__enemy-name">{{ enemy.name }}</div>
@@ -267,7 +267,7 @@
                   <span>AC {{ enemy.ac }}</span>
                   <span>INIT {{ enemy.initiative }}</span>
                 </div>
-                @if (currentEnemy().id === enemy.id) {
+                @if (currentEnemy() === enemy) {
                   <div class="player__enemy-turn">⚔️ Текущий ход</div>
                 }
               </div>

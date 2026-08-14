@@ -211,13 +211,13 @@
     <h2 class="dm-section__title">👹 Враги ({{ aliveEnemies().length }})</h2>
     <div class="enemy-list">
       @for (enemy of aliveEnemies(); track enemy.id) {
-        <div class="enemy-item" [class.enemy-item--active]="currentEnemy()?.id === enemy.id">
+        <div class="enemy-item" [class.enemy-item--active]="currentEnemy() === enemy">
           <div class="enemy-item__info">
             <span class="enemy-item__name">{{ enemy.name }}</span>
             <span class="enemy-item__hp">HP: {{ enemy.currentHp }}/{{ enemy.maxHp }}</span>
             <span class="enemy-item__ac">AC: {{ enemy.ac }}</span>
             <span class="enemy-item__init">INIT: {{ enemy.initiative }}</span>
-            @if (currentEnemy()?.id === enemy.id) {
+            @if (currentEnemy() === enemy) {
               <span class="enemy-item__status">⚔️ Текущий</span>
             }
           </div>
@@ -236,7 +236,7 @@
     <h2 class="dm-section__title">🎭 Игроки в бою ({{ (playersInBattle() | keyvalue).length }})</h2>
     <div class="enemy-list">
       @for (player of playersInBattle() | keyvalue; track player.value.id) {
-        <div class="enemy-item" [class.enemy-item--active]="currentEnemy()?.id === player.value.id">
+        <div class="enemy-item" [class.enemy-item--active]="currentEnemy() === player.value">
           <div class="enemy-item__info">
             <span class="enemy-item__name">{{ player.value.name }}</span>
             <span class="enemy-item__hp"
@@ -244,7 +244,7 @@
             >
             <span class="enemy-item__ac">AC: {{ player.value.ac }}</span>
             <span class="enemy-item__init">INIT: {{ player.value.initiative }}</span>
-            @if (currentEnemy()?.id === player.value.id) {
+            @if (currentEnemy() === player.value) {
               <span class="enemy-item__status">⚔️ Текущий</span>
             }
           </div>

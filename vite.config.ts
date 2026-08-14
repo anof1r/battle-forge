@@ -27,10 +27,10 @@ export default defineConfig({
       ],
       reporter: ['text', 'html', 'lcov'],
       thresholds: {
-        statements: 25,
-        branches: 50,
-        functions: 25,
-        lines: 25,
+        statements: 85,
+        branches: 80,
+        functions: 70,
+        lines: 85,
         'src/app/core/services/battle.service.ts': {
           statements: 75,
           branches: 65,

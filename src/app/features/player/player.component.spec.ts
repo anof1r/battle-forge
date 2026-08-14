@@ -1,6 +1,11 @@
 import { signal } from '@angular/core';
-import { TestBed } from '@angular/core/testing';
-import { describe, expect, it, vi } from 'vitest';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { Observable, of } from 'rxjs';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { COMBATANT_STATUS, COMBATANT_TYPE } from '../../core/constants/combatant.constants';
+import { ParsedCharacter } from '../../core/models/character.model';
+import { Combatant } from '../../core/models/combatant.model';
+import { InventoryItem } from '../../core/models/inventory-item.model';
 import { BattleService } from '../../core/services/battle.service';
 import { CharacterService } from '../../core/services/character.service';
 import { CharacterParserService } from '../../core/services/characterParser.service';
@@ -9,43 +14,300 @@ import { LoggerService } from '../../core/services/logger.service';
 import { PlayerComponent } from './player.component';
 
 describe('PlayerComponent', () => {
-  it('creates without initializing Firebase and validates an empty login', () => {
+  let fixture: ComponentFixture<PlayerComponent>;
+  let component: PlayerComponent;
+  let characterService: {
+    characterExists: ReturnType<typeof vi.fn>;
+    loadCharacter: ReturnType<typeof vi.fn>;
+    saveCharacter: ReturnType<typeof vi.fn>;
+    subscribeToCharacter: ReturnType<typeof vi.fn>;
+  };
+  let inventoryService: { consumeItem: ReturnType<typeof vi.fn> };
+  let parser: {
+    parseCharacter: ReturnType<typeof vi.fn>;
+    getModifier: ReturnType<typeof vi.fn>;
+  };
+  let logger: { error: ReturnType<typeof vi.fn> };
+  let battle: {
+    aliveEnemies: ReturnType<typeof signal<Combatant[]>>;
+    currentCombatant: ReturnType<typeof signal<Combatant | null>>;
+    currentRound: ReturnType<typeof signal<number>>;
+    takeDamage: ReturnType<typeof vi.fn>;
+  };
+
+  const potion: InventoryItem = {
+    id: 'potion-1',
+    name: 'Potion',
+    description: 'Restores HP',
+    quantity: 3,
+    isStackable: true,
+    isConsumable: true,
+    rarity: 'common',
+  };
+
+  const character = (overrides: Partial<ParsedCharacter> = {}): ParsedCharacter => ({
+    name: 'Aria',
+    class: 'Wizard',
+    level: 5,
+    race: 'Elf',
+    stats: { str: 8, dex: 14, con: 12, int: 18, wis: 11, cha: 10 },
+    maxHp: 30,
+    currentHp: 24,
+    ac: 13,
+    speed: 30,
+    weapons: [{ name: 'Dagger', damage: '1d4', damageType: 'piercing', ability: 'dex' }],
+    inventory: [potion],
+    abilities: [{ name: 'Darkvision', description: 'See in darkness' }],
+    ...overrides,
+  });
+
+  const enemy: Combatant = {
+    id: 'goblin-1',
+    type: COMBATANT_TYPE.ENEMY,
+    subtype: 'goblin',
+    name: 'Goblin',
+    initiative: 14,
+    ac: 13,
+    maxHp: 12,
+    currentHp: 12,
+    status: COMBATANT_STATUS.ALIVE,
+  };
+
+  beforeEach(() => {
+    characterService = {
+      characterExists: vi.fn(),
+      loadCharacter: vi.fn(),
+      saveCharacter: vi.fn().mockResolvedValue(undefined),
+      subscribeToCharacter: vi.fn().mockReturnValue(of(character())),
+    };
+    inventoryService = {
+      consumeItem: vi.fn().mockResolvedValue(true),
+    };
+    parser = {
+      parseCharacter: vi.fn(),
+      getModifier: vi.fn((score: number) => Math.floor((score - 10) / 2)),
+    };
+    logger = { error: vi.fn() };
+    battle = {
+      aliveEnemies: signal<Combatant[]>([]),
+      currentCombatant: signal<Combatant | null>(null),
+      currentRound: signal(1),
+      takeDamage: vi.fn().mockResolvedValue(undefined),
+    };
+
     TestBed.configureTestingModule({
       imports: [PlayerComponent],
       providers: [
-        {
-          provide: BattleService,
-          useValue: {
-            aliveEnemies: signal([]),
-            currentCombatant: signal(null),
-            currentRound: signal(1),
-            takeDamage: vi.fn().mockResolvedValue(undefined),
-          },
-        },
-        {
-          provide: CharacterService,
-          useValue: {
-            characterExists: vi.fn(),
-            loadCharacter: vi.fn(),
-            subscribeToCharacter: vi.fn(),
-          },
-        },
-        { provide: InventoryService, useValue: { consumeItem: vi.fn() } },
-        {
-          provide: CharacterParserService,
-          useValue: { parseCharacter: vi.fn(), getModifier: vi.fn().mockReturnValue(0) },
-        },
-        { provide: LoggerService, useValue: { error: vi.fn() } },
+        { provide: BattleService, useValue: battle },
+        { provide: CharacterService, useValue: characterService },
+        { provide: InventoryService, useValue: inventoryService },
+        { provide: CharacterParserService, useValue: parser },
+        { provide: LoggerService, useValue: logger },
       ],
     });
 
-    const fixture = TestBed.createComponent(PlayerComponent);
-    const component = fixture.componentInstance;
-    fixture.detectChanges();
+    fixture = TestBed.createComponent(PlayerComponent);
+    component = fixture.componentInstance;
+  });
+
+  it('rejects an empty login without calling the character service', () => {
+    component.loginName.set('   ');
 
     component.login();
 
-    expect(component.loginError()).not.toBeNull();
+    expect(component.loginError()).toBe('Введите имя персонажа');
     expect(component.isLoggedIn()).toBe(false);
+    expect(characterService.characterExists).not.toHaveBeenCalled();
+  });
+
+  it('offers JSON upload when a character does not exist', async () => {
+    characterService.characterExists.mockResolvedValue(false);
+    component.loginName.set('Missing');
+
+    component.login();
+
+    await vi.waitFor(() => expect(component.showUploadPrompt()).toBe(true));
+    expect(component.loginError()).toBe('Персонаж не найден. Загрузите JSON-файл.');
+    expect(characterService.loadCharacter).not.toHaveBeenCalled();
+  });
+
+  it('logs in, receives realtime character updates, and unsubscribes on logout', async () => {
+    const initial = character();
+    const updated = character({ currentHp: 10 });
+    const unsubscribe = vi.fn();
+    characterService.characterExists.mockResolvedValue(true);
+    characterService.loadCharacter.mockResolvedValue(initial);
+    characterService.subscribeToCharacter.mockReturnValue(
+      new Observable<ParsedCharacter | null>((subscriber) => {
+        subscriber.next(updated);
+        return unsubscribe;
+      }),
+    );
+    component.loginName.set('  Aria  ');
+
+    component.login();
+
+    await vi.waitFor(() => expect(component.isLoggedIn()).toBe(true));
+    expect(characterService.characterExists).toHaveBeenCalledWith('Aria');
+    expect(characterService.loadCharacter).toHaveBeenCalledWith('Aria');
+    expect(characterService.subscribeToCharacter).toHaveBeenCalledWith('Aria');
+    expect(component.character()).toEqual(updated);
+
+    component.selectedEnemyId.set(enemy.id);
+    component.damageAmount.set(5);
+    component.logout();
+
+    expect(unsubscribe).toHaveBeenCalledOnce();
+    expect(component.character()).toBeNull();
+    expect(component.isLoggedIn()).toBe(false);
+    expect(component.loginName()).toBe('');
+    expect(component.selectedEnemyId()).toBeNull();
+    expect(component.damageAmount()).toBe(0);
+  });
+
+  it('reports login failures through the logger and a user-safe message', async () => {
+    const error = new Error('network unavailable');
+    characterService.characterExists.mockRejectedValue(error);
+    component.loginName.set('Aria');
+
+    component.login();
+
+    await vi.waitFor(() =>
+      expect(component.loginError()).toBe('Ошибка при входе. Попробуйте позже.'),
+    );
+    expect(logger.error).toHaveBeenCalledWith('PlayerComponent.login', error);
+  });
+
+  it('parses, saves, and subscribes to a selected LSS JSON file', async () => {
+    const parsed = character();
+    parser.parseCharacter.mockReturnValue(parsed);
+
+    class FakeFileReader {
+      onload: ((event: { target: { result: string } }) => void) | null = null;
+
+      readAsText(): void {
+        this.onload?.({ target: { result: JSON.stringify({ data: {} }) } });
+      }
+    }
+    vi.stubGlobal('FileReader', FakeFileReader);
+
+    const file = new File(['{}'], 'aria.json', { type: 'application/json' });
+    component.onFileSelected({
+      target: { files: [file] },
+    } as unknown as Event);
+
+    await vi.waitFor(() => expect(characterService.saveCharacter).toHaveBeenCalledWith(parsed));
+    expect(parser.parseCharacter).toHaveBeenCalledWith({ data: {} });
+    expect(component.character()).toEqual(parsed);
+    expect(component.isLoggedIn()).toBe(true);
+    expect(component.loginName()).toBe('Aria');
+    expect(characterService.subscribeToCharacter).toHaveBeenCalledWith('Aria');
+  });
+
+  it('rejects malformed uploaded JSON and records the parsing error', () => {
+    class FakeFileReader {
+      onload: ((event: { target: { result: string } }) => void) | null = null;
+
+      readAsText(): void {
+        this.onload?.({ target: { result: '{broken' } });
+      }
+    }
+    vi.stubGlobal('FileReader', FakeFileReader);
+
+    component.onFileSelected({
+      target: { files: [new File([''], 'broken.json') ] },
+    } as unknown as Event);
+
+    expect(component.error()).toBe(
+      'Не удалось распарсить файл. Убедитесь, что это JSON с LSS.',
+    );
+    expect(logger.error).toHaveBeenCalledWith(
+      'PlayerComponent.onFileSelected',
+      expect.any(SyntaxError),
+    );
+    expect(characterService.saveCharacter).not.toHaveBeenCalled();
+  });
+
+  it('enables attacks only for a live selected enemy and clears damage after success', async () => {
+    battle.aliveEnemies.set([enemy]);
+    component.selectEnemy(enemy.id);
+    component.damageAmount.set(6);
+
+    expect(component.selectedEnemy()).toEqual(enemy);
+    expect(component.canAttack()).toBe(true);
+
+    component.attack();
+
+    await vi.waitFor(() => expect(battle.takeDamage).toHaveBeenCalledWith(enemy.id, 6));
+    await vi.waitFor(() => expect(component.damageAmount()).toBe(0));
+
+    battle.aliveEnemies.set([]);
+    expect(component.selectedEnemy()).toBeNull();
+    expect(component.canAttack()).toBe(false);
+  });
+
+  it('renders the arena safely before the first current turn is assigned', () => {
+    component.character.set(character());
+    component.isLoggedIn.set(true);
+    component.activeTab.set('arena');
+    battle.aliveEnemies.set([enemy]);
+    battle.currentCombatant.set(null);
+
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.player__arena-view')).not.toBeNull();
+    expect(fixture.nativeElement).toHaveTextContent('Goblin');
+    expect(fixture.nativeElement.querySelector('.player__enemy-card--current')).toBeNull();
+  });
+
+  it('keeps attack input intact and logs when damage persistence fails', async () => {
+    const error = new Error('write failed');
+    battle.aliveEnemies.set([enemy]);
+    battle.takeDamage.mockRejectedValue(error);
+    component.selectEnemy(enemy.id);
+    component.damageAmount.set(4);
+
+    component.attack();
+
+    await vi.waitFor(() =>
+      expect(logger.error).toHaveBeenCalledWith('PlayerComponent.attack', error),
+    );
+    expect(component.damageAmount()).toBe(4);
+  });
+
+  it('clamps item quantity and closes the modal after successful consumption', async () => {
+    component.character.set(character());
+    component.useItem(potion);
+    expect(component.showUseModal()).toBe(true);
+    expect(component.modalMode()).toBe('use');
+
+    component.onUseQuantityInput({ target: { value: '20' } } as unknown as Event);
+    expect(component.useQuantity()).toBe(3);
+
+    component.confirmAndUseItem();
+
+    await vi.waitFor(() =>
+      expect(inventoryService.consumeItem).toHaveBeenCalledWith('Aria', 'potion-1', 3),
+    );
+    await vi.waitFor(() => expect(component.showUseModal()).toBe(false));
+    expect(component.selectedItemForUse()).toBeNull();
+    expect(component.useQuantity()).toBe(1);
+  });
+
+  it('supports examine mode and character presentation helpers', () => {
+    component.character.set(character());
+
+    component.examineItem(potion);
+    expect(component.modalMode()).toBe('examine');
+    expect(component.showUseModal()).toBe(true);
+
+    expect(component.getStatValue('dex')).toBe(14);
+    expect(component.getStatModString('dex')).toBe('+2');
+    expect(component.getStatValue('unknown')).toBe(0);
+
+    component.toggleAbility('Darkvision');
+    expect(component.expandedAbility()).toBe('Darkvision');
+    component.toggleAbility('Darkvision');
+    expect(component.expandedAbility()).toBeNull();
   });
 });
