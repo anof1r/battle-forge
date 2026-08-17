@@ -15,7 +15,7 @@ import { Subscription } from 'rxjs';
 import { CharacterParserService } from '../../core/services/characterParser.service';
 import { LssCharacterSheet, ParsedCharacter } from '../../core/models/character.model';
 import { InventoryItem } from '../../core/models/inventory-item.model';
-import { Combatant } from '../../core/models/combatant.model';
+import { Combatant, SpellData } from '../../core/models/combatant.model';
 import { COMBATANT_STATUS, COMBATANT_TYPE } from '../../core/constants/combatant.constants';
 
 @Component({
@@ -55,6 +55,10 @@ export class PlayerComponent implements OnDestroy {
   readonly selectedEnemyId = signal<string | null>(null);
   readonly damageAmount = signal<number>(0);
   readonly selectedWeaponIndex = signal<number>(0);
+
+  // --- Состояние использования заклинаний ---
+  readonly usingSpellId = signal<string | null>(null);
+  readonly spellUseError = signal<string | null>(null);
 
   // --- Состояние модального окна использования предмета ---
   readonly modalMode = signal<'use' | 'examine'>('use');
@@ -185,6 +189,8 @@ export class PlayerComponent implements OnDestroy {
     this.loginError.set(null);
     this.selectedEnemyId.set(null);
     this.damageAmount.set(0);
+    this.usingSpellId.set(null);
+    this.spellUseError.set(null);
   }
 
   switchTab(tab: 'character' | 'arena'): void {
@@ -205,6 +211,38 @@ export class PlayerComponent implements OnDestroy {
 
   toggleAbility(name: string): void {
     this.expandedAbility.set(this.expandedAbility() === name ? null : name);
+  }
+
+  getSpellMaxUses(spell: SpellData): number {
+    return Math.max(1, spell.maxUses ?? 1);
+  }
+
+  getSpellUsesRemaining(spell: SpellData): number {
+    return Math.max(0, spell.usesRemaining ?? this.getSpellMaxUses(spell));
+  }
+
+  canUseSpell(spell: SpellData): boolean {
+    return spell.isPrepared && (spell.isCantrip || this.getSpellUsesRemaining(spell) > 0);
+  }
+
+  useSpell(spell: SpellData): void {
+    const character = this.character();
+    if (!character || !this.canUseSpell(spell) || this.usingSpellId() !== null) return;
+
+    this.usingSpellId.set(spell.id);
+    this.spellUseError.set(null);
+    this.characterService
+      .usePlayerSpell(character.name, spell.id)
+      .then((success) => {
+        if (!success) {
+          this.spellUseError.set('Заклинание сейчас нельзя использовать. Обновите персонажа.');
+        }
+      })
+      .catch((error: unknown) => {
+        this.logger.error('PlayerComponent.useSpell', error);
+        this.spellUseError.set('Не удалось отметить использование заклинания. Попробуйте ещё раз.');
+      })
+      .finally(() => this.usingSpellId.set(null));
   }
 
   selectEnemy(enemyId: string): void {

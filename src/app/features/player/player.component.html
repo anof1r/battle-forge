@@ -191,6 +191,8 @@
                           </span>
                           @if (spell.isPrepared) {
                             <span class="player__spell-prepared">✔ Подготовлено</span>
+                          } @else {
+                            <span class="player__spell-unprepared">Не подготовлено</span>
                           }
                         </div>
                         @if (spell.school) {
@@ -204,9 +206,28 @@
                         @if (spell.description) {
                           <p class="player__spell-description">{{ spell.description }}</p>
                         }
+                        <div class="player__spell-actions">
+                          <span class="player__spell-uses">
+                            @if (spell.isCantrip) {
+                              Использования: ∞
+                            } @else {
+                              Использования: {{ getSpellUsesRemaining(spell) }} / {{ getSpellMaxUses(spell) }}
+                            }
+                          </span>
+                          <button
+                            class="player__inventory-btn player__spell-use-btn"
+                            [disabled]="!canUseSpell(spell) || usingSpellId() !== null"
+                            (click)="useSpell(spell)"
+                          >
+                            {{ usingSpellId() === spell.id ? 'Используется…' : 'Использовать' }}
+                          </button>
+                        </div>
                       </div>
                     }
                   </div>
+                  @if (spellUseError()) {
+                    <p class="player__spell-error" role="alert">{{ spellUseError() }}</p>
+                  }
                 </div>
               }
 

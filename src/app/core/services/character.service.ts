@@ -46,7 +46,7 @@ export class CharacterService {
     const player = await this.loadCharacter(playerName);
     if (!player) return;
 
-    const spells = player.spells || [];
+    const spells = [...(player.spells || [])];
     const existingIndex = spells.findIndex((s) => s.name === spellData.name);
 
     if (existingIndex !== -1) {
@@ -55,6 +55,39 @@ export class CharacterService {
       spells.push(spellData);
     }
 
+    await this.saveCharacter({ ...player, spells });
+  }
+
+  async usePlayerSpell(playerName: string, spellId: string): Promise<boolean> {
+    const player = await this.loadCharacter(playerName);
+    if (!player) return false;
+
+    const spell = player.spells?.find((candidate) => candidate.id === spellId);
+    if (!spell || !spell.isPrepared) return false;
+    if (spell.isCantrip) return true;
+
+    const maxUses = Math.max(1, spell.maxUses ?? 1);
+    const usesRemaining = spell.usesRemaining ?? maxUses;
+    if (usesRemaining <= 0) return false;
+
+    const spells = (player.spells || []).map((candidate) =>
+      candidate.id === spellId
+        ? { ...candidate, maxUses, usesRemaining: usesRemaining - 1 }
+        : candidate,
+    );
+    await this.saveCharacter({ ...player, spells });
+    return true;
+  }
+
+  async restorePlayerSpells(playerName: string): Promise<void> {
+    const player = await this.loadCharacter(playerName);
+    if (!player) return;
+
+    const spells = (player.spells || []).map((spell) => {
+      if (spell.isCantrip) return spell;
+      const maxUses = Math.max(1, spell.maxUses ?? 1);
+      return { ...spell, maxUses, usesRemaining: maxUses };
+    });
     await this.saveCharacter({ ...player, spells });
   }
 

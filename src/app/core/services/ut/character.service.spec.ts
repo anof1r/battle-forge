@@ -157,4 +157,76 @@ describe('CharacterService', () => {
     expect(load).toHaveBeenLastCalledWith('Missing');
     expect(save).toHaveBeenCalledTimes(1);
   });
+
+  it('spends one use of a leveled spell and normalizes legacy spell data', async () => {
+    const spell = createSpell({
+      id: 'spell-shield',
+      name: 'Shield',
+      level: 1,
+      isCantrip: false,
+    });
+    vi.spyOn(service, 'loadCharacter').mockResolvedValue(createCharacter({ spells: [spell] }));
+    const save = vi.spyOn(service, 'saveCharacter').mockResolvedValue(undefined);
+
+    await expect(service.usePlayerSpell('Aria', spell.id)).resolves.toBe(true);
+
+    expect(save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        spells: [expect.objectContaining({ id: spell.id, maxUses: 1, usesRemaining: 0 })],
+      }),
+    );
+  });
+
+  it('does not spend exhausted, unprepared, missing, or cantrip resources', async () => {
+    const exhausted = createSpell({
+      id: 'exhausted',
+      level: 1,
+      isCantrip: false,
+      maxUses: 2,
+      usesRemaining: 0,
+    });
+    const unprepared = createSpell({ id: 'unprepared', isPrepared: false });
+    const cantrip = createSpell({ id: 'cantrip' });
+    vi.spyOn(service, 'loadCharacter')
+      .mockResolvedValueOnce(createCharacter({ spells: [exhausted] }))
+      .mockResolvedValueOnce(createCharacter({ spells: [unprepared] }))
+      .mockResolvedValueOnce(createCharacter({ spells: [cantrip] }))
+      .mockResolvedValueOnce(null);
+    const save = vi.spyOn(service, 'saveCharacter').mockResolvedValue(undefined);
+
+    await expect(service.usePlayerSpell('Aria', exhausted.id)).resolves.toBe(false);
+    await expect(service.usePlayerSpell('Aria', unprepared.id)).resolves.toBe(false);
+    await expect(service.usePlayerSpell('Aria', cantrip.id)).resolves.toBe(true);
+    await expect(service.usePlayerSpell('Missing', 'missing')).resolves.toBe(false);
+
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it('restores leveled spell uses while leaving cantrips unchanged', async () => {
+    const cantrip = createSpell({ id: 'cantrip' });
+    const leveled = createSpell({
+      id: 'leveled',
+      level: 2,
+      isCantrip: false,
+      maxUses: 3,
+      usesRemaining: 0,
+    });
+    const legacy = createSpell({ id: 'legacy', level: 1, isCantrip: false });
+    vi.spyOn(service, 'loadCharacter').mockResolvedValue(
+      createCharacter({ spells: [cantrip, leveled, legacy] }),
+    );
+    const save = vi.spyOn(service, 'saveCharacter').mockResolvedValue(undefined);
+
+    await service.restorePlayerSpells('Aria');
+
+    expect(save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        spells: [
+          cantrip,
+          expect.objectContaining({ id: 'leveled', maxUses: 3, usesRemaining: 3 }),
+          expect.objectContaining({ id: 'legacy', maxUses: 1, usesRemaining: 1 }),
+        ],
+      }),
+    );
+  });
 });

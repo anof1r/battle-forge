@@ -4,7 +4,7 @@ import { Observable, of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { COMBATANT_STATUS, COMBATANT_TYPE } from '../../core/constants/combatant.constants';
 import { ParsedCharacter } from '../../core/models/character.model';
-import { Combatant } from '../../core/models/combatant.model';
+import { Combatant, SpellData } from '../../core/models/combatant.model';
 import { InventoryItem } from '../../core/models/inventory-item.model';
 import { BattleService } from '../../core/services/battle.service';
 import { CharacterService } from '../../core/services/character.service';
@@ -21,6 +21,7 @@ describe('PlayerComponent', () => {
     loadCharacter: ReturnType<typeof vi.fn>;
     saveCharacter: ReturnType<typeof vi.fn>;
     subscribeToCharacter: ReturnType<typeof vi.fn>;
+    usePlayerSpell: ReturnType<typeof vi.fn>;
   };
   let inventoryService: { consumeItem: ReturnType<typeof vi.fn> };
   let parser: {
@@ -46,6 +47,17 @@ describe('PlayerComponent', () => {
     isConsumable: true,
     rarity: 'common',
   };
+
+  const spell = (overrides: Partial<SpellData> = {}): SpellData => ({
+    id: 'spell-1',
+    name: 'Shield',
+    level: 1,
+    isCantrip: false,
+    isPrepared: true,
+    maxUses: 3,
+    usesRemaining: 2,
+    ...overrides,
+  });
 
   const character = (overrides: Partial<ParsedCharacter> = {}): ParsedCharacter => ({
     name: 'Aria',
@@ -94,6 +106,7 @@ describe('PlayerComponent', () => {
       loadCharacter: vi.fn(),
       saveCharacter: vi.fn().mockResolvedValue(undefined),
       subscribeToCharacter: vi.fn().mockReturnValue(of(character())),
+      usePlayerSpell: vi.fn().mockResolvedValue(true),
     };
     inventoryService = {
       consumeItem: vi.fn().mockResolvedValue(true),
@@ -380,5 +393,61 @@ describe('PlayerComponent', () => {
     expect(component.expandedAbility()).toBe('Darkvision');
     component.toggleAbility('Darkvision');
     expect(component.expandedAbility()).toBeNull();
+  });
+
+  it('renders unlimited cantrips and spends an available leveled spell use', async () => {
+    const cantrip = spell({
+      id: 'fire-bolt',
+      name: 'Fire Bolt',
+      level: 0,
+      isCantrip: true,
+      maxUses: undefined,
+      usesRemaining: undefined,
+    });
+    const shield = spell();
+    component.character.set(character({ spells: [cantrip, shield] }));
+    component.isLoggedIn.set(true);
+
+    fixture.detectChanges();
+
+    const cards = Array.from<HTMLElement>(
+      fixture.nativeElement.querySelectorAll('.player__spell-card'),
+    );
+    expect(cards[0]).toHaveTextContent('∞');
+    expect(cards[1]).toHaveTextContent('2 / 3');
+
+    const buttons = Array.from<HTMLButtonElement>(
+      fixture.nativeElement.querySelectorAll('.player__spell-use-btn'),
+    );
+    buttons[1].click();
+
+    await vi.waitFor(() =>
+      expect(characterService.usePlayerSpell).toHaveBeenCalledWith('Aria', shield.id),
+    );
+    await vi.waitFor(() => expect(component.usingSpellId()).toBeNull());
+  });
+
+  it('disables unavailable spells and reports persistence failures', async () => {
+    const exhausted = spell({ usesRemaining: 0 });
+    const available = spell({ id: 'available' });
+    component.character.set(character({ spells: [exhausted, available] }));
+    component.isLoggedIn.set(true);
+    characterService.usePlayerSpell.mockRejectedValue(new Error('write failed'));
+
+    fixture.detectChanges();
+
+    const buttons = Array.from<HTMLButtonElement>(
+      fixture.nativeElement.querySelectorAll('.player__spell-use-btn'),
+    );
+    expect(buttons[0]).toBeDisabled();
+    buttons[1].click();
+
+    await vi.waitFor(() =>
+      expect(logger.error).toHaveBeenCalledWith(
+        'PlayerComponent.useSpell',
+        expect.any(Error),
+      ),
+    );
+    expect(component.spellUseError()).not.toBeNull();
   });
 });

@@ -345,12 +345,20 @@
   border-radius: 4px;
 }
 
-.player__spell-prepared {
+.player__spell-prepared,
+.player__spell-unprepared {
   font-size: 0.6rem;
-  color: #2ecc71;
-  border: 1px solid #2ecc71;
+  border: 1px solid currentColor;
   padding: 0.1rem 0.5rem;
   border-radius: 4px;
+}
+
+.player__spell-prepared {
+  color: #2ecc71;
+}
+
+.player__spell-unprepared {
+  color: #e67e22;
 }
 
 .player__spell-school {
@@ -363,8 +371,40 @@
 .player__spell-description {
   font-size: 0.8rem;
   color: #b0a090;
-  margin: 0;
+  margin: 0 0 var(--bf-space-3);
   line-height: 1.4;
+}
+
+.player__spell-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--bf-space-2);
+  margin-top: var(--bf-space-3);
+}
+
+.player__spell-uses {
+  color: #d6c7a1;
+  font-size: 0.75rem;
+}
+
+.player__spell-use-btn {
+  &:focus-visible {
+    outline: 2px solid #e8d5a0;
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+}
+
+.player__spell-error {
+  margin: var(--bf-space-3) 0 0;
+  color: #e74c3c;
+  font-size: 0.8rem;
 }
 
 /* ===== МОДАЛЬНОЕ ОКНО ===== */

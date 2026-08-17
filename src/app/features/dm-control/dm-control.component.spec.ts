@@ -47,6 +47,7 @@ describe('DmControlComponent', () => {
   let characterService: {
     getAllPlayers: ReturnType<typeof vi.fn>;
     updatePlayerSpells: ReturnType<typeof vi.fn>;
+    restorePlayerSpells: ReturnType<typeof vi.fn>;
   };
   let inventoryService: { giveItem: ReturnType<typeof vi.fn> };
   let enemyGenerator: { generateFlavor: ReturnType<typeof vi.fn> };
@@ -136,6 +137,7 @@ describe('DmControlComponent', () => {
     characterService = {
       getAllPlayers: vi.fn().mockResolvedValue([]),
       updatePlayerSpells: vi.fn().mockResolvedValue(undefined),
+      restorePlayerSpells: vi.fn().mockResolvedValue(undefined),
     };
     inventoryService = {
       giveItem: vi.fn().mockResolvedValue(undefined),
@@ -290,6 +292,40 @@ describe('DmControlComponent', () => {
     await vi.waitFor(() => expect(component.selectedPlayerIdForSpell()).toBeNull());
     expect(component.spellName()).toBe('');
     expect(component.isSpellCantrip()).toBe(true);
+  });
+
+  it('gives a leveled spell its configured uses and resets the usage field', async () => {
+    vi.spyOn(crypto, 'randomUUID').mockReturnValue('00000000-0000-4000-8000-000000000003');
+    component.selectedPlayerIdForSpell.set('player_Aria');
+    component.spellName.set('Shield');
+    component.spellLevel.set(1);
+    component.spellMaxUses.set(3);
+
+    component.giveSpell();
+
+    await vi.waitFor(() =>
+      expect(characterService.updatePlayerSpells).toHaveBeenCalledWith(
+        'Aria',
+        expect.objectContaining({
+          name: 'Shield',
+          level: 1,
+          isCantrip: false,
+          maxUses: 3,
+          usesRemaining: 3,
+        }),
+      ),
+    );
+    await vi.waitFor(() => expect(component.spellMaxUses()).toBe(1));
+  });
+
+  it('restores spell uses for the selected player', async () => {
+    component.selectedPlayerIdForSpell.set('player_Aria');
+
+    component.restoreSpells();
+
+    await vi.waitFor(() =>
+      expect(characterService.restorePlayerSpells).toHaveBeenCalledWith('Aria'),
+    );
   });
 
   it('filters damage targets to alive combatants of the selected type', () => {

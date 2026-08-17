@@ -64,6 +64,7 @@ export class DmControlComponent {
   readonly spellDescription = signal('');
   readonly spellDamageFormula = signal('');
   readonly spellDamageType = signal('');
+  readonly spellMaxUses = signal(1);
   readonly isSpellCantrip = computed(() => this.spellLevel() === 0);
 
   // --- UI подготовки/инициативы ---
@@ -156,6 +157,18 @@ export class DmControlComponent {
     this.selectedPlayerIdForSpell.set(select.value || null);
   }
 
+  onSpellLevelInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const level = Number(input.value);
+    this.spellLevel.set(Math.min(9, Math.max(0, Number.isFinite(level) ? level : 0)));
+  }
+
+  onSpellMaxUsesInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const maxUses = Number(input.value);
+    this.spellMaxUses.set(Math.max(1, Number.isFinite(maxUses) ? Math.floor(maxUses) : 1));
+  }
+
   giveSpell(): void {
     const playerId = this.selectedPlayerIdForSpell();
     const name = this.spellName().trim();
@@ -173,6 +186,9 @@ export class DmControlComponent {
       damageType: this.spellDamageType().trim(),
       isCantrip: level === 0,
       isPrepared: true,
+      ...(level === 0
+        ? {}
+        : { maxUses: this.spellMaxUses(), usesRemaining: this.spellMaxUses() }),
     };
 
     this.characterService
@@ -189,6 +205,17 @@ export class DmControlComponent {
     this.spellDescription.set('');
     this.spellDamageFormula.set('');
     this.spellDamageType.set('');
+    this.spellMaxUses.set(1);
+  }
+
+  restoreSpells(): void {
+    const playerId = this.selectedPlayerIdForSpell();
+    if (!playerId) return;
+
+    const playerName = playerId.replace('player_', '');
+    this.characterService
+      .restorePlayerSpells(playerName)
+      .catch((error: unknown) => this.logger.error('DmControlComponent.restoreSpells', error));
   }
 
   onDamageTargetChange(event: Event): void {

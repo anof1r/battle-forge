@@ -130,6 +130,12 @@
   gap: var(--bf-space-3);
 }
 
+.dm-spell-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--bf-space-3);
+}
+
 .dm-add-form {
   display: flex;
   flex-direction: column;

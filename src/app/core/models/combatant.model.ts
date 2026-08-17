@@ -30,4 +30,6 @@ export interface SpellData {
   damageType?: string;
   isCantrip: boolean;
   isPrepared: boolean;
+  maxUses?: number;
+  usesRemaining?: number;
 }

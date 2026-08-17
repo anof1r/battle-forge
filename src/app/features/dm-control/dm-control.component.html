@@ -374,9 +374,21 @@
             min="0"
             max="9"
             [value]="spellLevel()"
-            (input)="spellLevel.set($any($event.target).value || 0)"
+            (input)="onSpellLevelInput($event)"
           />
         </div>
+        @if (!isSpellCantrip()) {
+          <div class="field">
+            <label class="field__label">Количество использований</label>
+            <input
+              class="field__input"
+              type="number"
+              min="1"
+              [value]="spellMaxUses()"
+              (input)="onSpellMaxUsesInput($event)"
+            />
+          </div>
+        }
       </div>
       <div class="field-row">
         <div class="field">
@@ -422,13 +434,22 @@
           />
         </div>
       </div>
-      <button
-        class="dm-btn"
-        (click)="giveSpell()"
-        [disabled]="!selectedPlayerIdForSpell() || !spellName()"
-      >
-        🔮 Выдать заклинание
-      </button>
+      <div class="dm-spell-actions">
+        <button
+          class="dm-btn"
+          (click)="giveSpell()"
+          [disabled]="!selectedPlayerIdForSpell() || !spellName()"
+        >
+          🔮 Выдать заклинание
+        </button>
+        <button
+          class="dm-btn dm-btn--secondary"
+          (click)="restoreSpells()"
+          [disabled]="!selectedPlayerIdForSpell()"
+        >
+          ↻ Восстановить использования
+        </button>
+      </div>
     </div>
   </section>
 
