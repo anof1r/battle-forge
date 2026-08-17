@@ -15,72 +15,41 @@
     </div>
   </header>
 
-  <!-- ===== ФОРМА ДОБАВЛЕНИЯ ВРАГА (исправлено) ===== -->
-  <section class="dm-section dm-section--add">
-    <h2 class="dm-section__title">➕ Добавить врага</h2>
-    <div class="dm-add-form">
-      <div class="field-row">
-        <div class="field">
-          <label class="field__label">Имя</label>
-          <input
-            class="field__input"
-            type="text"
-            placeholder="Гоблин"
-            [value]="newEnemyName()"
-            (input)="newEnemyName.set($any($event.target).value)"
-          />
-        </div>
-        <div class="field">
-          <label class="field__label">Тип</label>
-          <input
-            class="field__input"
-            type="text"
-            placeholder="goblin"
-            [value]="newEnemyType()"
-            (input)="newEnemyType.set($any($event.target).value)"
-          />
-        </div>
-      </div>
-      <div class="field-row">
-        <div class="field">
-          <label class="field__label">HP</label>
-          <input
-            class="field__input"
-            type="number"
-            min="1"
-            [value]="newEnemyMaxHp()"
-            (input)="onHpInput($event)"
-          />
-        </div>
-        <div class="field">
-          <label class="field__label">AC</label>
-          <input
-            class="field__input"
-            type="number"
-            min="1"
-            [value]="newEnemyAc()"
-            (input)="onAcInput($event)"
-          />
-        </div>
-      </div>
-      <div class="dm-btn-group">
-        <button
-          class="dm-btn"
-          (click)="addEnemy()"
-          [disabled]="!newEnemyName() || newEnemyMaxHp() < 1"
-        >
-          + Добавить
-        </button>
-        <button class="dm-btn dm-btn--secondary" (click)="randomizeAllEnemies()">
-          🎲 Рандомизировать врагов
-        </button>
-      </div>
-    </div>
-  </section>
+  <nav class="dm-workspace-tabs" aria-label="Разделы панели ДМа">
+    <button
+      type="button"
+      [class.dm-workspace-tabs__button--active]="activePanel() === 'scenes'"
+      (click)="activePanel.set('scenes')"
+    >
+      🗺️ Сцены и существа
+    </button>
+    <button
+      type="button"
+      [class.dm-workspace-tabs__button--active]="activePanel() === 'battle'"
+      (click)="activePanel.set('battle')"
+    >
+      ⚔️ Текущий бой
+      <span>{{ aliveEnemies().length + (playersInBattle() | keyvalue).length }}</span>
+    </button>
+    <button
+      type="button"
+      [class.dm-workspace-tabs__button--active]="activePanel() === 'rewards'"
+      (click)="activePanel.set('rewards')"
+    >
+      🎁 Игроки и награды
+    </button>
+  </nav>
+
+  @if (activePanel() === 'scenes') {
+    <app-dm-scene-library />
+  }
+
+  @if (activePanel() === 'battle') {
+    <div class="dm-workspace-grid">
 
   <!-- ===== УПРАВЛЕНИЕ БОЕМ ===== -->
-  <section class="dm-section dm-section--controls">
-    <h2 class="dm-section__title">🎮 Управление боем</h2>
+  <details class="dm-section dm-section--controls" open>
+    <summary class="dm-section__title">🎮 Управление боем</summary>
     <div class="dm-controls-group">
       <h3 class="dm-controls-group__title">⚙️ Подготовка</h3>
       <div class="dm-controls">
@@ -109,12 +78,29 @@
         <button class="dm-btn dm-btn--danger" (click)="resetScene()">🔄 Сбросить</button>
       </div>
     </div>
-  </section>
+  </details>
 
-  <!-- ===== ПАНЕЛЬ НАНЕСЕНИЯ УРОНА ===== -->
-  <section class="dm-section dm-section--damage">
-    <h2 class="dm-section__title">💥 Нанести урон</h2>
+  <!-- ===== ПАНЕЛЬ ИЗМЕНЕНИЯ HP ===== -->
+  <details class="dm-section dm-section--damage" open>
+    <summary class="dm-section__title">❤️ Изменить HP</summary>
     <div class="dm-damage-panel">
+      <div class="dm-hp-tabs" role="group" aria-label="Режим изменения HP">
+        <button
+          type="button"
+          [class.dm-hp-tabs__button--active]="hpOperation() === 'damage'"
+          (click)="setHpOperation('damage')"
+        >
+          💥 Нанести урон
+        </button>
+        <button
+          type="button"
+          [class.dm-hp-tabs__button--active]="hpOperation() === 'heal'"
+          (click)="setHpOperation('heal')"
+        >
+          ❤️ Добавить HP
+        </button>
+      </div>
+
       <div class="dm-damage__target-type">
         <label class="dm-damage__radio">
           <input
@@ -134,15 +120,17 @@
           />
           Игроки
         </label>
-        <label class="dm-damage__radio">
-          <input
-            type="radio"
-            [value]="'all'"
-            [checked]="targetType() === 'all'"
-            (change)="targetType.set('all'); damageTargetId.set(null)"
-          />
-          Все враги (массовый урон)
-        </label>
+        @if (hpOperation() === 'damage') {
+          <label class="dm-damage__radio">
+            <input
+              type="radio"
+              [value]="'all'"
+              [checked]="targetType() === 'all'"
+              (change)="targetType.set('all'); damageTargetId.set(null)"
+            />
+            Все враги (массовый урон)
+          </label>
+        }
       </div>
 
       @if (targetType() !== 'all') {
@@ -165,7 +153,7 @@
 
       <div class="dm-damage__controls">
         <div class="field">
-          <label class="field__label">Урон</label>
+          <label class="field__label">{{ hpOperation() === 'damage' ? 'Урон' : 'Лечение' }}</label>
           <input
             class="field__input"
             type="number"
@@ -174,22 +162,32 @@
             (input)="onDamageAmountInput($event)"
           />
         </div>
-        <button
-          class="dm-btn dm-btn--danger"
-          [disabled]="!canApplyDamage()"
-          (click)="applyDamage()"
-        >
-          💥 Нанести урон
-        </button>
+        @if (hpOperation() === 'damage') {
+          <button
+            class="dm-btn dm-btn--danger"
+            [disabled]="!canApplyDamage()"
+            (click)="applyDamage()"
+          >
+            💥 Нанести урон
+          </button>
+        } @else {
+          <button
+            class="dm-btn dm-btn--success"
+            [disabled]="!canApplyHealing()"
+            (click)="applyHealing()"
+          >
+            ❤️ Добавить HP
+          </button>
+        }
         <button class="dm-btn dm-btn--secondary" (click)="cancelDamage()">✕ Сбросить</button>
       </div>
     </div>
-  </section>
+  </details>
 
   <!-- ===== РЕДАКТОР ИНИЦИАТИВЫ ===== -->
   @if (showInitiativeRolls()) {
-    <section class="dm-section dm-section--initiative">
-      <h2 class="dm-section__title">🎲 Инициатива</h2>
+    <details class="dm-section dm-section--initiative" open>
+      <summary class="dm-section__title">🎲 Инициатива</summary>
       <div class="initiative-editor">
         @for (combatant of allCombatants(); track combatant.id) {
           <div class="initiative-editor__row">
@@ -203,12 +201,12 @@
           </div>
         }
       </div>
-    </section>
+    </details>
   }
 
   <!-- ===== СПИСОК ВРАГОВ ===== -->
-  <section class="dm-section dm-section--enemies">
-    <h2 class="dm-section__title">👹 Враги ({{ aliveEnemies().length }})</h2>
+  <details class="dm-section dm-section--enemies" open>
+    <summary class="dm-section__title">👹 Враги ({{ aliveEnemies().length }})</summary>
     <div class="enemy-list">
       @for (enemy of aliveEnemies(); track enemy.id) {
         <div class="enemy-item" [class.enemy-item--active]="currentEnemy() === enemy">
@@ -229,11 +227,11 @@
         <div class="empty-hint">Нет врагов. Добавьте их через форму выше.</div>
       }
     </div>
-  </section>
+  </details>
 
   <!-- ===== СПИСОК ИГРОКОВ ===== -->
-  <section class="dm-section dm-section--players">
-    <h2 class="dm-section__title">🎭 Игроки в бою ({{ (playersInBattle() | keyvalue).length }})</h2>
+  <details class="dm-section dm-section--players" open>
+    <summary class="dm-section__title">🎭 Игроки в бою ({{ (playersInBattle() | keyvalue).length }})</summary>
     <div class="enemy-list">
       @for (player of playersInBattle() | keyvalue; track player.value.id) {
         <div class="enemy-item" [class.enemy-item--active]="currentEnemy() === player.value">
@@ -262,11 +260,16 @@
         <div class="empty-hint">Нет игроков в бою. Нажмите "Загрузить игроков".</div>
       }
     </div>
-  </section>
+  </details>
 
+    </div>
+  }
+
+  @if (activePanel() === 'rewards') {
+    <div class="dm-rewards-grid">
   <!-- ===== ВЫДАЧА ПРЕДМЕТОВ ===== -->
-  <section class="dm-section dm-section--inventory">
-    <h2 class="dm-section__title">🎒 Выдать предмет игроку</h2>
+  <details class="dm-section dm-section--inventory" open>
+    <summary class="dm-section__title">🎒 Выдать предмет игроку</summary>
     <div class="dm-inventory-form">
       <div class="field-row">
         <div class="field">
@@ -337,10 +340,10 @@
         🎒 Выдать предмет
       </button>
     </div>
-  </section>
+  </details>
 
-  <section class="dm-section dm-section--spells">
-    <h2 class="dm-section__title">🔮 Выдать заклинание игроку</h2>
+  <details class="dm-section dm-section--spells" open>
+    <summary class="dm-section__title">🔮 Выдать заклинание игроку</summary>
     <div class="dm-spell-form">
       <div class="field-row">
         <div class="field">
@@ -451,7 +454,10 @@
         </button>
       </div>
     </div>
-  </section>
+  </details>
+
+    </div>
+  }
 
   <!-- ===== ТЕКУЩИЙ ХОД ===== -->
   @if (currentEnemy(); as current) {

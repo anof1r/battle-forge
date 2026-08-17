@@ -7,3 +7,9 @@ export interface EnemyAction {
   damageType: string;
   fullText?: string;
 }
+
+/** A passive or special creature ability that does not use the weapon attack fields. */
+export interface EnemyAbility {
+  name: string;
+  description: string;
+}

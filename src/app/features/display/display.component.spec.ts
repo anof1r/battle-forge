@@ -19,6 +19,7 @@ describe('DisplayComponent', () => {
     currentHp: 8,
     status: COMBATANT_STATUS.ALIVE,
     actions: [],
+    abilities: [{ name: 'Nimble Escape', description: 'Can Hide as a bonus action.' }],
   };
 
   let status: ReturnType<typeof signal<BattleStatus>>;
@@ -82,6 +83,9 @@ describe('DisplayComponent', () => {
     );
     expect(fixture.nativeElement.querySelector('.bestiary-card')).toHaveClass(
       'bestiary-card--active',
+    );
+    expect(fixture.nativeElement.querySelector('.bestiary-card__abilities')).toHaveTextContent(
+      'Nimble Escape',
     );
   });
 });

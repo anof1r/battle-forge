@@ -1,0 +1,443 @@
+<section class="scene-library" aria-label="Библиотека сцен и существ">
+  <header class="scene-library__intro">
+    <div>
+      <h2>Сцены и библиотека существ</h2>
+      <p>Создайте существо один раз, соберите набор и добавляйте всю сцену в бой одной кнопкой.</p>
+    </div>
+    <div class="scene-library__legend">
+      <span>1. Существо</span><span>2. Набор</span><span>3. В бой</span>
+    </div>
+  </header>
+
+  @if (feedback()) {
+    <p class="scene-library__message scene-library__message--success" role="status">
+      {{ feedback() }}
+    </p>
+  }
+  @if (error()) {
+    <p class="scene-library__message scene-library__message--error" role="alert">{{ error() }}</p>
+  }
+
+  <div class="scene-library__dashboard">
+    <section class="library-panel library-panel--scenes">
+      <header class="library-panel__header">
+        <div>
+          <span class="library-panel__eyebrow">Быстрый запуск</span>
+          <h3>Сохранённые сцены</h3>
+        </div>
+        <span class="library-panel__count">{{ scenes().length }}</span>
+      </header>
+
+      <div class="scene-cards">
+        @for (scene of scenes(); track scene.id) {
+          <article class="scene-card">
+            <div class="scene-card__heading">
+              <div>
+                <h4>{{ scene.name }}</h4>
+                <span>{{ sceneCreatureCount(scene) }} существ</span>
+              </div>
+              <button
+                class="icon-button"
+                type="button"
+                (click)="deleteScene(scene)"
+                aria-label="Удалить набор"
+              >
+                ×
+              </button>
+            </div>
+            @if (scene.description) {
+              <p>{{ scene.description }}</p>
+            }
+            <div class="scene-card__roster">
+              @for (entry of scene.entries; track entry.templateId) {
+                <span>{{ creatureNameFor(entry.templateId) }} ×{{ entry.quantity }}</span>
+              }
+            </div>
+            <div class="library-actions">
+              <button
+                class="library-button library-button--primary"
+                type="button"
+                [disabled]="launchingSceneId() !== null"
+                (click)="launchScene(scene)"
+              >
+                {{ launchingSceneId() === scene.id ? 'Добавляем…' : 'Добавить сцену в бой' }}
+              </button>
+              <button class="library-button" type="button" (click)="editScene(scene)">
+                Изменить
+              </button>
+            </div>
+          </article>
+        } @empty {
+          <div class="library-empty">
+            <strong>Пока нет наборов</strong>
+            <span>Создайте существ, затем соберите первую сцену справа.</span>
+          </div>
+        }
+      </div>
+    </section>
+
+    <section class="library-panel library-panel--builder">
+      <header class="library-panel__header">
+        <div>
+          <span class="library-panel__eyebrow">Конструктор</span>
+          <h3>{{ sceneId() ? 'Редактирование набора' : 'Новый набор сцены' }}</h3>
+        </div>
+      </header>
+
+      <div class="library-form">
+        <label class="library-field">
+          <span>Название сцены</span>
+          <input
+            type="text"
+            placeholder="Лесная засада"
+            [value]="sceneName()"
+            (input)="setText(sceneName, $event)"
+          />
+        </label>
+        <label class="library-field">
+          <span>Заметка</span>
+          <textarea
+            rows="2"
+            placeholder="Гоблины ждут у поваленного дерева"
+            [value]="sceneDescription()"
+            (input)="setText(sceneDescription, $event)"
+          ></textarea>
+        </label>
+
+        <div class="scene-entry-form">
+          <label class="library-field">
+            <span>Существо</span>
+            <select [value]="selectedTemplateId()" (change)="setText(selectedTemplateId, $event)">
+              <option value="">Выберите шаблон</option>
+              @for (creature of creatures(); track creature.id) {
+                <option [value]="creature.id">{{ creature.name }}</option>
+              }
+            </select>
+          </label>
+          <label class="library-field library-field--quantity">
+            <span>Количество</span>
+            <input
+              type="number"
+              min="1"
+              [value]="selectedQuantity()"
+              (input)="onQuantityInput($event)"
+            />
+          </label>
+          <button
+            class="library-button"
+            type="button"
+            [disabled]="!selectedTemplateId()"
+            (click)="addSceneEntry()"
+          >
+            Добавить
+          </button>
+        </div>
+
+        <div class="scene-roster">
+          @for (entry of sceneEntries(); track entry.templateId) {
+            <div class="scene-roster__item">
+              <span>{{ creatureNameFor(entry.templateId) }}</span>
+              <strong>×{{ entry.quantity }}</strong>
+              <button
+                type="button"
+                class="icon-button"
+                (click)="removeSceneEntry(entry.templateId)"
+                aria-label="Убрать из набора"
+              >
+                ×
+              </button>
+            </div>
+          } @empty {
+            <p class="library-hint">Добавьте в набор хотя бы одно существо.</p>
+          }
+        </div>
+
+        <div class="library-actions">
+          <button
+            class="library-button library-button--primary"
+            type="button"
+            [disabled]="!canSaveScene() || savingScene()"
+            (click)="saveScene()"
+          >
+            {{
+              savingScene() ? 'Сохраняем…' : sceneId() ? 'Сохранить изменения' : 'Сохранить набор'
+            }}
+          </button>
+          @if (sceneId()) {
+            <button class="library-button" type="button" (click)="resetSceneEditor()">
+              Отмена
+            </button>
+          }
+        </div>
+      </div>
+    </section>
+
+    <section class="library-panel library-panel--creatures">
+      <header class="library-panel__header">
+        <div>
+          <span class="library-panel__eyebrow">Бестиарий ДМа</span>
+          <h3>Существа</h3>
+        </div>
+        <span class="library-panel__count">{{ creatures().length }}</span>
+      </header>
+
+      <div class="creature-cards">
+        @for (creature of creatures(); track creature.id) {
+          <article class="creature-card">
+            <div class="creature-card__heading">
+              <div>
+                <h4>{{ creature.name }}</h4>
+                <span>{{ creature.subtype || 'без типа' }}</span>
+              </div>
+              <div class="creature-card__stats">
+                <b>HP {{ creature.maxHp }}</b
+                ><b>AC {{ creature.ac }}</b>
+              </div>
+            </div>
+            <div class="creature-card__meta">
+              <span>Атак: {{ creature.actions.length }}</span>
+              <span>Способностей: {{ creature.abilities.length }}</span>
+            </div>
+            <div class="library-actions">
+              <button
+                class="library-button library-button--primary"
+                type="button"
+                (click)="addCreatureToBattle(creature)"
+              >
+                В бой
+              </button>
+              <button class="library-button" type="button" (click)="editCreature(creature)">
+                Изменить
+              </button>
+              <button
+                class="library-button library-button--danger"
+                type="button"
+                (click)="deleteCreature(creature)"
+              >
+                Удалить
+              </button>
+            </div>
+          </article>
+        } @empty {
+          <div class="library-empty">
+            <strong>Библиотека пуста</strong><span>Заполните редактор ниже.</span>
+          </div>
+        }
+      </div>
+    </section>
+  </div>
+
+  <details class="creature-editor" [open]="creatures().length === 0 || creatureId() !== null">
+    <summary>
+      <span>{{ creatureId() ? 'Редактировать существо' : 'Создать существо' }}</span>
+      <small>характеристики, оружие, атаки и способности</small>
+    </summary>
+
+    <div class="creature-editor__body">
+      <div class="creature-editor__basics">
+        <label class="library-field"
+          ><span>Имя</span
+          ><input
+            type="text"
+            placeholder="Гоблин-разведчик"
+            [value]="creatureName()"
+            (input)="setText(creatureName, $event)"
+        /></label>
+        <label class="library-field"
+          ><span>Тип</span
+          ><input
+            type="text"
+            placeholder="goblin"
+            [value]="creatureSubtype()"
+            (input)="setText(creatureSubtype, $event)"
+        /></label>
+        <label class="library-field"
+          ><span>Максимум HP</span
+          ><input
+            type="number"
+            min="1"
+            [value]="creatureMaxHp()"
+            (input)="onCreatureMaxHpInput($event)"
+        /></label>
+        <label class="library-field"
+          ><span>AC</span
+          ><input type="number" min="1" [value]="creatureAc()" (input)="onCreatureAcInput($event)"
+        /></label>
+        <label class="library-field"
+          ><span>Сопротивления через запятую</span
+          ><input
+            type="text"
+            placeholder="огонь, холод"
+            [value]="creatureResistances()"
+            (input)="setText(creatureResistances, $event)"
+        /></label>
+        <label class="library-field"
+          ><span>Стартовые состояния через запятую</span
+          ><input
+            type="text"
+            placeholder="невидим"
+            [value]="creatureStatuses()"
+            (input)="setText(creatureStatuses, $event)"
+        /></label>
+      </div>
+
+      <div class="creature-editor__columns">
+        <section class="subeditor">
+          <header>
+            <h4>Оружие и атаки</h4>
+            <span>{{ creatureActions().length }}</span>
+          </header>
+          <div class="subeditor__grid">
+            <label class="library-field"
+              ><span>Название</span
+              ><input
+                type="text"
+                placeholder="Короткий меч"
+                [value]="actionName()"
+                (input)="setText(actionName, $event)"
+            /></label>
+            <label class="library-field"
+              ><span>Бонус атаки</span
+              ><input
+                type="text"
+                placeholder="+4"
+                [value]="actionToHit()"
+                (input)="setText(actionToHit, $event)"
+            /></label>
+            <label class="library-field"
+              ><span>Кости урона</span
+              ><input
+                type="text"
+                placeholder="1d6 + 2"
+                [value]="actionDamage()"
+                (input)="setText(actionDamage, $event)"
+            /></label>
+            <label class="library-field"
+              ><span>Тип урона</span
+              ><input
+                type="text"
+                placeholder="колющий"
+                [value]="actionDamageType()"
+                (input)="setText(actionDamageType, $event)"
+            /></label>
+            <label class="library-field"
+              ><span>Тип атаки</span
+              ><input
+                type="text"
+                placeholder="Ближняя атака"
+                [value]="actionDescription()"
+                (input)="setText(actionDescription, $event)"
+            /></label>
+            <label class="library-field library-field--wide"
+              ><span>Дополнительный текст</span
+              ><textarea
+                rows="2"
+                placeholder="Особые условия атаки"
+                [value]="actionFullText()"
+                (input)="setText(actionFullText, $event)"
+              ></textarea>
+            </label>
+          </div>
+          <button
+            class="library-button"
+            type="button"
+            [disabled]="!actionName().trim()"
+            (click)="addAction()"
+          >
+            Добавить атаку
+          </button>
+          <div class="editor-items">
+            @for (action of creatureActions(); track $index) {
+              <div class="editor-item">
+                <div>
+                  <strong>{{ action.name }}</strong
+                  ><span>{{ action.toHit }} · {{ action.damage }} {{ action.damageType }}</span>
+                </div>
+                <button
+                  class="icon-button"
+                  type="button"
+                  (click)="removeAction($index)"
+                  aria-label="Удалить атаку"
+                >
+                  ×
+                </button>
+              </div>
+            }
+          </div>
+        </section>
+
+        <section class="subeditor">
+          <header>
+            <h4>Способности</h4>
+            <span>{{ creatureAbilities().length }}</span>
+          </header>
+          <label class="library-field"
+            ><span>Название</span
+            ><input
+              type="text"
+              placeholder="Тактика стаи"
+              [value]="abilityName()"
+              (input)="setText(abilityName, $event)"
+          /></label>
+          <label class="library-field"
+            ><span>Описание</span
+            ><textarea
+              rows="4"
+              placeholder="Существо получает преимущество, если рядом союзник…"
+              [value]="abilityDescription()"
+              (input)="setText(abilityDescription, $event)"
+            ></textarea>
+          </label>
+          <button
+            class="library-button"
+            type="button"
+            [disabled]="!abilityName().trim() || !abilityDescription().trim()"
+            (click)="addAbility()"
+          >
+            Добавить способность
+          </button>
+          <div class="editor-items">
+            @for (ability of creatureAbilities(); track $index) {
+              <div class="editor-item">
+                <div>
+                  <strong>{{ ability.name }}</strong
+                  ><span>{{ ability.description }}</span>
+                </div>
+                <button
+                  class="icon-button"
+                  type="button"
+                  (click)="removeAbility($index)"
+                  aria-label="Удалить способность"
+                >
+                  ×
+                </button>
+              </div>
+            }
+          </div>
+        </section>
+      </div>
+
+      <div class="library-actions library-actions--footer">
+        <button
+          class="library-button library-button--primary"
+          type="button"
+          [disabled]="!canSaveCreature() || savingCreature()"
+          (click)="saveCreature()"
+        >
+          {{
+            savingCreature()
+              ? 'Сохраняем…'
+              : creatureId()
+                ? 'Сохранить изменения'
+                : 'Сохранить существо'
+          }}
+        </button>
+        @if (creatureId()) {
+          <button class="library-button" type="button" (click)="resetCreatureEditor()">
+            Отмена
+          </button>
+        }
+      </div>
+    </div>
+  </details>
+</section>

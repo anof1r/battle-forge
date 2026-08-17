@@ -8,12 +8,9 @@ import { ParsedCharacter } from '../../core/models/character.model';
 import { Combatant } from '../../core/models/combatant.model';
 import { BattleService } from '../../core/services/battle.service';
 import { CharacterService } from '../../core/services/character.service';
-import {
-  EnemyGeneratorService,
-  GeneratedEnemyFlavor,
-} from '../../core/services/enemy-generator.service';
 import { InventoryService } from '../../core/services/inventory.service';
 import { LoggerService } from '../../core/services/logger.service';
+import { SceneLibraryService } from '../../core/services/scene-library.service';
 import { DmControlComponent } from './dm-control.component';
 
 describe('DmControlComponent', () => {
@@ -40,9 +37,11 @@ describe('DmControlComponent', () => {
     startBattle: ReturnType<typeof vi.fn>;
     damageAll: ReturnType<typeof vi.fn>;
     takeDamage: ReturnType<typeof vi.fn>;
+    heal: ReturnType<typeof vi.fn>;
     nextTurn: ReturnType<typeof vi.fn>;
     undoLastAction: ReturnType<typeof vi.fn>;
     resetScene: ReturnType<typeof vi.fn>;
+    addCreatureStacks: ReturnType<typeof vi.fn>;
   };
   let characterService: {
     getAllPlayers: ReturnType<typeof vi.fn>;
@@ -50,7 +49,6 @@ describe('DmControlComponent', () => {
     restorePlayerSpells: ReturnType<typeof vi.fn>;
   };
   let inventoryService: { giveItem: ReturnType<typeof vi.fn> };
-  let enemyGenerator: { generateFlavor: ReturnType<typeof vi.fn> };
   let logger: { error: ReturnType<typeof vi.fn> };
 
   const enemy = (id = 'goblin-1'): Combatant => ({
@@ -94,20 +92,6 @@ describe('DmControlComponent', () => {
     abilities: [],
   });
 
-  const flavor: GeneratedEnemyFlavor = {
-    actions: [
-      {
-        name: 'Dagger',
-        description: 'Melee Attack',
-        toHit: '+4',
-        damage: '1d4 + 2',
-        damageType: 'piercing',
-      },
-    ],
-    statuses: ['poisoned'],
-    resistances: ['fire'],
-  };
-
   beforeEach(() => {
     battle = {
       battleStatus: signal<BattleStatus>(BATTLE_STATUS.PREPARATION),
@@ -130,9 +114,11 @@ describe('DmControlComponent', () => {
       startBattle: vi.fn().mockResolvedValue(undefined),
       damageAll: vi.fn().mockResolvedValue(undefined),
       takeDamage: vi.fn().mockResolvedValue(undefined),
+      heal: vi.fn().mockResolvedValue(undefined),
       nextTurn: vi.fn().mockResolvedValue(undefined),
       undoLastAction: vi.fn().mockResolvedValue(undefined),
       resetScene: vi.fn().mockResolvedValue(undefined),
+      addCreatureStacks: vi.fn().mockResolvedValue([]),
     };
     characterService = {
       getAllPlayers: vi.fn().mockResolvedValue([]),
@@ -142,9 +128,6 @@ describe('DmControlComponent', () => {
     inventoryService = {
       giveItem: vi.fn().mockResolvedValue(undefined),
     };
-    enemyGenerator = {
-      generateFlavor: vi.fn().mockReturnValue(flavor),
-    };
     logger = { error: vi.fn() };
 
     TestBed.configureTestingModule({
@@ -153,7 +136,18 @@ describe('DmControlComponent', () => {
         { provide: BattleService, useValue: battle },
         { provide: CharacterService, useValue: characterService },
         { provide: InventoryService, useValue: inventoryService },
-        { provide: EnemyGeneratorService, useValue: enemyGenerator },
+        {
+          provide: SceneLibraryService,
+          useValue: {
+            creatures: signal([]),
+            scenes: signal([]),
+            saveCreature: vi.fn(),
+            deleteCreature: vi.fn(),
+            saveScene: vi.fn(),
+            deleteScene: vi.fn(),
+            resolveScene: vi.fn(),
+          },
+        },
         { provide: LoggerService, useValue: logger },
       ],
     });
@@ -201,43 +195,6 @@ describe('DmControlComponent', () => {
         error,
       ),
     );
-  });
-
-  it('creates a flavored enemy and resets the form after persistence', async () => {
-    component.newEnemyName.set('  Goblin Boss  ');
-    component.newEnemyType.set('goblin');
-    component.newEnemyMaxHp.set(40);
-    component.newEnemyAc.set(16);
-
-    component.addEnemy();
-
-    await vi.waitFor(() =>
-      expect(battle.addEnemy).toHaveBeenCalledWith({
-        type: COMBATANT_TYPE.ENEMY,
-        subtype: 'goblin',
-        name: 'Goblin Boss',
-        ac: 16,
-        maxHp: 40,
-        actions: flavor.actions,
-        statuses: flavor.statuses,
-        resistances: flavor.resistances,
-      }),
-    );
-    await vi.waitFor(() => expect(component.newEnemyName()).toBe(''));
-    expect(component.newEnemyMaxHp()).toBe(10);
-    expect(component.newEnemyAc()).toBe(12);
-  });
-
-  it('does not generate or persist an invalid enemy', () => {
-    component.newEnemyName.set(' ');
-    component.addEnemy();
-
-    component.newEnemyName.set('Goblin');
-    component.newEnemyMaxHp.set(0);
-    component.addEnemy();
-
-    expect(enemyGenerator.generateFlavor).not.toHaveBeenCalled();
-    expect(battle.addEnemy).not.toHaveBeenCalled();
   });
 
   it('gives a normalized item to the selected player and resets the form', async () => {
@@ -354,12 +311,24 @@ describe('DmControlComponent', () => {
     battle.enemies.set({ [goblin.id]: goblin });
     battle.playersInBattle.set({ [aria.id]: aria });
     battle.currentCombatant.set(null);
+    component.activePanel.set('battle');
 
     fixture.detectChanges();
 
     expect(fixture.nativeElement).toHaveTextContent('Goblin');
     expect(fixture.nativeElement).toHaveTextContent('Aria');
     expect(fixture.nativeElement.querySelector('.enemy-item--active')).toBeNull();
+  });
+
+  it('switches between focused desktop workspaces instead of rendering a long dashboard', () => {
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('app-dm-scene-library')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.dm-workspace-grid')).toBeNull();
+
+    component.activePanel.set('battle');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.dm-workspace-grid')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('app-dm-scene-library')).toBeNull();
   });
 
   it('applies group and single-target damage and resets the panel on success', async () => {
@@ -402,6 +371,32 @@ describe('DmControlComponent', () => {
     expect(component.damageTargetId()).toBe('goblin-1');
   });
 
+  it('heals the selected combatant and resets the HP panel after success', async () => {
+    component.setHpOperation('heal');
+    component.targetType.set('players');
+    component.damageTargetId.set('player_Aria');
+    component.damageAmount.set(6);
+
+    expect(component.canApplyHealing()).toBe(true);
+    component.applyHealing();
+
+    await vi.waitFor(() => expect(battle.heal).toHaveBeenCalledWith('player_Aria', 6));
+    await vi.waitFor(() => expect(component.damageAmount()).toBe(0));
+    expect(component.damageTargetId()).toBeNull();
+    expect(component.hpOperation()).toBe('heal');
+  });
+
+  it('removes mass targeting when switching from damage to healing', () => {
+    component.targetType.set('all');
+    component.damageAmount.set(5);
+
+    component.setHpOperation('heal');
+
+    expect(component.targetType()).toBe('enemies');
+    expect(component.damageAmount()).toBe(0);
+    expect(component.canApplyHealing()).toBe(false);
+  });
+
   it('rolls initiative locally and advances UI only after confirmation succeeds', async () => {
     const first = enemy('goblin-1');
     const second = enemy('goblin-2');
@@ -420,13 +415,11 @@ describe('DmControlComponent', () => {
 
     await vi.waitFor(() => expect(battle.rollInitiative).toHaveBeenCalledOnce());
     await vi.waitFor(() => expect(component.showInitiativeRolls()).toBe(false));
-    expect(component.showAddForm()).toBe(false);
   });
 
   it('resets the battle only after user confirmation', async () => {
     const confirm = vi.fn().mockReturnValueOnce(false).mockReturnValueOnce(true);
     vi.stubGlobal('confirm', confirm);
-    component.showAddForm.set(false);
     component.showInitiativeRolls.set(true);
 
     component.resetScene();
@@ -434,27 +427,6 @@ describe('DmControlComponent', () => {
 
     component.resetScene();
     await vi.waitFor(() => expect(battle.resetScene).toHaveBeenCalledOnce());
-    await vi.waitFor(() => expect(component.showAddForm()).toBe(true));
     expect(component.showInitiativeRolls()).toBe(false);
-  });
-
-  it('regenerates flavor for every enemy in the scene', async () => {
-    const first = enemy('goblin-1');
-    const second = enemy('goblin-2');
-    battle.enemies.set({ [first.id]: first, [second.id]: second });
-
-    component.randomizeAllEnemies();
-
-    await vi.waitFor(() => expect(battle.updateEnemy).toHaveBeenCalledTimes(2));
-    expect(battle.updateEnemy).toHaveBeenNthCalledWith(1, first.id, {
-      actions: flavor.actions,
-      statuses: flavor.statuses,
-      resistances: flavor.resistances,
-    });
-    expect(battle.updateEnemy).toHaveBeenNthCalledWith(2, second.id, {
-      actions: flavor.actions,
-      statuses: flavor.statuses,
-      resistances: flavor.resistances,
-    });
   });
 });

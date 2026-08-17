@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { Observable, ReplaySubject } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { COMBATANT_STATUS, COMBATANT_TYPE } from '../../constants';
-import { BattleRoom, Combatant } from '../../models';
+import { BattleRoom, Combatant, CreatureTemplate } from '../../models';
 import { BattleService } from '../battle.service';
 import { CharacterService } from '../character.service';
 import { DamageCalculationService } from '../damage-calculation.service';
@@ -160,6 +160,80 @@ describe('BattleService', () => {
       initiativeOrder: ['enemy-1', `enemy_${UUID}`],
       lastUpdated: NOW,
     });
+  });
+
+  it('adds all creatures from scene stacks in one room update', async () => {
+    const firstUuid = '00000000-0000-4000-8000-000000000011';
+    const secondUuid = '00000000-0000-4000-8000-000000000012';
+    vi.spyOn(Date, 'now').mockReturnValue(NOW);
+    vi.spyOn(globalThis.crypto, 'randomUUID')
+      .mockReturnValueOnce(firstUuid)
+      .mockReturnValueOnce(secondUuid);
+    await setup(createRoom({ initiativeOrder: ['enemy-1'] }));
+    firebase.clearCalls();
+    const template: CreatureTemplate = {
+      id: 'creature-goblin',
+      name: 'Goblin',
+      subtype: 'goblin',
+      maxHp: 10,
+      ac: 12,
+      actions: [{ name: 'Sword', description: 'Melee', toHit: '+4', damage: '1d6+2', damageType: 'piercing' }],
+      abilities: [{ name: 'Nimble Escape', description: 'Disengage as a bonus action.' }],
+      resistances: ['fire'],
+      statuses: [],
+      createdAt: NOW,
+      lastUpdated: NOW,
+    };
+
+    await expect(service.addCreatureStacks([{ template, quantity: 2 }])).resolves.toEqual([
+      `enemy_${firstUuid}`,
+      `enemy_${secondUuid}`,
+    ]);
+
+    expect(firebase.updateMock).toHaveBeenCalledOnce();
+    expect(firebase.updateMock).toHaveBeenCalledWith(
+      ROOM_PATH,
+      expect.objectContaining({
+        [`combatants/enemy_${firstUuid}`]: expect.objectContaining({
+          name: 'Goblin 1',
+          currentHp: 10,
+          actions: template.actions,
+          abilities: template.abilities,
+        }),
+        [`combatants/enemy_${secondUuid}`]: expect.objectContaining({ name: 'Goblin 2' }),
+        initiativeOrder: ['enemy-1', `enemy_${firstUuid}`, `enemy_${secondUuid}`],
+        lastUpdated: NOW,
+      }),
+    );
+  });
+
+  it('never sends undefined optional creature collections to Firebase', async () => {
+    vi.spyOn(globalThis.crypto, 'randomUUID').mockReturnValue(UUID);
+    await setup();
+    firebase.clearCalls();
+    const legacyTemplate = {
+      id: 'legacy',
+      name: 'Legacy Goblin',
+      subtype: 'goblin',
+      maxHp: 7,
+      ac: 12,
+      createdAt: NOW,
+      lastUpdated: NOW,
+    } as CreatureTemplate;
+
+    await service.addCreatureStacks([{ template: legacyTemplate, quantity: 1 }]);
+
+    expect(firebase.updateMock).toHaveBeenCalledWith(
+      ROOM_PATH,
+      expect.objectContaining({
+        [`combatants/enemy_${UUID}`]: expect.objectContaining({
+          actions: [],
+          abilities: [],
+          resistances: [],
+          statuses: [],
+        }),
+      }),
+    );
   });
 
   it('damages an enemy, records undo state and restores previous HP', async () => {
@@ -411,6 +485,29 @@ describe('BattleService', () => {
       lastUpdated: NOW,
     });
     expect(service.canUndo()).toBe(true);
+  });
+
+  it('persists healed player HP to the character sheet', async () => {
+    await setup(
+      createRoom({
+        combatants: {
+          player_Aria: createCombatant({
+            id: 'player_Aria',
+            type: COMBATANT_TYPE.PLAYER,
+            name: 'Aria',
+            playerName: 'Aria',
+            currentHp: 4,
+            maxHp: 10,
+          }),
+        },
+        initiativeOrder: ['player_Aria'],
+      }),
+    );
+    firebase.clearCalls();
+
+    await service.heal('player_Aria', 3);
+
+    expect(characterService.updatePlayerHp).toHaveBeenCalledWith('Aria', 7);
   });
 
   it('delegates initiative operations and moves the room into initiative state', async () => {

@@ -3,7 +3,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { FirebaseService } from './firebase.service';
 import { InitiativeService } from './initiative.service';
 import { DamageCalculationService } from './damage-calculation.service';
-import { BattleAction, BattleRoom } from '../models';
+import { BattleAction, BattleRoom, SceneCreatureStack } from '../models';
 import { Combatant } from '../models/combatant.model';
 import { ParsedCharacter } from '../models/character.model';
 import { CharacterService } from './character.service';
@@ -108,6 +108,43 @@ export class BattleService {
     await this.firebaseService.set(`${this.roomPath}/combatants/${id}`, combatant);
     await this.appendToInitiativeOrder(id);
     return id;
+  }
+
+  async addCreatureStacks(stacks: readonly SceneCreatureStack[]): Promise<string[]> {
+    const validStacks = stacks.filter((stack) => stack.quantity > 0);
+    if (validStacks.length === 0) return [];
+
+    const now = Date.now();
+    const ids: string[] = [];
+    const updates: Record<string, unknown> = {};
+
+    for (const { template, quantity } of validStacks) {
+      for (let index = 0; index < quantity; index += 1) {
+        const id = `enemy_${crypto.randomUUID()}`;
+        ids.push(id);
+        updates[`combatants/${id}`] = {
+          id,
+          type: COMBATANT_TYPE.ENEMY,
+          subtype: template.subtype ?? '',
+          name: quantity > 1 ? `${template.name} ${index + 1}` : template.name,
+          initiative: 0,
+          ac: template.ac,
+          maxHp: template.maxHp,
+          currentHp: template.maxHp,
+          status: COMBATANT_STATUS.ALIVE,
+          actions: template.actions ?? [],
+          abilities: template.abilities ?? [],
+          resistances: template.resistances ?? [],
+          statuses: template.statuses ?? [],
+          lastUpdated: now,
+        } satisfies Combatant;
+      }
+    }
+
+    updates['initiativeOrder'] = [...this.initiativeOrder(), ...ids];
+    updates['lastUpdated'] = now;
+    await this.firebaseService.update(this.roomPath, updates);
+    return ids;
   }
 
   async removeEnemy(enemyId: string): Promise<void> {
@@ -235,6 +272,9 @@ export class BattleService {
       `${this.roomPath}/combatants/${combatantId}`,
       withTimestamp({ currentHp: newHp }),
     );
+    if (c.type === COMBATANT_TYPE.PLAYER && c.playerName) {
+      await this.characterService.updatePlayerHp(c.playerName, newHp);
+    }
     this.logAction({
       type: BATTLE_ACTION_TYPE.HEAL,
       targetId: combatantId,

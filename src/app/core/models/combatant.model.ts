@@ -1,5 +1,5 @@
 import { CombatantStatus, CombatantType } from '../constants/combatant.constants';
-import { EnemyAction } from './enemy.model';
+import { EnemyAbility, EnemyAction } from './enemy.model';
 
 export interface Combatant {
   id: string;
@@ -15,6 +15,7 @@ export interface Combatant {
   emoji?: string;
   enemyId?: string;
   actions?: EnemyAction[];
+  abilities?: EnemyAbility[];
   resistances?: string[];
   statuses?: string[];
   lastUpdated?: number;

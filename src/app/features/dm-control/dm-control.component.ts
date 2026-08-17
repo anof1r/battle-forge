@@ -1,27 +1,19 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { KeyValuePipe, UpperCasePipe } from '@angular/common';
 import { BattleService } from '../../core/services/battle.service';
-import { HpBarComponent } from '../../shared/ui/hp-bar/hp-bar.component';
 import { CharacterService } from '../../core/services/character.service';
 import { InventoryService } from '../../core/services/inventory.service';
-import { EnemyGeneratorService } from '../../core/services/enemy-generator.service';
 import { LoggerService } from '../../core/services/logger.service';
 import { Combatant, SpellData } from '../../core/models/combatant.model';
-import { EnemyIconComponent } from '../../shared/ui/enemy-icon/enemy-icon.component';
 import { BATTLE_STATUS } from '../../core/constants/battle-status.constants';
 import { COMBATANT_STATUS, COMBATANT_TYPE } from '../../core/constants/combatant.constants';
 import { ItemRarity, ITEM_RARITY } from '../../core/constants/item-rarity.constants';
-import {
-  DEFAULT_ENEMY_AC,
-  DEFAULT_ENEMY_MAX_HP,
-  DEFAULT_ENEMY_TYPE,
-} from '../../core/constants/enemy-generator.constants';
+import { DmSceneLibraryComponent } from './scene-library/dm-scene-library.component';
 
 @Component({
   selector: 'app-dm-control',
   standalone: true,
-  imports: [FormsModule, UpperCasePipe, KeyValuePipe],
+  imports: [UpperCasePipe, KeyValuePipe, DmSceneLibraryComponent],
   templateUrl: './dm-control.component.html',
   styleUrl: './dm-control.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -31,19 +23,15 @@ export class DmControlComponent {
   private readonly battleService = inject(BattleService);
   private readonly characterService = inject(CharacterService);
   private readonly inventoryService = inject(InventoryService);
-  private readonly enemyGenerator = inject(EnemyGeneratorService);
   private readonly logger = inject(LoggerService);
 
   // --- Константы для шаблона ---
   readonly BATTLE_STATUS = BATTLE_STATUS;
 
-  // --- Форма добавления врага ---
-  readonly newEnemyName = signal('');
-  readonly newEnemyType = signal(DEFAULT_ENEMY_TYPE);
-  readonly newEnemyMaxHp = signal(DEFAULT_ENEMY_MAX_HP);
-  readonly newEnemyAc = signal(DEFAULT_ENEMY_AC);
+  readonly activePanel = signal<'scenes' | 'battle' | 'rewards'>('scenes');
 
-  // --- Панель урона ---
+  // --- Панель изменения HP ---
+  readonly hpOperation = signal<'damage' | 'heal'>('damage');
   readonly targetType = signal<'enemies' | 'players' | 'all'>('enemies');
   readonly damageTargetId = signal<string | null>(null);
   readonly damageAmount = signal(0);
@@ -68,7 +56,6 @@ export class DmControlComponent {
   readonly isSpellCantrip = computed(() => this.spellLevel() === 0);
 
   // --- UI подготовки/инициативы ---
-  readonly showAddForm = signal(true);
   readonly showInitiativeRolls = signal(false);
   readonly initiativeRolls = signal<Record<string, number>>({});
 
@@ -90,6 +77,11 @@ export class DmControlComponent {
     }
     return this.damageAmount() > 0 && !!this.damageTargetId();
   });
+
+  readonly canApplyHealing = computed(
+    () =>
+      this.targetType() !== 'all' && this.damageAmount() > 0 && !!this.damageTargetId(),
+  );
 
   readonly availableTargets = computed(() => {
     const type = this.targetType();
@@ -237,34 +229,18 @@ export class DmControlComponent {
     this.damageAmount.set(value > 0 ? value : 0);
   }
 
+  setHpOperation(operation: 'damage' | 'heal'): void {
+    this.hpOperation.set(operation);
+    if (operation === 'heal' && this.targetType() === 'all') {
+      this.targetType.set('enemies');
+    }
+    this.resetDamagePanel();
+  }
+
   onItemQuantityInput(event: Event): void {
     const input = event.target as HTMLInputElement;
     const value = Number(input.value);
     this.itemQuantity.set(value > 0 ? value : 1);
-  }
-
-  addEnemy(): void {
-    const name = this.newEnemyName().trim();
-    if (!name || this.newEnemyMaxHp() <= 0) return;
-
-    const flavor = this.enemyGenerator.generateFlavor();
-
-    const enemyData: Omit<Combatant, 'id' | 'initiative' | 'currentHp' | 'status' | 'lastUpdated'> =
-      {
-        type: COMBATANT_TYPE.ENEMY,
-        subtype: this.newEnemyType(),
-        name,
-        ac: this.newEnemyAc(),
-        maxHp: this.newEnemyMaxHp(),
-        actions: flavor.actions,
-        statuses: flavor.statuses,
-        resistances: flavor.resistances,
-      };
-
-    this.battleService
-      .addEnemy(enemyData)
-      .then(() => this.resetEnemyForm())
-      .catch((error: unknown) => this.logger.error('DmControlComponent.addEnemy', error));
   }
 
   loadPlayersToBattle(): void {
@@ -283,18 +259,6 @@ export class DmControlComponent {
     this.battleService
       .removeEnemy(id)
       .catch((error: unknown) => this.logger.error('DmControlComponent.removeEnemy', error));
-  }
-
-  onHpInput(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const value = Number(input.value);
-    this.newEnemyMaxHp.set(value > 0 ? value : 0);
-  }
-
-  onAcInput(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const value = Number(input.value);
-    this.newEnemyAc.set(value > 0 ? value : 0);
   }
 
   onInitiativeInput(enemyId: string, event: Event): void {
@@ -326,7 +290,6 @@ export class DmControlComponent {
       .rollInitiative()
       .then(() => {
         this.showInitiativeRolls.set(false);
-        this.showAddForm.set(false);
       })
       .catch((error: unknown) => this.logger.error('DmControlComponent.confirmInitiative', error));
   }
@@ -358,6 +321,17 @@ export class DmControlComponent {
       .catch((error: unknown) => this.logger.error('DmControlComponent.applyDamage', error));
   }
 
+  applyHealing(): void {
+    if (!this.canApplyHealing()) return;
+    const targetId = this.damageTargetId();
+    if (!targetId) return;
+
+    this.battleService
+      .heal(targetId, this.damageAmount())
+      .then(() => this.resetDamagePanel())
+      .catch((error: unknown) => this.logger.error('DmControlComponent.applyHealing', error));
+  }
+
   cancelDamage(): void {
     this.resetDamagePanel();
   }
@@ -379,36 +353,9 @@ export class DmControlComponent {
     this.battleService
       .resetScene()
       .then(() => {
-        this.showAddForm.set(true);
         this.showInitiativeRolls.set(false);
       })
       .catch((error: unknown) => this.logger.error('DmControlComponent.resetScene', error));
-  }
-
-  randomizeAllEnemies(): void {
-    const enemies = this.enemiesList();
-    if (enemies.length === 0) {
-      alert('Нет врагов для рандомизации');
-      return;
-    }
-
-    Promise.all(
-      enemies.map((enemy) => {
-        const flavor = this.enemyGenerator.generateFlavor();
-        return this.battleService.updateEnemy(enemy.id, {
-          actions: flavor.actions,
-          statuses: flavor.statuses,
-          resistances: flavor.resistances,
-        });
-      }),
-    ).catch((error: unknown) => this.logger.error('DmControlComponent.randomizeAllEnemies', error));
-  }
-
-  private resetEnemyForm(): void {
-    this.newEnemyName.set('');
-    this.newEnemyType.set(DEFAULT_ENEMY_TYPE);
-    this.newEnemyMaxHp.set(DEFAULT_ENEMY_MAX_HP);
-    this.newEnemyAc.set(DEFAULT_ENEMY_AC);
   }
 
   private resetDamagePanel(): void {

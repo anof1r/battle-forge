@@ -124,6 +124,18 @@
               </div>
             }
 
+            @if (enemy.abilities && enemy.abilities.length > 0) {
+              <div class="bestiary-card__abilities">
+                <h4>Способности</h4>
+                @for (ability of enemy.abilities; track ability.name + $index) {
+                  <div class="bestiary-card__ability">
+                    <strong>{{ ability.name }}.</strong>
+                    <span>{{ ability.description }}</span>
+                  </div>
+                }
+              </div>
+            }
+
             @if (enemy.resistances && enemy.resistances.length > 0) {
               <div class="bestiary-card__resistances">
                 @for (res of enemy.resistances; track res) {
