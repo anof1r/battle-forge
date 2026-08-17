@@ -74,7 +74,7 @@ export class BattleService {
     return this.sortedEnemies().filter((e) => e.status === COMBATANT_STATUS.ALIVE);
   });
 
-  readonly currentCombatant = computed(() => {
+  readonly currentCombatant = computed<Combatant | null>(() => {
     const list = this.sortedCombatants();
     return list[this.currentTurnIndex()] ?? null;
   });

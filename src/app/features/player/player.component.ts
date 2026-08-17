@@ -15,6 +15,8 @@ import { Subscription } from 'rxjs';
 import { CharacterParserService } from '../../core/services/characterParser.service';
 import { LssCharacterSheet, ParsedCharacter } from '../../core/models/character.model';
 import { InventoryItem } from '../../core/models/inventory-item.model';
+import { Combatant } from '../../core/models/combatant.model';
+import { COMBATANT_STATUS, COMBATANT_TYPE } from '../../core/constants/combatant.constants';
 
 @Component({
   selector: 'app-player',
@@ -61,8 +63,10 @@ export class PlayerComponent implements OnDestroy {
   readonly selectedItemForUse = signal<InventoryItem | null>(null);
 
   // --- Данные из BattleService ---
+  readonly COMBATANT_TYPE = COMBATANT_TYPE;
   readonly aliveEnemies = this.battleService.aliveEnemies;
-  readonly currentEnemy = this.battleService.currentCombatant;
+  readonly combatantsInTurnOrder = this.battleService.sortedCombatants;
+  readonly currentCombatant = this.battleService.currentCombatant;
   readonly currentRound = this.battleService.currentRound;
 
   // --- Производные значения ---
@@ -197,6 +201,15 @@ export class PlayerComponent implements OnDestroy {
 
   selectEnemy(enemyId: string): void {
     this.selectedEnemyId.set(enemyId);
+  }
+
+  isSelectableEnemy(combatant: Combatant): boolean {
+    return combatant.type === COMBATANT_TYPE.ENEMY && combatant.status === COMBATANT_STATUS.ALIVE;
+  }
+
+  selectCombatant(combatant: Combatant): void {
+    if (!this.isSelectableEnemy(combatant)) return;
+    this.selectEnemy(combatant.id);
   }
 
   clearSelection(): void {

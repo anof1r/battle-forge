@@ -778,33 +778,58 @@
 .player__arena-header {
   display: flex;
   justify-content: space-between;
+  gap: var(--bf-space-2);
   padding: var(--bf-space-2) var(--bf-space-3);
   background: rgba(0, 0, 0, 0.2);
   border-radius: var(--bf-radius-sm);
-  margin-bottom: var(--bf-space-4);
+  margin-bottom: var(--bf-space-3);
   font-size: 0.9rem;
   color: #b0a090;
 }
 
-.player__enemy-grid {
+.player__turn-order-title {
+  margin-bottom: var(--bf-space-3);
+  color: var(--bf-gold-bright);
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.player__combatant-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: var(--bf-space-3);
   margin-bottom: var(--bf-space-4);
 }
 
-.player__enemy-card {
+.player__combatant-card {
   background: rgba(0, 0, 0, 0.3);
   border: 2px solid #3a2a1a;
   border-radius: var(--bf-radius-sm);
-  padding: var(--bf-space-3);
-  cursor: pointer;
+  padding: var(--bf-space-3) var(--bf-space-3) var(--bf-space-3) 2.8rem;
   transition: all 0.2s;
   position: relative;
 
-  &:hover {
-    border-color: #6b5a4a;
-    transform: translateY(-2px);
+  &--player {
+    border-color: rgba(123, 184, 255, 0.38);
+  }
+
+  &--enemy {
+    border-color: #4a3220;
+  }
+
+  &--selectable {
+    cursor: pointer;
+
+    &:hover {
+      border-color: #6b5a4a;
+      transform: translateY(-2px);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--bf-gold-bright);
+      outline-offset: 2px;
+    }
   }
 
   &--selected {
@@ -817,15 +842,48 @@
     box-shadow: 0 0 20px rgba(231, 76, 60, 0.15);
   }
 
-  .player__enemy-name {
+  .player__combatant-order {
+    position: absolute;
+    top: 50%;
+    left: var(--bf-space-3);
+    transform: translateY(-50%);
+    color: var(--bf-gold-bright);
     font-family: var(--bf-font-display);
-    font-size: 1.2rem;
+    font-size: 1.3rem;
     font-weight: 700;
-    color: #e8d5a0;
-    margin-bottom: var(--bf-space-1);
   }
 
-  .player__enemy-hp {
+  .player__combatant-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--bf-space-2);
+  }
+
+  .player__combatant-name {
+    font-family: var(--bf-font-display);
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #e8d5a0;
+  }
+
+  .player__combatant-kind {
+    flex: 0 0 auto;
+    padding: 0.15rem 0.45rem;
+    border: 1px solid rgba(231, 76, 60, 0.45);
+    border-radius: 999px;
+    color: var(--bf-danger-bright);
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+
+    &--player {
+      border-color: rgba(123, 184, 255, 0.55);
+      color: var(--bf-arcane-bright);
+    }
+  }
+
+  .player__combatant-hp {
     position: relative;
     height: 20px;
     background: #2a1a0a;
@@ -833,7 +891,7 @@
     overflow: hidden;
     margin: var(--bf-space-2) 0;
 
-    .player__enemy-hp-bar {
+    .player__combatant-hp-bar {
       display: block;
       height: 100%;
       background: linear-gradient(90deg, #e74c3c, #f39c12, #2ecc71);
@@ -841,7 +899,7 @@
       border-radius: 10px;
     }
 
-    .player__enemy-hp-text {
+    .player__combatant-hp-text {
       position: absolute;
       top: 50%;
       left: 50%;
@@ -853,14 +911,14 @@
     }
   }
 
-  .player__enemy-stats {
+  .player__combatant-stats {
     display: flex;
     justify-content: space-between;
     font-size: 0.7rem;
     color: #b0a090;
   }
 
-  .player__enemy-turn {
+  .player__combatant-turn {
     position: absolute;
     top: -6px;
     right: -6px;
@@ -874,7 +932,7 @@
   }
 }
 
-.player__enemy-empty {
+.player__combatant-empty {
   grid-column: 1 / -1;
   text-align: center;
   color: #6b5a4a;
@@ -1071,7 +1129,11 @@
     flex-direction: column;
     align-items: stretch;
   }
-  .player__enemy-grid {
+  .player__arena-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .player__combatant-grid {
     grid-template-columns: 1fr;
   }
   .player__attack-row {

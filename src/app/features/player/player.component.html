@@ -242,37 +242,71 @@
         <div class="player__arena-view">
           <div class="player__arena-header">
             <span class="player__arena-round">Раунд {{ currentRound() }}</span>
-            <span class="player__arena-enemies">Врагов: {{ aliveEnemies().length }}</span>
+            <span class="player__arena-combatants">
+              Участников: {{ combatantsInTurnOrder().length }} · Врагов: {{ aliveEnemies().length }}
+            </span>
           </div>
 
-          <div class="player__enemy-grid">
-            @for (enemy of aliveEnemies(); track enemy.id) {
+          <h2 class="player__turn-order-title">Очередность ходов</h2>
+
+          <div class="player__combatant-grid">
+            @for (combatant of combatantsInTurnOrder(); track combatant.id; let turnIndex = $index) {
               <div
-                class="player__enemy-card"
-                [class.player__enemy-card--selected]="selectedEnemyId() === enemy.id"
-                [class.player__enemy-card--current]="currentEnemy() === enemy"
-                (click)="selectEnemy(enemy.id)"
+                class="player__combatant-card"
+                [class.player__combatant-card--player]="combatant.type === COMBATANT_TYPE.PLAYER"
+                [class.player__combatant-card--enemy]="combatant.type === COMBATANT_TYPE.ENEMY"
+                [class.player__combatant-card--selectable]="isSelectableEnemy(combatant)"
+                [class.player__combatant-card--selected]="selectedEnemyId() === combatant.id"
+                [class.player__combatant-card--current]="currentCombatant()?.id === combatant.id"
+                [attr.role]="isSelectableEnemy(combatant) ? 'button' : null"
+                [attr.tabindex]="isSelectableEnemy(combatant) ? 0 : null"
+                [attr.aria-label]="
+                  isSelectableEnemy(combatant) ? 'Выбрать ' + combatant.name + ' целью атаки' : null
+                "
+                (click)="selectCombatant(combatant)"
+                (keydown.enter)="selectCombatant(combatant)"
+                (keydown.space)="selectCombatant(combatant); $event.preventDefault()"
               >
-                <div class="player__enemy-name">{{ enemy.name }}</div>
-                <div class="player__enemy-hp">
+                <span class="player__combatant-order" aria-label="Позиция в очереди">
+                  {{ turnIndex + 1 }}
+                </span>
+                <div class="player__combatant-header">
+                  <div class="player__combatant-name">
+                    @if (combatant.emoji) {
+                      <span aria-hidden="true">{{ combatant.emoji }}</span>
+                    }
+                    {{ combatant.name }}
+                  </div>
                   <span
-                    class="player__enemy-hp-bar"
-                    [style.width.%]="(enemy.currentHp / enemy.maxHp) * 100"
+                    class="player__combatant-kind"
+                    [class.player__combatant-kind--player]="
+                      combatant.type === COMBATANT_TYPE.PLAYER
+                    "
+                  >
+                    {{ combatant.type === COMBATANT_TYPE.PLAYER ? 'Игрок' : 'Враг' }}
+                  </span>
+                </div>
+                <div class="player__combatant-hp">
+                  <span
+                    class="player__combatant-hp-bar"
+                    [style.width.%]="
+                      combatant.maxHp > 0 ? (combatant.currentHp / combatant.maxHp) * 100 : 0
+                    "
                   ></span>
-                  <span class="player__enemy-hp-text"
-                    >{{ enemy.currentHp }} / {{ enemy.maxHp }}</span
+                  <span class="player__combatant-hp-text"
+                    >{{ combatant.currentHp }} / {{ combatant.maxHp }}</span
                   >
                 </div>
-                <div class="player__enemy-stats">
-                  <span>AC {{ enemy.ac }}</span>
-                  <span>INIT {{ enemy.initiative }}</span>
+                <div class="player__combatant-stats">
+                  <span>AC {{ combatant.ac }}</span>
+                  <span>INIT {{ combatant.initiative }}</span>
                 </div>
-                @if (currentEnemy() === enemy) {
-                  <div class="player__enemy-turn">⚔️ Текущий ход</div>
+                @if (currentCombatant()?.id === combatant.id) {
+                  <div class="player__combatant-turn">⚔️ Текущий ход</div>
                 }
               </div>
             } @empty {
-              <div class="player__enemy-empty">Нет активных врагов</div>
+              <div class="player__combatant-empty">Пока нет участников боя</div>
             }
           </div>
 

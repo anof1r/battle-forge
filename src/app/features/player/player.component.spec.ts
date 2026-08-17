@@ -30,6 +30,7 @@ describe('PlayerComponent', () => {
   let logger: { error: ReturnType<typeof vi.fn> };
   let battle: {
     aliveEnemies: ReturnType<typeof signal<Combatant[]>>;
+    sortedCombatants: ReturnType<typeof signal<Combatant[]>>;
     currentCombatant: ReturnType<typeof signal<Combatant | null>>;
     currentRound: ReturnType<typeof signal<number>>;
     takeDamage: ReturnType<typeof vi.fn>;
@@ -73,6 +74,19 @@ describe('PlayerComponent', () => {
     status: COMBATANT_STATUS.ALIVE,
   };
 
+  const ally: Combatant = {
+    id: 'player_Aria',
+    type: COMBATANT_TYPE.PLAYER,
+    name: 'Aria',
+    initiative: 18,
+    ac: 13,
+    maxHp: 30,
+    currentHp: 24,
+    status: COMBATANT_STATUS.ALIVE,
+    playerName: 'Aria',
+    emoji: '🧙',
+  };
+
   beforeEach(() => {
     characterService = {
       characterExists: vi.fn(),
@@ -90,6 +104,7 @@ describe('PlayerComponent', () => {
     logger = { error: vi.fn() };
     battle = {
       aliveEnemies: signal<Combatant[]>([]),
+      sortedCombatants: signal<Combatant[]>([]),
       currentCombatant: signal<Combatant | null>(null),
       currentRound: signal(1),
       takeDamage: vi.fn().mockResolvedValue(undefined),
@@ -251,13 +266,48 @@ describe('PlayerComponent', () => {
     component.isLoggedIn.set(true);
     component.activeTab.set('arena');
     battle.aliveEnemies.set([enemy]);
+    battle.sortedCombatants.set([enemy]);
     battle.currentCombatant.set(null);
 
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('.player__arena-view')).not.toBeNull();
     expect(fixture.nativeElement).toHaveTextContent('Goblin');
-    expect(fixture.nativeElement.querySelector('.player__enemy-card--current')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.player__combatant-card--current')).toBeNull();
+  });
+
+  it('renders every combatant in initiative order and makes only enemies selectable', () => {
+    component.character.set(character());
+    component.isLoggedIn.set(true);
+    component.activeTab.set('arena');
+    battle.aliveEnemies.set([enemy]);
+    battle.sortedCombatants.set([ally, enemy]);
+    battle.currentCombatant.set(ally);
+
+    fixture.detectChanges();
+
+    const cards = Array.from<HTMLElement>(
+      fixture.nativeElement.querySelectorAll('.player__combatant-card'),
+    );
+    const names = Array.from<HTMLElement>(
+      fixture.nativeElement.querySelectorAll('.player__combatant-name'),
+    ).map((element) => element.textContent?.replace(/\s+/g, ' ').trim());
+
+    expect(names).toEqual(['🧙 Aria', 'Goblin']);
+    expect(cards).toHaveLength(2);
+    expect(cards[0]).toHaveClass(
+      'player__combatant-card--player',
+      'player__combatant-card--current',
+    );
+    expect(cards[0]).not.toHaveAttribute('role');
+    expect(cards[1]).toHaveClass('player__combatant-card--enemy');
+    expect(cards[1]).toHaveAttribute('role', 'button');
+    expect(fixture.nativeElement).toHaveTextContent('Участников: 2 · Врагов: 1');
+
+    cards[0].click();
+    expect(component.selectedEnemyId()).toBeNull();
+    cards[1].click();
+    expect(component.selectedEnemyId()).toBe(enemy.id);
   });
 
   it('keeps attack input intact and logs when damage persistence fails', async () => {
