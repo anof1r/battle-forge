@@ -33,6 +33,7 @@ describe('PlayerComponent', () => {
     sortedCombatants: ReturnType<typeof signal<Combatant[]>>;
     currentCombatant: ReturnType<typeof signal<Combatant | null>>;
     currentRound: ReturnType<typeof signal<number>>;
+    addPlayerToBattle: ReturnType<typeof vi.fn>;
     takeDamage: ReturnType<typeof vi.fn>;
   };
 
@@ -107,6 +108,7 @@ describe('PlayerComponent', () => {
       sortedCombatants: signal<Combatant[]>([]),
       currentCombatant: signal<Combatant | null>(null),
       currentRound: signal(1),
+      addPlayerToBattle: vi.fn().mockResolvedValue(undefined),
       takeDamage: vi.fn().mockResolvedValue(undefined),
     };
 
@@ -166,6 +168,7 @@ describe('PlayerComponent', () => {
     expect(characterService.characterExists).toHaveBeenCalledWith('Aria');
     expect(characterService.loadCharacter).toHaveBeenCalledWith('Aria');
     expect(characterService.subscribeToCharacter).toHaveBeenCalledWith('Aria');
+    expect(battle.addPlayerToBattle).toHaveBeenCalledWith(initial, 0);
     expect(component.character()).toEqual(updated);
 
     component.selectedEnemyId.set(enemy.id);
@@ -217,6 +220,24 @@ describe('PlayerComponent', () => {
     expect(component.isLoggedIn()).toBe(true);
     expect(component.loginName()).toBe('Aria');
     expect(characterService.subscribeToCharacter).toHaveBeenCalledWith('Aria');
+    expect(battle.addPlayerToBattle).toHaveBeenCalledWith(parsed, 0);
+  });
+
+  it('keeps the player session active and logs when joining the battle fails', async () => {
+    const joinError = new Error('room write failed');
+    const savedCharacter = character();
+    characterService.characterExists.mockResolvedValue(true);
+    characterService.loadCharacter.mockResolvedValue(savedCharacter);
+    battle.addPlayerToBattle.mockRejectedValue(joinError);
+    component.loginName.set('Aria');
+
+    component.login();
+
+    await vi.waitFor(() =>
+      expect(logger.error).toHaveBeenCalledWith('PlayerComponent.joinBattle', joinError),
+    );
+    expect(component.isLoggedIn()).toBe(true);
+    expect(component.character()).not.toBeNull();
   });
 
   it('rejects malformed uploaded JSON and records the parsing error', () => {

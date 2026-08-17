@@ -47,3 +47,6 @@ Thumbs.db
 # Local Angular environments (generated in CI)
 /src/environments/environment.ts
 /src/environments/environment.prod.ts
+
+# agents
+.agents*

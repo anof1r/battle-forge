@@ -325,7 +325,7 @@ describe('BattleService', () => {
     vi.spyOn(Date, 'now').mockReturnValue(NOW);
     await setup();
     firebase.clearCalls();
-    const player = createPlayer();
+    const player = { ...createPlayer(), currentHp: 9 };
 
     await service.addPlayerToBattle(player, 17);
 
@@ -336,7 +336,7 @@ describe('BattleService', () => {
       initiative: 17,
       ac: 16,
       maxHp: 24,
-      currentHp: 24,
+      currentHp: 9,
       status: 'alive',
       playerName: 'Aria',
       emoji: '🧙',
@@ -367,6 +367,31 @@ describe('BattleService', () => {
 
     expect(firebase.setMock).not.toHaveBeenCalled();
     expect(firebase.updateMock).not.toHaveBeenCalled();
+  });
+
+  it('restores an existing player missing from initiative order', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(NOW);
+    await setup(
+      createRoom({
+        combatants: {
+          player_Aria: createCombatant({
+            id: 'player_Aria',
+            type: COMBATANT_TYPE.PLAYER,
+            name: 'Aria',
+          }),
+        },
+        initiativeOrder: [],
+      }),
+    );
+    firebase.clearCalls();
+
+    await service.addPlayerToBattle(createPlayer(), 17);
+
+    expect(firebase.setMock).not.toHaveBeenCalled();
+    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, {
+      initiativeOrder: ['player_Aria'],
+      lastUpdated: NOW,
+    });
   });
 
   it('caps healing at max HP and makes it reversible', async () => {

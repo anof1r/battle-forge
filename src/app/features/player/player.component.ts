@@ -121,6 +121,7 @@ export class PlayerComponent implements OnDestroy {
           this.loginError.set(null);
           this.showUploadPrompt.set(false);
           this.subscribeToCharacterUpdates(name);
+          this.joinBattle(charData);
         });
       })
       .catch((error: unknown) => {
@@ -153,6 +154,7 @@ export class PlayerComponent implements OnDestroy {
           this.loginError.set(null);
           this.loginName.set(parsed.name);
           this.subscribeToCharacterUpdates(parsed.name);
+          this.joinBattle(parsed);
         })
         .catch((error: unknown) => this.logger.error('PlayerComponent.onFileSelected', error));
     };
@@ -166,6 +168,12 @@ export class PlayerComponent implements OnDestroy {
       .subscribe((updated) => {
         if (updated) this.character.set(updated);
       });
+  }
+
+  private joinBattle(character: ParsedCharacter): void {
+    void this.battleService
+      .addPlayerToBattle(character, 0)
+      .catch((error: unknown) => this.logger.error('PlayerComponent.joinBattle', error));
   }
 
   logout(): void {

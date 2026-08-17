@@ -127,7 +127,10 @@ export class BattleService {
   // --- Методы для игроков ---
   async addPlayerToBattle(player: ParsedCharacter, initiative: number): Promise<void> {
     const id = `player_${player.name}`;
-    if (this.combatants()[id]) return;
+    if (this.combatants()[id]) {
+      await this.appendToInitiativeOrder(id);
+      return;
+    }
     const combatant: Combatant = {
       id,
       type: COMBATANT_TYPE.PLAYER,
@@ -135,7 +138,7 @@ export class BattleService {
       initiative,
       ac: player.ac,
       maxHp: player.maxHp,
-      currentHp: player.maxHp,
+      currentHp: player.currentHp,
       status: COMBATANT_STATUS.ALIVE,
       playerName: player.name,
       emoji: '🧙',
