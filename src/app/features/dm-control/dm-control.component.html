@@ -184,6 +184,86 @@
     </div>
   </details>
 
+  <details class="dm-section dm-section--effects" open>
+    <summary class="dm-section__title">✨ Статус-эффекты</summary>
+    <div class="dm-effects-panel">
+      <label class="field">
+        <span class="field__label">Участник боя</span>
+        <select
+          class="field__input"
+          [value]="selectedStatusTargetId() || ''"
+          (change)="onStatusTargetChange($event)"
+        >
+          <option value="">Выберите игрока или существо</option>
+          @for (combatant of sortedByInitiative(); track combatant.id) {
+            <option [value]="combatant.id">
+              {{ combatant.name }} · {{ combatant.type | uppercase }}
+            </option>
+          }
+        </select>
+      </label>
+
+      <div class="dm-effect-picker" aria-label="Выберите статус-эффект">
+        @for (effect of STATUS_EFFECT_DEFINITIONS; track effect.type) {
+          <button
+            type="button"
+            class="dm-effect-option"
+            [class.dm-effect-option--selected]="selectedStatusEffect() === effect.type"
+            [class.dm-effect-option--beneficial]="effect.beneficial"
+            (click)="selectStatusEffect(effect.type)"
+          >
+            <span aria-hidden="true">{{ effect.icon }}</span>
+            <strong>{{ effect.label }}</strong>
+          </button>
+        }
+      </div>
+
+      <p class="dm-effect-description">
+        {{ statusEffectDefinition(selectedStatusEffect()).description }}
+      </p>
+
+      <button
+        type="button"
+        class="dm-btn"
+        [disabled]="!canApplyStatus() || applyingStatus()"
+        (click)="applyStatusEffect()"
+      >
+        {{ applyingStatus() ? 'Назначаем…' : '✨ Назначить эффект' }}
+      </button>
+
+      @if (statusError()) {
+        <p class="dm-effect-error" role="alert">{{ statusError() }}</p>
+      }
+
+      <div class="dm-active-effects">
+        <h3>Активные эффекты</h3>
+        @for (combatant of combatantsWithEffects(); track combatant.id) {
+          <div class="dm-active-effects__combatant">
+            <strong>{{ combatant.name }}</strong>
+            <div class="dm-active-effects__list">
+              @for (effect of combatant.activeEffects ?? []; track effect.id) {
+                <span [class]="'dm-active-effect dm-active-effect--' + effect.type">
+                  <span aria-hidden="true">{{ statusEffectDefinition(effect.type).icon }}</span>
+                  {{ statusEffectDefinition(effect.type).label }}
+                  <button
+                    type="button"
+                    [disabled]="removingEffectId() !== null"
+                    (click)="removeStatusEffect(combatant.id, effect.id)"
+                    [attr.aria-label]="'Снять эффект ' + statusEffectDefinition(effect.type).label"
+                  >
+                    ×
+                  </button>
+                </span>
+              }
+            </div>
+          </div>
+        } @empty {
+          <p class="empty-hint">На участниках пока нет активных эффектов.</p>
+        }
+      </div>
+    </div>
+  </details>
+
   <!-- ===== РЕДАКТОР ИНИЦИАТИВЫ ===== -->
   @if (showInitiativeRolls()) {
     <details class="dm-section dm-section--initiative" open>

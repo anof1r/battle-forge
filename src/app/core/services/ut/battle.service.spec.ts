@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { Observable, ReplaySubject } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { COMBATANT_STATUS, COMBATANT_TYPE } from '../../constants';
+import { COMBATANT_STATUS, COMBATANT_TYPE, STATUS_EFFECT_TYPE } from '../../constants';
 import { BattleRoom, Combatant, CreatureTemplate } from '../../models';
 import { BattleService } from '../battle.service';
 import { CharacterService } from '../character.service';
@@ -508,6 +508,72 @@ describe('BattleService', () => {
     await service.heal('player_Aria', 3);
 
     expect(characterService.updatePlayerHp).toHaveBeenCalledWith('Aria', 7);
+  });
+
+  it('adds a unique status effect to a combatant', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(NOW);
+    vi.spyOn(globalThis.crypto, 'randomUUID').mockReturnValue(UUID);
+    await setup();
+    firebase.clearCalls();
+
+    await expect(
+      service.addStatusEffect('enemy-1', STATUS_EFFECT_TYPE.BURNING),
+    ).resolves.toBe(true);
+
+    expect(firebase.updateMock).toHaveBeenCalledWith(`${ROOM_PATH}/combatants/enemy-1`, {
+      activeEffects: [
+        {
+          id: `effect_${UUID}`,
+          type: STATUS_EFFECT_TYPE.BURNING,
+          appliedAt: NOW,
+        },
+      ],
+      lastUpdated: NOW,
+    });
+  });
+
+  it('does not duplicate an existing status effect', async () => {
+    await setup(
+      createRoom({
+        combatants: {
+          'enemy-1': createCombatant({
+            id: 'enemy-1',
+            activeEffects: [
+              { id: 'effect-fire', type: STATUS_EFFECT_TYPE.BURNING, appliedAt: NOW },
+            ],
+          }),
+        },
+      }),
+    );
+    firebase.clearCalls();
+
+    await expect(
+      service.addStatusEffect('enemy-1', STATUS_EFFECT_TYPE.BURNING),
+    ).resolves.toBe(false);
+    expect(firebase.updateMock).not.toHaveBeenCalled();
+  });
+
+  it('removes the final status effect without writing an empty Firebase array', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(NOW);
+    await setup(
+      createRoom({
+        combatants: {
+          'enemy-1': createCombatant({
+            id: 'enemy-1',
+            activeEffects: [
+              { id: 'effect-poison', type: STATUS_EFFECT_TYPE.POISONED, appliedAt: NOW },
+            ],
+          }),
+        },
+      }),
+    );
+    firebase.clearCalls();
+
+    await expect(service.removeStatusEffect('enemy-1', 'effect-poison')).resolves.toBe(true);
+    expect(firebase.updateMock).toHaveBeenCalledWith(`${ROOM_PATH}/combatants/enemy-1`, {
+      activeEffects: null,
+      lastUpdated: NOW,
+    });
   });
 
   it('delegates initiative operations and moves the room into initiative state', async () => {

@@ -26,12 +26,14 @@ describe('DisplayComponent', () => {
   let enemies: ReturnType<typeof signal<Combatant[]>>;
   let current: ReturnType<typeof signal<Combatant | null>>;
   let round: ReturnType<typeof signal<number>>;
+  let combatants: ReturnType<typeof signal<Combatant[]>>;
 
   beforeEach(() => {
     status = signal<BattleStatus>(BATTLE_STATUS.PREPARATION);
     enemies = signal<Combatant[]>([]);
     current = signal<Combatant | null>(null);
     round = signal(1);
+    combatants = signal<Combatant[]>([]);
 
     TestBed.configureTestingModule({
       imports: [DisplayComponent],
@@ -41,6 +43,7 @@ describe('DisplayComponent', () => {
           useValue: {
             battleStatus: status,
             aliveEnemies: enemies,
+            sortedCombatants: combatants,
             currentCombatant: current,
             currentRound: round,
           },
@@ -87,5 +90,35 @@ describe('DisplayComponent', () => {
     expect(fixture.nativeElement.querySelector('.bestiary-card__abilities')).toHaveTextContent(
       'Nimble Escape',
     );
+  });
+
+  it('renders immersive enemy effects and a compact player effect roster', () => {
+    const burningEnemy: Combatant = {
+      ...enemy,
+      activeEffects: [{ id: 'fire', type: 'burning', appliedAt: 1 }],
+    };
+    const frightenedPlayer: Combatant = {
+      ...enemy,
+      id: 'player_Aria',
+      name: 'Aria',
+      type: COMBATANT_TYPE.PLAYER,
+      playerName: 'Aria',
+      activeEffects: [{ id: 'fear', type: 'frightened', appliedAt: 1 }],
+    };
+    status.set(BATTLE_STATUS.BATTLE);
+    enemies.set([burningEnemy]);
+    combatants.set([frightenedPlayer, burningEnemy]);
+
+    const fixture = TestBed.createComponent(DisplayComponent);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.bestiary-card')).toHaveClass(
+      'bestiary-card--burning',
+    );
+    expect(fixture.nativeElement.querySelector('.bestiary-card__active-effects')).toHaveTextContent(
+      'Горение',
+    );
+    expect(fixture.nativeElement.querySelector('.arena__party-effects')).toHaveTextContent('Aria');
+    expect(fixture.nativeElement.querySelector('.arena__party-effects')).toHaveTextContent('Страх');
   });
 });

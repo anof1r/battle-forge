@@ -17,11 +17,12 @@ import { LssCharacterSheet, ParsedCharacter } from '../../core/models/character.
 import { InventoryItem } from '../../core/models/inventory-item.model';
 import { Combatant, SpellData } from '../../core/models/combatant.model';
 import { COMBATANT_STATUS, COMBATANT_TYPE } from '../../core/constants/combatant.constants';
+import { StatusEffectListComponent } from '../../shared/ui/status-effect-list/status-effect-list.component';
 
 @Component({
   selector: 'app-player',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, StatusEffectListComponent],
   templateUrl: './player.component.html',
   styleUrl: './player.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -75,6 +76,21 @@ export class PlayerComponent implements OnDestroy {
 
   // --- Производные значения ---
   readonly weapons = computed(() => this.character()?.weapons ?? []);
+
+  readonly playerCombatant = computed(() => {
+    const playerName = this.character()?.name;
+    if (!playerName) return null;
+
+    return (
+      this.combatantsInTurnOrder().find(
+        (combatant) =>
+          combatant.type === COMBATANT_TYPE.PLAYER &&
+          (combatant.playerName === playerName || combatant.id === `player_${playerName}`),
+      ) ?? null
+    );
+  });
+
+  readonly playerActiveEffects = computed(() => this.playerCombatant()?.activeEffects ?? []);
 
   readonly selectedWeapon = computed(() => {
     const weapons = this.weapons();

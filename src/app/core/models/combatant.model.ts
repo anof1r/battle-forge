@@ -1,5 +1,12 @@
 import { CombatantStatus, CombatantType } from '../constants/combatant.constants';
+import { StatusEffectType } from '../constants/status-effect.constants';
 import { EnemyAbility, EnemyAction } from './enemy.model';
+
+export interface ActiveStatusEffect {
+  id: string;
+  type: StatusEffectType;
+  appliedAt: number;
+}
 
 export interface Combatant {
   id: string;
@@ -18,6 +25,7 @@ export interface Combatant {
   abilities?: EnemyAbility[];
   resistances?: string[];
   statuses?: string[];
+  activeEffects?: ActiveStatusEffect[];
   lastUpdated?: number;
 }
 

@@ -1,0 +1,20 @@
+<div class="status-effects" [class.status-effects--panel]="label()">
+  @if (label(); as heading) {
+    <strong class="status-effects__label">{{ heading }}</strong>
+  }
+
+  <div class="status-effects__list">
+    @for (effect of effects(); track effect.id) {
+      <span
+        [class]="'effect-chip effect-chip--' + effect.type"
+        [attr.aria-label]="definition(effect.type).label"
+        [attr.title]="definition(effect.type).description"
+      >
+        <span class="effect-chip__icon" aria-hidden="true">
+          {{ definition(effect.type).icon }}
+        </span>
+        {{ definition(effect.type).label }}
+      </span>
+    }
+  </div>
+</div>

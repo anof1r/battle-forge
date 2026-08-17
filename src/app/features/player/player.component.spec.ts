@@ -344,6 +344,41 @@ describe('PlayerComponent', () => {
     expect(component.selectedEnemyId()).toBe(enemy.id);
   });
 
+  it('shows the logged-in player active effects above both character tabs', () => {
+    const affectedPlayer: Combatant = {
+      ...ally,
+      activeEffects: [
+        { id: 'poison-1', type: 'poisoned', appliedAt: 1 },
+        { id: 'fire-1', type: 'burning', appliedAt: 2 },
+      ],
+    };
+    const affectedAlly: Combatant = {
+      ...ally,
+      id: 'player_Borin',
+      name: 'Borin',
+      playerName: 'Borin',
+      activeEffects: [{ id: 'blessing-1', type: 'blessed', appliedAt: 3 }],
+    };
+    component.character.set(character());
+    component.isLoggedIn.set(true);
+    battle.sortedCombatants.set([affectedAlly, affectedPlayer, enemy]);
+
+    fixture.detectChanges();
+
+    const effects = fixture.nativeElement.querySelector(
+      'bf-status-effect-list',
+    ) as HTMLElement;
+    expect(effects).toHaveTextContent('Текущие эффекты');
+    expect(effects).toHaveTextContent('Отравление');
+    expect(effects).toHaveTextContent('Горение');
+    expect(effects).not.toHaveTextContent('Благословение');
+
+    component.switchTab('arena');
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('bf-status-effect-list')).not.toBeNull();
+  });
+
   it('keeps attack input intact and logs when damage persistence fails', async () => {
     const error = new Error('write failed');
     battle.aliveEnemies.set([enemy]);

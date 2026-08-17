@@ -10,6 +10,10 @@ import { CharacterService } from './character.service';
 import { BATTLE_STATUS } from '../constants/battle-status.constants';
 import { COMBATANT_STATUS, COMBATANT_TYPE } from '../constants/combatant.constants';
 import { BATTLE_ACTION_TYPE } from '../constants/battle-action.constants';
+import {
+  getStatusEffectDefinition,
+  StatusEffectType,
+} from '../constants/status-effect.constants';
 import { MAIN_ROOM_ID, roomPath as buildRoomPath } from '../constants/firebase-paths.constants';
 import { withTimestamp } from '../utils';
 
@@ -283,6 +287,54 @@ export class BattleService {
       reversible: true,
       previousValue: c.currentHp,
     });
+  }
+
+  async addStatusEffect(combatantId: string, type: StatusEffectType): Promise<boolean> {
+    const combatant = this.combatants()[combatantId];
+    if (!combatant) return false;
+    const currentEffects = combatant.activeEffects ?? [];
+    if (currentEffects.some((effect) => effect.type === type)) return false;
+
+    const definition = getStatusEffectDefinition(type);
+    const activeEffects = [
+      ...currentEffects,
+      { id: `effect_${crypto.randomUUID()}`, type, appliedAt: Date.now() },
+    ];
+    await this.firebaseService.update(
+      `${this.roomPath}/combatants/${combatantId}`,
+      withTimestamp({ activeEffects }),
+    );
+    this.logAction({
+      type: BATTLE_ACTION_TYPE.STATUS_CHANGE,
+      targetId: combatantId,
+      value: 0,
+      description: `${combatant.name} gains ${definition.label}`,
+      reversible: false,
+    });
+    return true;
+  }
+
+  async removeStatusEffect(combatantId: string, effectId: string): Promise<boolean> {
+    const combatant = this.combatants()[combatantId];
+    if (!combatant) return false;
+    const currentEffects = combatant.activeEffects ?? [];
+    const removed = currentEffects.find((effect) => effect.id === effectId);
+    if (!removed) return false;
+
+    const activeEffects = currentEffects.filter((effect) => effect.id !== effectId);
+    await this.firebaseService.update(`${this.roomPath}/combatants/${combatantId}`, {
+      activeEffects: activeEffects.length > 0 ? activeEffects : null,
+      lastUpdated: Date.now(),
+    });
+    const definition = getStatusEffectDefinition(removed.type);
+    this.logAction({
+      type: BATTLE_ACTION_TYPE.STATUS_CHANGE,
+      targetId: combatantId,
+      value: 0,
+      description: `${combatant.name} loses ${definition.label}`,
+      reversible: false,
+    });
+    return true;
   }
 
   async nextTurn(): Promise<void> {

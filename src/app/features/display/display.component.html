@@ -47,9 +47,33 @@
       </div>
     </header>
 
+    @if (affectedPlayers().length > 0) {
+      <section class="arena__party-effects" aria-label="Эффекты игроков">
+        @for (player of affectedPlayers(); track player.id) {
+          <div class="party-effect-row">
+            <strong>{{ player.name }}</strong>
+            <bf-status-effect-list
+              [effects]="player.activeEffects ?? []"
+            ></bf-status-effect-list>
+          </div>
+        }
+      </section>
+    }
+
     <main class="arena__grid">
       @for (enemy of aliveEnemies(); track enemy.id) {
-        <article class="bestiary-card" [class.bestiary-card--active]="currentEnemy() === enemy">
+        <article
+          class="bestiary-card"
+          [class.bestiary-card--active]="currentEnemy() === enemy"
+          [class.bestiary-card--poisoned]="hasEffect(enemy, 'poisoned')"
+          [class.bestiary-card--burning]="hasEffect(enemy, 'burning')"
+          [class.bestiary-card--frozen]="hasEffect(enemy, 'frozen')"
+          [class.bestiary-card--frightened]="hasEffect(enemy, 'frightened')"
+          [class.bestiary-card--bleeding]="hasEffect(enemy, 'bleeding')"
+          [class.bestiary-card--stunned]="hasEffect(enemy, 'stunned')"
+          [class.bestiary-card--restrained]="hasEffect(enemy, 'restrained')"
+          [class.bestiary-card--blessed]="hasEffect(enemy, 'blessed')"
+        >
           @if (currentEnemy() === enemy) {
             <span class="bestiary-card__turn-flag">⚔ Current Turn</span>
           }
@@ -141,6 +165,12 @@
                 @for (res of enemy.resistances; track res) {
                   <span class="resistance-tag resistance-tag--resistance">🛡️ {{ res }}</span>
                 }
+              </div>
+            }
+
+            @if (enemy.activeEffects && enemy.activeEffects.length > 0) {
+              <div class="bestiary-card__active-effects">
+                <bf-status-effect-list [effects]="enemy.activeEffects"></bf-status-effect-list>
               </div>
             }
 

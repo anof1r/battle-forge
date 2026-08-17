@@ -8,6 +8,12 @@ import { Combatant, SpellData } from '../../core/models/combatant.model';
 import { BATTLE_STATUS } from '../../core/constants/battle-status.constants';
 import { COMBATANT_STATUS, COMBATANT_TYPE } from '../../core/constants/combatant.constants';
 import { ItemRarity, ITEM_RARITY } from '../../core/constants/item-rarity.constants';
+import {
+  getStatusEffectDefinition,
+  STATUS_EFFECT_DEFINITIONS,
+  STATUS_EFFECT_TYPE,
+  StatusEffectType,
+} from '../../core/constants/status-effect.constants';
 import { DmSceneLibraryComponent } from './scene-library/dm-scene-library.component';
 
 @Component({
@@ -36,6 +42,14 @@ export class DmControlComponent {
   readonly damageTargetId = signal<string | null>(null);
   readonly damageAmount = signal(0);
   readonly damageMode = signal<'single' | 'all'>('single');
+
+  // --- Панель статус-эффектов ---
+  readonly STATUS_EFFECT_DEFINITIONS = STATUS_EFFECT_DEFINITIONS;
+  readonly selectedStatusTargetId = signal<string | null>(null);
+  readonly selectedStatusEffect = signal<StatusEffectType>(STATUS_EFFECT_TYPE.POISONED);
+  readonly applyingStatus = signal(false);
+  readonly removingEffectId = signal<string | null>(null);
+  readonly statusError = signal<string | null>(null);
 
   // --- Панель выдачи предметов ---
   readonly selectedPlayerIdForItem = signal<string | null>(null);
@@ -81,6 +95,23 @@ export class DmControlComponent {
   readonly canApplyHealing = computed(
     () =>
       this.targetType() !== 'all' && this.damageAmount() > 0 && !!this.damageTargetId(),
+  );
+
+  readonly selectedStatusTarget = computed(() => {
+    const targetId = this.selectedStatusTargetId();
+    return targetId ? this.battleService.combatants()[targetId] ?? null : null;
+  });
+
+  readonly canApplyStatus = computed(() => {
+    const target = this.selectedStatusTarget();
+    return (
+      !!target &&
+      !(target.activeEffects ?? []).some((effect) => effect.type === this.selectedStatusEffect())
+    );
+  });
+
+  readonly combatantsWithEffects = computed(() =>
+    this.sortedByInitiative().filter((combatant) => (combatant.activeEffects?.length ?? 0) > 0),
   );
 
   readonly availableTargets = computed(() => {
@@ -229,6 +260,21 @@ export class DmControlComponent {
     this.damageAmount.set(value > 0 ? value : 0);
   }
 
+  onStatusTargetChange(event: Event): void {
+    const select = event.target as HTMLSelectElement;
+    this.selectedStatusTargetId.set(select.value || null);
+    this.statusError.set(null);
+  }
+
+  selectStatusEffect(type: StatusEffectType): void {
+    this.selectedStatusEffect.set(type);
+    this.statusError.set(null);
+  }
+
+  statusEffectDefinition(type: StatusEffectType) {
+    return getStatusEffectDefinition(type);
+  }
+
   setHpOperation(operation: 'damage' | 'heal'): void {
     this.hpOperation.set(operation);
     if (operation === 'heal' && this.targetType() === 'all') {
@@ -330,6 +376,40 @@ export class DmControlComponent {
       .heal(targetId, this.damageAmount())
       .then(() => this.resetDamagePanel())
       .catch((error: unknown) => this.logger.error('DmControlComponent.applyHealing', error));
+  }
+
+  applyStatusEffect(): void {
+    const targetId = this.selectedStatusTargetId();
+    if (!targetId || !this.canApplyStatus() || this.applyingStatus()) return;
+
+    this.applyingStatus.set(true);
+    this.statusError.set(null);
+    this.battleService
+      .addStatusEffect(targetId, this.selectedStatusEffect())
+      .then((added) => {
+        if (!added) this.statusError.set('Эффект уже назначен или участник больше недоступен.');
+      })
+      .catch((error: unknown) => {
+        this.logger.error('DmControlComponent.applyStatusEffect', error);
+        this.statusError.set('Не удалось назначить эффект.');
+      })
+      .finally(() => this.applyingStatus.set(false));
+  }
+
+  removeStatusEffect(combatantId: string, effectId: string): void {
+    if (this.removingEffectId()) return;
+    this.removingEffectId.set(effectId);
+    this.statusError.set(null);
+    this.battleService
+      .removeStatusEffect(combatantId, effectId)
+      .then((removed) => {
+        if (!removed) this.statusError.set('Эффект уже снят или участник больше недоступен.');
+      })
+      .catch((error: unknown) => {
+        this.logger.error('DmControlComponent.removeStatusEffect', error);
+        this.statusError.set('Не удалось снять эффект.');
+      })
+      .finally(() => this.removingEffectId.set(null));
   }
 
   cancelDamage(): void {

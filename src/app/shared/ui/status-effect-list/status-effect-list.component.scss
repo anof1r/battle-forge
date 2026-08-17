@@ -1,0 +1,128 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.status-effects {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--bf-space-2);
+
+  &--panel {
+    margin-bottom: var(--bf-space-4);
+    padding: var(--bf-space-2) var(--bf-space-3);
+    border: 1px solid rgba(201, 168, 76, 0.38);
+    border-radius: var(--bf-radius-md);
+    background:
+      linear-gradient(90deg, rgba(201, 168, 76, 0.08), transparent 45%),
+      rgba(12, 9, 6, 0.78);
+    box-shadow: inset 0 1px rgba(255, 237, 174, 0.05);
+  }
+}
+
+.status-effects__label {
+  flex: 0 0 auto;
+  color: #d9c686;
+  font-family: var(--bf-font-display);
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.status-effects__list {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: var(--bf-space-1);
+}
+
+.effect-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  background: rgba(40, 31, 20, 0.82);
+  color: #d6c7a3;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  box-shadow: 0 2px 7px rgba(0, 0, 0, 0.28);
+
+  &__icon {
+    display: inline-block;
+    filter: drop-shadow(0 0 4px currentColor);
+    animation: status-icon-pulse 2.2s ease-in-out infinite;
+  }
+
+  &--poisoned {
+    background: linear-gradient(180deg, #263c1d, #172612);
+    color: #a6e46e;
+  }
+
+  &--burning {
+    background: linear-gradient(180deg, #5b2714, #2d120b);
+    color: #ffad5d;
+  }
+
+  &--frozen {
+    background: linear-gradient(180deg, #1e4454, #102a36);
+    color: #aee9ff;
+  }
+
+  &--frightened {
+    background: linear-gradient(180deg, #3c2849, #24172d);
+    color: #d9a9ed;
+  }
+
+  &--bleeding {
+    background: linear-gradient(180deg, #521c1c, #2e0e0e);
+    color: #ff8b83;
+  }
+
+  &--stunned {
+    background: linear-gradient(180deg, #574815, #302706);
+    color: #ffe57a;
+  }
+
+  &--restrained {
+    background: linear-gradient(180deg, #3b3935, #23211e);
+    color: #d0c9bd;
+  }
+
+  &--blessed {
+    background: linear-gradient(180deg, #5a4a19, #302708);
+    color: #ffe79a;
+    box-shadow: 0 0 12px rgba(255, 218, 101, 0.35);
+  }
+}
+
+@keyframes status-icon-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.12);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .effect-chip__icon {
+    animation: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .status-effects--panel {
+    align-items: flex-start;
+  }
+
+  .status-effects__label {
+    flex-basis: 100%;
+  }
+}

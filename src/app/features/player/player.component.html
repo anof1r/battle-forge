@@ -59,6 +59,13 @@
         </button>
       </div>
 
+      @if (playerActiveEffects().length > 0) {
+        <bf-status-effect-list
+          [effects]="playerActiveEffects()"
+          label="Текущие эффекты"
+        ></bf-status-effect-list>
+      }
+
       @if (activeTab() === 'character') {
         <div class="player__character">
           <header class="player__header">

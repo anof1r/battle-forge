@@ -5,3 +5,4 @@ export * from './item-rarity.constants';
 export * from './enemy-icon.constants';
 export * from './firebase-paths.constants';
 export * from './enemy-generator.constants';
+export * from './status-effect.constants';

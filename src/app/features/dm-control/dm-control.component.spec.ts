@@ -38,6 +38,8 @@ describe('DmControlComponent', () => {
     damageAll: ReturnType<typeof vi.fn>;
     takeDamage: ReturnType<typeof vi.fn>;
     heal: ReturnType<typeof vi.fn>;
+    addStatusEffect: ReturnType<typeof vi.fn>;
+    removeStatusEffect: ReturnType<typeof vi.fn>;
     nextTurn: ReturnType<typeof vi.fn>;
     undoLastAction: ReturnType<typeof vi.fn>;
     resetScene: ReturnType<typeof vi.fn>;
@@ -115,6 +117,8 @@ describe('DmControlComponent', () => {
       damageAll: vi.fn().mockResolvedValue(undefined),
       takeDamage: vi.fn().mockResolvedValue(undefined),
       heal: vi.fn().mockResolvedValue(undefined),
+      addStatusEffect: vi.fn().mockResolvedValue(true),
+      removeStatusEffect: vi.fn().mockResolvedValue(true),
       nextTurn: vi.fn().mockResolvedValue(undefined),
       undoLastAction: vi.fn().mockResolvedValue(undefined),
       resetScene: vi.fn().mockResolvedValue(undefined),
@@ -395,6 +399,25 @@ describe('DmControlComponent', () => {
     expect(component.targetType()).toBe('enemies');
     expect(component.damageAmount()).toBe(0);
     expect(component.canApplyHealing()).toBe(false);
+  });
+
+  it('assigns and removes status effects for any combatant', async () => {
+    const goblin = enemy();
+    goblin.activeEffects = [{ id: 'effect-fire', type: 'burning', appliedAt: 1 }];
+    battle.combatants.set({ [goblin.id]: goblin });
+    battle.sortedCombatants.set([goblin]);
+    component.selectedStatusTargetId.set(goblin.id);
+    component.selectStatusEffect('poisoned');
+
+    component.applyStatusEffect();
+
+    await vi.waitFor(() =>
+      expect(battle.addStatusEffect).toHaveBeenCalledWith(goblin.id, 'poisoned'),
+    );
+    component.removeStatusEffect(goblin.id, 'effect-fire');
+    await vi.waitFor(() =>
+      expect(battle.removeStatusEffect).toHaveBeenCalledWith(goblin.id, 'effect-fire'),
+    );
   });
 
   it('rolls initiative locally and advances UI only after confirmation succeeds', async () => {
