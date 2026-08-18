@@ -45,7 +45,65 @@
     >
       <b>4</b> 📚 Переводы Open5E
     </button>
+    <button
+      type="button"
+      [class.dm-workspace-tabs__button--active]="activePanel() === 'story'"
+      (click)="activePanel.set('story')"
+    >
+      <b>5</b> 🎭 История
+      @if (storyPresentation.slides().length > 0) {
+        <span>{{ storyPresentation.slides().length }}</span>
+      }
+    </button>
   </nav>
+
+  <section class="dm-presentation-bar" aria-label="Режим общего экрана">
+    <div class="dm-presentation-bar__status">
+      <span>DISPLAY</span>
+      <strong>
+        {{ storyPresentation.mode() === 'story' ? '🖼 История' : '⚔ Бой' }}
+      </strong>
+      @if (storyPresentation.activeSlide(); as slide) {
+        <small>{{ slide.name }}</small>
+      }
+    </div>
+    <div class="dm-presentation-bar__actions">
+      <button
+        type="button"
+        [class.dm-presentation-bar__button--active]="storyPresentation.mode() === 'battle'"
+        (click)="storyPresentation.setMode('battle')"
+      >
+        ⚔ Бой
+      </button>
+      <button
+        type="button"
+        [class.dm-presentation-bar__button--active]="storyPresentation.mode() === 'story'"
+        [disabled]="!storyPresentation.canShowStory()"
+        (click)="storyPresentation.setMode('story')"
+      >
+        🖼 История
+      </button>
+      <button
+        type="button"
+        aria-label="Предыдущий слайд"
+        [disabled]="!storyPresentation.canGoPrevious()"
+        (click)="storyPresentation.previousSlide()"
+      >
+        ←
+      </button>
+      <span class="dm-presentation-bar__counter">
+        {{ storyPresentation.activeSlideIndex() + 1 }} / {{ storyPresentation.slides().length }}
+      </span>
+      <button
+        type="button"
+        aria-label="Следующий слайд"
+        [disabled]="!storyPresentation.canGoNext()"
+        (click)="storyPresentation.nextSlide()"
+      >
+        →
+      </button>
+    </div>
+  </section>
 
   @if (activePanel() === 'library') {
     <app-dm-open5e-import />
@@ -53,6 +111,10 @@
 
   @if (activePanel() === 'scenes') {
     <app-dm-scene-library />
+  }
+
+  @if (activePanel() === 'story') {
+    <app-dm-story />
   }
 
   @if (activePanel() === 'battle') {

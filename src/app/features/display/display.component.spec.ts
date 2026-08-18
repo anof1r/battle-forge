@@ -5,6 +5,8 @@ import { BATTLE_STATUS, BattleStatus } from '../../core/constants/battle-status.
 import { COMBATANT_STATUS, COMBATANT_TYPE } from '../../core/constants/combatant.constants';
 import { Combatant } from '../../core/models/combatant.model';
 import { BattleService } from '../../core/services/battle.service';
+import { StorySlide } from '../../core/models/story-presentation.model';
+import { StoryPresentationService } from '../../core/services/story-presentation.service';
 import { DisplayComponent } from './display.component';
 
 describe('DisplayComponent', () => {
@@ -27,6 +29,8 @@ describe('DisplayComponent', () => {
   let current: ReturnType<typeof signal<Combatant | null>>;
   let round: ReturnType<typeof signal<number>>;
   let combatants: ReturnType<typeof signal<Combatant[]>>;
+  let presentationMode: ReturnType<typeof signal<'battle' | 'story'>>;
+  let activeStorySlide: ReturnType<typeof signal<StorySlide | null>>;
 
   beforeEach(() => {
     status = signal<BattleStatus>(BATTLE_STATUS.PREPARATION);
@@ -34,6 +38,8 @@ describe('DisplayComponent', () => {
     current = signal<Combatant | null>(null);
     round = signal(1);
     combatants = signal<Combatant[]>([]);
+    presentationMode = signal<'battle' | 'story'>('battle');
+    activeStorySlide = signal<StorySlide | null>(null);
 
     TestBed.configureTestingModule({
       imports: [DisplayComponent],
@@ -46,6 +52,13 @@ describe('DisplayComponent', () => {
             sortedCombatants: combatants,
             currentCombatant: current,
             currentRound: round,
+          },
+        },
+        {
+          provide: StoryPresentationService,
+          useValue: {
+            mode: presentationMode,
+            activeSlide: activeStorySlide,
           },
         },
       ],
@@ -126,5 +139,36 @@ describe('DisplayComponent', () => {
     expect(fixture.nativeElement.querySelector('.arena__party-effects')).toHaveTextContent(
       'Без сознания',
     );
+  });
+
+  it('shows a local story image fullscreen while preserving battle state in the background', () => {
+    status.set(BATTLE_STATUS.BATTLE);
+    enemies.set([enemy]);
+    presentationMode.set('story');
+    activeStorySlide.set({
+      id: 'tavern',
+      name: 'Таверна.webp',
+      blob: new Blob(['tavern']),
+      objectUrl: 'blob:tavern',
+    });
+
+    const fixture = TestBed.createComponent(DisplayComponent);
+    fixture.detectChanges();
+
+    const image = fixture.nativeElement.querySelector<HTMLImageElement>('.story-display__image');
+    const backdrop = fixture.nativeElement.querySelector<HTMLImageElement>(
+      '.story-display__backdrop img',
+    );
+    expect(image).not.toBeNull();
+    expect(image?.getAttribute('src')).toBe('blob:tavern');
+    expect(image?.getAttribute('alt')).toBe('Таверна.webp');
+    expect(backdrop?.getAttribute('src')).toBe('blob:tavern');
+    expect(backdrop?.getAttribute('alt')).toBe('');
+    expect(fixture.nativeElement.querySelector('.arena')).toBeNull();
+
+    presentationMode.set('battle');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.story-display')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.arena')).not.toBeNull();
   });
 });

@@ -94,6 +94,93 @@
   }
 }
 
+.dm-presentation-bar {
+  position: sticky;
+  top: 4.15rem;
+  z-index: 19;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--bf-space-4);
+  padding: 0.65rem var(--bf-space-3);
+  border: 1px solid #6e5a30;
+  border-radius: var(--bf-radius-sm);
+  background: rgba(15, 12, 8, 0.96);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(10px);
+}
+
+.dm-presentation-bar__status {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--bf-space-2);
+
+  > span {
+    padding: 0.2rem 0.45rem;
+    border: 1px solid #7a6333;
+    border-radius: 999px;
+    color: #d9bc63;
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+  }
+
+  strong {
+    color: #f0d98d;
+  }
+
+  small {
+    overflow: hidden;
+    max-width: 24rem;
+    color: #9f947c;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.dm-presentation-bar__actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--bf-space-2);
+
+  button {
+    min-height: 2rem;
+    padding: 0.35rem 0.65rem;
+    border: 1px solid #715d32;
+    border-radius: var(--bf-radius-sm);
+    background: #261e0f;
+    color: #d9c99d;
+    cursor: pointer;
+
+    &:hover:not(:disabled),
+    &:focus-visible {
+      border-color: #d7b957;
+      color: #ffe9a1;
+      outline: 2px solid rgba(215, 185, 87, 0.38);
+      outline-offset: 2px;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.38;
+    }
+  }
+
+  .dm-presentation-bar__button--active {
+    border-color: #d7b957;
+    background: rgba(128, 96, 28, 0.42);
+    color: #ffeaa5;
+  }
+}
+
+.dm-presentation-bar__counter {
+  min-width: 3.8rem;
+  color: #b9aa88;
+  text-align: center;
+}
+
 .dm-workspace-grid,
 .dm-rewards-grid {
   display: grid;
@@ -881,6 +968,20 @@
   .dm-workspace-tabs {
     position: static;
     flex-direction: column;
+  }
+
+  .dm-presentation-bar {
+    position: static;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .dm-presentation-bar__actions {
+    flex-wrap: wrap;
+
+    button {
+      flex: 1 1 auto;
+    }
   }
 
   .dm-effect-picker {

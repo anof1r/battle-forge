@@ -6,12 +6,14 @@ import { COMBATANT_STATUS, COMBATANT_TYPE } from '../../core/constants/combatant
 import { ITEM_RARITY } from '../../core/constants/item-rarity.constants';
 import { ParsedCharacter } from '../../core/models/character.model';
 import { Combatant } from '../../core/models/combatant.model';
+import { StorySlide } from '../../core/models/story-presentation.model';
 import { BattleService } from '../../core/services/battle.service';
 import { CharacterService } from '../../core/services/character.service';
 import { InventoryService } from '../../core/services/inventory.service';
 import { ItemLibraryService } from '../../core/services/item-library.service';
 import { LoggerService } from '../../core/services/logger.service';
 import { SceneLibraryService } from '../../core/services/scene-library.service';
+import { StoryPresentationService } from '../../core/services/story-presentation.service';
 import { DmControlComponent } from './dm-control.component';
 
 describe('DmControlComponent', () => {
@@ -66,6 +68,18 @@ describe('DmControlComponent', () => {
   };
   let inventoryService: { giveItem: ReturnType<typeof vi.fn> };
   let logger: { error: ReturnType<typeof vi.fn> };
+  let story: {
+    mode: WritableSignal<'battle' | 'story'>;
+    slides: WritableSignal<StorySlide[]>;
+    activeSlide: WritableSignal<StorySlide | null>;
+    activeSlideIndex: WritableSignal<number>;
+    canShowStory: WritableSignal<boolean>;
+    canGoPrevious: WritableSignal<boolean>;
+    canGoNext: WritableSignal<boolean>;
+    setMode: ReturnType<typeof vi.fn>;
+    previousSlide: ReturnType<typeof vi.fn>;
+    nextSlide: ReturnType<typeof vi.fn>;
+  };
 
   const enemy = (id = 'goblin-1'): Combatant => ({
     id,
@@ -160,6 +174,18 @@ describe('DmControlComponent', () => {
       giveItem: vi.fn().mockResolvedValue(undefined),
     };
     logger = { error: vi.fn() };
+    story = {
+      mode: signal<'battle' | 'story'>('battle'),
+      slides: signal<StorySlide[]>([]),
+      activeSlide: signal<StorySlide | null>(null),
+      activeSlideIndex: signal(-1),
+      canShowStory: signal(false),
+      canGoPrevious: signal(false),
+      canGoNext: signal(false),
+      setMode: vi.fn(),
+      previousSlide: vi.fn(),
+      nextSlide: vi.fn(),
+    };
 
     TestBed.configureTestingModule({
       imports: [DmControlComponent],
@@ -188,6 +214,7 @@ describe('DmControlComponent', () => {
           },
         },
         { provide: LoggerService, useValue: logger },
+        { provide: StoryPresentationService, useValue: story },
       ],
     });
 
@@ -345,7 +372,7 @@ describe('DmControlComponent', () => {
     expect(fixture.nativeElement.querySelector('.combatant-item--active')).toBeNull();
   });
 
-  it('orders the main workspaces as scenes, battle, rewards, then Open5e', () => {
+  it('orders the main workspaces and adds a dedicated local story editor', () => {
     fixture.detectChanges();
 
     const labels = Array.from(
@@ -357,7 +384,31 @@ describe('DmControlComponent', () => {
       '2 ⚔️ Бой 0',
       '3 🎁 Игроки и награды',
       '4 📚 Переводы Open5E',
+      '5 🎭 История',
     ]);
+  });
+
+  it('keeps display battle/story and slide navigation controls available above every workspace', () => {
+    const tavern: StorySlide = {
+      id: 'tavern',
+      name: 'tavern.jpg',
+      blob: new Blob(['tavern']),
+      objectUrl: 'blob:tavern',
+    };
+    story.slides.set([tavern]);
+    story.activeSlide.set(tavern);
+    story.activeSlideIndex.set(0);
+    story.canShowStory.set(true);
+    fixture.detectChanges();
+
+    const toolbar = fixture.nativeElement.querySelector('.dm-presentation-bar') as HTMLElement;
+    const buttons = Array.from(toolbar.querySelectorAll<HTMLButtonElement>('button'));
+    expect(toolbar).toHaveTextContent('tavern.jpg');
+
+    buttons.find((button) => button.textContent?.includes('История'))?.click();
+    expect(story.setMode).toHaveBeenCalledWith('story');
+    buttons.find((button) => button.textContent?.includes('Бой'))?.click();
+    expect(story.setMode).toHaveBeenCalledWith('battle');
   });
 
   it('switches between focused desktop workspaces instead of rendering a long dashboard', () => {

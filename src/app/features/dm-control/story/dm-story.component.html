@@ -1,0 +1,119 @@
+<section class="story-editor" aria-labelledby="story-editor-title">
+  <header class="story-editor__header">
+    <div>
+      <p class="story-editor__eyebrow">Локальная презентация</p>
+      <h2 id="story-editor-title">🎭 История</h2>
+      <p>Загрузите изображения в нужном порядке.</p>
+    </div>
+    <label class="story-editor__upload">
+      <span>＋ Добавить изображения</span>
+      <input type="file" accept="image/*" multiple (change)="onFilesSelected($event)" />
+    </label>
+  </header>
+
+  @if (uploadMessage(); as message) {
+    <p class="story-editor__message" role="status">{{ message }}</p>
+  }
+
+  <div class="story-editor__controls" aria-label="Управление показом истории">
+    <button
+      type="button"
+      class="story-editor__button"
+      [class.story-editor__button--active]="story.mode() === 'story'"
+      [disabled]="!story.canShowStory()"
+      (click)="story.setMode('story')"
+    >
+      🖼 Показать историю
+    </button>
+    <button
+      type="button"
+      class="story-editor__button"
+      [disabled]="!story.canGoPrevious()"
+      (click)="story.previousSlide()"
+    >
+      ← Предыдущий
+    </button>
+    <span class="story-editor__counter">
+      {{ story.activeSlideIndex() + 1 }} / {{ story.slides().length }}
+    </span>
+    <button
+      type="button"
+      class="story-editor__button"
+      [disabled]="!story.canGoNext()"
+      (click)="story.nextSlide()"
+    >
+      Следующий →
+    </button>
+    <button
+      type="button"
+      class="story-editor__button story-editor__button--battle"
+      [class.story-editor__button--active]="story.mode() === 'battle'"
+      (click)="story.setMode('battle')"
+    >
+      ⚔ Вернуть бой
+    </button>
+  </div>
+
+  @if (story.slides().length === 0) {
+    <div class="story-editor__empty">
+      <span aria-hidden="true">🖼️</span>
+      <strong>Слайды ещё не загружены</strong>
+      <p>Подойдут JPG, PNG, WebP и другие форматы изображений, которые открывает браузер.</p>
+    </div>
+  } @else {
+    <div class="story-editor__grid" aria-label="Слайды истории">
+      @for (slide of story.slides(); track slide.id; let index = $index) {
+        <article
+          class="story-slide"
+          [class.story-slide--active]="story.activeSlideId() === slide.id"
+          [class.story-slide--dragging]="draggedSlideId() === slide.id"
+          draggable="true"
+          tabindex="0"
+          role="button"
+          [attr.aria-label]="'Выбрать слайд ' + (index + 1) + ': ' + slide.name"
+          (click)="story.selectSlide(slide.id)"
+          (keydown.enter)="story.selectSlide(slide.id)"
+          (dragstart)="onDragStart(slide.id, $event)"
+          (dragover)="onDragOver($event)"
+          (drop)="onDrop(slide.id, $event)"
+          (dragend)="stopDragging()"
+        >
+          <div class="story-slide__preview">
+            <img [src]="slide.objectUrl" [alt]="slide.name" />
+            <span class="story-slide__number">{{ index + 1 }}</span>
+            @if (story.activeSlideId() === slide.id) {
+              <span class="story-slide__live">На экране</span>
+            }
+          </div>
+          <p class="story-slide__name" [attr.title]="slide.name">{{ slide.name }}</p>
+          <div class="story-slide__actions">
+            <button
+              type="button"
+              [disabled]="$first"
+              aria-label="Переместить слайд раньше"
+              (click)="moveSlide(slide.id, -1, $event)"
+            >
+              ←
+            </button>
+            <button
+              type="button"
+              [disabled]="$last"
+              aria-label="Переместить слайд позже"
+              (click)="moveSlide(slide.id, 1, $event)"
+            >
+              →
+            </button>
+            <button
+              type="button"
+              class="story-slide__remove"
+              aria-label="Удалить слайд"
+              (click)="removeSlide(slide.id, $event)"
+            >
+              ✕
+            </button>
+          </div>
+        </article>
+      }
+    </div>
+  }
+</section>

@@ -4,6 +4,7 @@ import { BattleService } from '../../core/services/battle.service';
 import { CharacterService } from '../../core/services/character.service';
 import { InventoryService } from '../../core/services/inventory.service';
 import { LoggerService } from '../../core/services/logger.service';
+import { StoryPresentationService } from '../../core/services/story-presentation.service';
 import { Combatant, SpellData } from '../../core/models/combatant.model';
 import { BATTLE_STATUS } from '../../core/constants/battle-status.constants';
 import {
@@ -26,6 +27,7 @@ import { DmItemLibraryComponent } from './item-library/dm-item-library.component
 import { DmSceneLibraryComponent } from './scene-library/dm-scene-library.component';
 import { DmCharacterResourcesComponent } from './character-resources/dm-character-resources.component';
 import { DmOpen5eImportComponent } from './open5e-import/dm-open5e-import.component';
+import { DmStoryComponent } from './story/dm-story.component';
 
 @Component({
   selector: 'app-dm-control',
@@ -38,6 +40,7 @@ import { DmOpen5eImportComponent } from './open5e-import/dm-open5e-import.compon
     DmItemLibraryComponent,
     DmCharacterResourcesComponent,
     DmOpen5eImportComponent,
+    DmStoryComponent,
   ],
   templateUrl: './dm-control.component.html',
   styleUrl: './dm-control.component.scss',
@@ -49,6 +52,7 @@ export class DmControlComponent {
   private readonly characterService = inject(CharacterService);
   private readonly inventoryService = inject(InventoryService);
   private readonly logger = inject(LoggerService);
+  readonly storyPresentation = inject(StoryPresentationService);
 
   // --- Константы для шаблона ---
   readonly BATTLE_STATUS = BATTLE_STATUS;
@@ -56,7 +60,7 @@ export class DmControlComponent {
   readonly COMBATANT_TYPE = COMBATANT_TYPE;
   readonly DEATH_SAVE_RESULT = DEATH_SAVE_RESULT;
 
-  readonly activePanel = signal<'library' | 'scenes' | 'battle' | 'rewards'>('scenes');
+  readonly activePanel = signal<'library' | 'scenes' | 'battle' | 'rewards' | 'story'>('scenes');
 
   // --- Панель изменения HP ---
   readonly hpOperation = signal<'damage' | 'heal' | 'temporary'>('damage');

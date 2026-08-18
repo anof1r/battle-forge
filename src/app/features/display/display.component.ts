@@ -10,6 +10,7 @@ import { DEFAULT_ENEMY_TYPE } from '../../core/constants/enemy-generator.constan
 import { StatusEffectType } from '../../core/constants/status-effect.constants';
 import { Combatant } from '../../core/models/combatant.model';
 import { COMBATANT_STATUS, COMBATANT_TYPE } from '../../core/constants/combatant.constants';
+import { StoryPresentationService } from '../../core/services/story-presentation.service';
 
 @Component({
   selector: 'app-display',
@@ -27,6 +28,7 @@ import { COMBATANT_STATUS, COMBATANT_TYPE } from '../../core/constants/combatant
 })
 export class DisplayComponent {
   private readonly battleService = inject(BattleService);
+  private readonly storyPresentation = inject(StoryPresentationService);
 
   readonly BATTLE_STATUS = BATTLE_STATUS;
   readonly DEFAULT_ENEMY_TYPE = DEFAULT_ENEMY_TYPE;
@@ -37,6 +39,8 @@ export class DisplayComponent {
   readonly combatantsInTurnOrder = this.battleService.sortedCombatants;
   readonly currentRound = this.battleService.currentRound;
   readonly currentEnemy = this.battleService.currentCombatant;
+  readonly presentationMode = this.storyPresentation.mode;
+  readonly activeStorySlide = this.storyPresentation.activeSlide;
 
   readonly partyAlerts = computed(() =>
     this.combatantsInTurnOrder().filter(
