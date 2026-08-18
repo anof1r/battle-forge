@@ -1,0 +1,127 @@
+<details class="item-library" open>
+  <summary class="item-library__title">📚 Библиотека предметов</summary>
+
+  <div class="item-library__content">
+    <section class="quick-give" aria-labelledby="quick-give-title">
+      <h3 id="quick-give-title">Быстрая выдача</h3>
+      <div class="item-library__fields">
+        <label>
+          <span>Игрок</span>
+          <select [value]="selectedPlayerId()" (change)="selectPlayer($event)">
+            <option value="">Выберите игрока</option>
+            @for (player of players(); track player.id) {
+              <option [value]="player.id">{{ player.name }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          <span>Предмет</span>
+          <select [value]="selectedTemplateId()" (change)="selectTemplate($event)">
+            <option value="">Выберите шаблон</option>
+            @for (item of items(); track item.id) {
+              <option [value]="item.id">{{ item.icon }} {{ item.name }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          <span>Количество</span>
+          <input type="number" min="1" [value]="giveQuantity()" (input)="setGiveQuantity($event)" />
+        </label>
+        <button type="button" [disabled]="!canGive() || giving()" (click)="giveItem()">
+          {{ giving() ? 'Выдаём…' : '🎒 Выдать' }}
+        </button>
+      </div>
+
+      @if (selectedTemplate(); as item) {
+        <div class="quick-give__preview">
+          <strong>{{ item.icon || '📦' }} {{ item.name }}</strong>
+          @if (item.effectFormula) {
+            <span>🎲 {{ item.effectFormula }}</span>
+          }
+          <span>{{ item.description || 'Без описания' }}</span>
+        </div>
+      }
+    </section>
+
+    <div class="item-library__workspace">
+      <section class="item-editor">
+        <h3>{{ itemId() ? 'Редактирование шаблона' : 'Новый шаблон' }}</h3>
+        <div class="item-library__fields item-library__fields--editor">
+          <label>
+            <span>Название</span>
+            <input type="text" [value]="itemName()" (input)="setName($event)" placeholder="Зелье лечения" />
+          </label>
+          <label>
+            <span>Формула эффекта</span>
+            <input type="text" [value]="itemEffectFormula()" (input)="setEffectFormula($event)" placeholder="1d4" />
+          </label>
+          <label>
+            <span>Количество по умолчанию</span>
+            <input type="number" min="1" [value]="itemDefaultQuantity()" (input)="setDefaultQuantity($event)" />
+          </label>
+          <label>
+            <span>Редкость</span>
+            <select [value]="itemRarity()" (change)="setRarity($event)">
+              <option value="common">Обычный</option>
+              <option value="uncommon">Необычный</option>
+              <option value="rare">Редкий</option>
+              <option value="epic">Эпический</option>
+              <option value="legendary">Легендарный</option>
+            </select>
+          </label>
+          <label>
+            <span>Иконка</span>
+            <input type="text" [value]="itemIcon()" (input)="setIcon($event)" placeholder="🧪" />
+          </label>
+          <label class="item-editor__description">
+            <span>Описание</span>
+            <textarea rows="3" [value]="itemDescription()" (input)="setDescription($event)" placeholder="Восстанавливает HP"></textarea>
+          </label>
+        </div>
+        <div class="item-editor__checks">
+          <label><input type="checkbox" [checked]="itemStackable()" (change)="setStackable($event)" /> Складывается в стопку</label>
+          <label><input type="checkbox" [checked]="itemConsumable()" (change)="setConsumable($event)" /> Расходуется</label>
+        </div>
+        <div class="item-library__actions">
+          <button type="button" [disabled]="!canSave() || saving()" (click)="saveItem()">
+            {{ saving() ? 'Сохраняем…' : '💾 Сохранить шаблон' }}
+          </button>
+          @if (itemId()) {
+            <button type="button" class="secondary" (click)="resetEditor()">Отмена</button>
+          }
+        </div>
+      </section>
+
+      <section class="saved-items">
+        <h3>Сохранённые предметы ({{ items().length }})</h3>
+        <div class="saved-items__list">
+          @for (item of items(); track item.id) {
+            <article class="saved-item">
+              <div>
+                <strong>{{ item.icon || '📦' }} {{ item.name }}</strong>
+                <span>{{ item.rarity }} · по {{ item.defaultQuantity }} шт.</span>
+                @if (item.effectFormula) {
+                  <span>🎲 {{ item.effectFormula }}</span>
+                }
+                <p>{{ item.description || 'Без описания' }}</p>
+              </div>
+              <div class="item-library__actions">
+                <button type="button" class="secondary" (click)="editItem(item)">Изменить</button>
+                <button type="button" class="danger" (click)="deleteItem(item)">Удалить</button>
+              </div>
+            </article>
+          } @empty {
+            <p class="item-library__empty">Сохраните первый предмет — после этого его можно будет быстро выдавать любому игроку.</p>
+          }
+        </div>
+      </section>
+    </div>
+
+    @if (feedback()) {
+      <p class="item-library__feedback" role="status">{{ feedback() }}</p>
+    }
+    @if (error()) {
+      <p class="item-library__error" role="alert">{{ error() }}</p>
+    }
+  </div>
+</details>

@@ -191,7 +191,7 @@
               </div>
               <div class="creature-card__stats">
                 <b>HP {{ creature.maxHp }}</b
-                ><b>AC {{ creature.ac }}</b>
+                ><b>КД {{ creature.ac }}</b>
               </div>
             </div>
             <div class="creature-card__meta">
@@ -260,7 +260,7 @@
             (input)="onCreatureMaxHpInput($event)"
         /></label>
         <label class="library-field"
-          ><span>AC</span
+          ><span>КД</span
           ><input type="number" min="1" [value]="creatureAc()" (input)="onCreatureAcInput($event)"
         /></label>
         <label class="library-field"

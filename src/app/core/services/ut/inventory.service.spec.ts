@@ -61,6 +61,8 @@ describe('InventoryService', () => {
       quantity: 3,
       description: 'Greater healing',
       rarity: 'rare',
+      effectFormula: '2d4+2',
+      icon: '🧪',
     });
 
     expect(characterService.saveCharacter).toHaveBeenCalledWith(
@@ -71,6 +73,35 @@ describe('InventoryService', () => {
             quantity: 5,
             description: 'Greater healing',
             rarity: 'rare',
+            effectFormula: '2d4+2',
+            icon: '🧪',
+          }),
+        ],
+      }),
+    );
+  });
+
+  it('creates a separate entry when a reusable template is not stackable', async () => {
+    characterService.loadCharacter.mockResolvedValue(
+      character([item({ isStackable: false })]),
+    );
+    vi.spyOn(crypto, 'randomUUID').mockReturnValue('00000000-0000-4000-8000-000000000004');
+
+    await service.giveItem('Aria', {
+      name: 'Potion',
+      quantity: 1,
+      isStackable: false,
+      isConsumable: false,
+    });
+
+    expect(characterService.saveCharacter).toHaveBeenCalledWith(
+      expect.objectContaining({
+        inventory: [
+          expect.objectContaining({ id: 'potion-1', quantity: 2 }),
+          expect.objectContaining({
+            id: '00000000-0000-4000-8000-000000000004',
+            isStackable: false,
+            isConsumable: false,
           }),
         ],
       }),

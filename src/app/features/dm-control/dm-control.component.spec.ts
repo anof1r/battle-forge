@@ -9,6 +9,7 @@ import { Combatant } from '../../core/models/combatant.model';
 import { BattleService } from '../../core/services/battle.service';
 import { CharacterService } from '../../core/services/character.service';
 import { InventoryService } from '../../core/services/inventory.service';
+import { ItemLibraryService } from '../../core/services/item-library.service';
 import { LoggerService } from '../../core/services/logger.service';
 import { SceneLibraryService } from '../../core/services/scene-library.service';
 import { DmControlComponent } from './dm-control.component';
@@ -146,6 +147,14 @@ describe('DmControlComponent', () => {
         { provide: BattleService, useValue: battle },
         { provide: CharacterService, useValue: characterService },
         { provide: InventoryService, useValue: inventoryService },
+        {
+          provide: ItemLibraryService,
+          useValue: {
+            items: signal([]),
+            saveItem: vi.fn(),
+            deleteItem: vi.fn(),
+          },
+        },
         {
           provide: SceneLibraryService,
           useValue: {
@@ -339,6 +348,10 @@ describe('DmControlComponent', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.dm-workspace-grid')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('app-dm-scene-library')).toBeNull();
+
+    component.activePanel.set('rewards');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('app-dm-item-library')).not.toBeNull();
   });
 
   it('applies group and single-target damage and resets the panel on success', async () => {
@@ -394,6 +407,22 @@ describe('DmControlComponent', () => {
     await vi.waitFor(() => expect(component.damageAmount()).toBe(0));
     expect(component.damageTargetId()).toBeNull();
     expect(component.hpOperation()).toBe('heal');
+  });
+
+  it('caps healing at missing HP while leaving damage input unrestricted', () => {
+    const aria = playerCombatant('Aria');
+    battle.combatants.set({ [aria.id]: aria });
+    component.setHpOperation('heal');
+    component.damageTargetId.set(aria.id);
+
+    component.onDamageAmountInput({ target: { value: '99' } } as unknown as Event);
+    expect(component.maxHealingAmount()).toBe(4);
+    expect(component.damageAmount()).toBe(4);
+
+    component.setHpOperation('damage');
+    component.damageTargetId.set(aria.id);
+    component.onDamageAmountInput({ target: { value: '99' } } as unknown as Event);
+    expect(component.damageAmount()).toBe(99);
   });
 
   it('removes mass targeting when switching from damage to healing', () => {

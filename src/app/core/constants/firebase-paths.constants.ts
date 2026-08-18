@@ -4,6 +4,7 @@ export const FIREBASE_ROOT = {
   PLAYERS: 'players',
   CREATURE_TEMPLATES: 'dm-library/creatures',
   SCENE_PRESETS: 'dm-library/scenes',
+  ITEM_TEMPLATES: 'dm-library/items',
 } as const;
 
 export const MAIN_ROOM_ID = 'main-room';
@@ -22,4 +23,8 @@ export function creatureTemplatePath(templateId: string): string {
 
 export function scenePresetPath(sceneId: string): string {
   return `${FIREBASE_ROOT.SCENE_PRESETS}/${sceneId}`;
+}
+
+export function itemTemplatePath(templateId: string): string {
+  return `${FIREBASE_ROOT.ITEM_TEMPLATES}/${templateId}`;
 }

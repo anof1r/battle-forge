@@ -6,3 +6,4 @@ export * from './enemy.model';
 export * from './scene-library.model';
 export * from './inventory-item.model';
 export * from './character.model';
+export * from './item-template.model';

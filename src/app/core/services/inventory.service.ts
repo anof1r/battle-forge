@@ -8,6 +8,10 @@ export interface GiveItemInput {
   quantity: number;
   description?: string;
   rarity?: ItemRarity;
+  effectFormula?: string;
+  isStackable?: boolean;
+  isConsumable?: boolean;
+  icon?: string;
 }
 
 /** Business logic for a player's inventory — kept out of `CharacterService` (character CRUD) and components. */
@@ -20,25 +24,43 @@ export class InventoryService {
     if (!player) return;
 
     const inventory = player.inventory ?? [];
-    const existing = inventory.find((i) => i.name === item.name);
+    const existing = inventory.find(
+      (candidate) =>
+        candidate.name === item.name &&
+        candidate.isStackable &&
+        item.isStackable !== false,
+    );
+    let nextInventory: InventoryItem[];
     if (existing) {
-      existing.quantity += item.quantity;
-      if (item.description) existing.description = item.description;
-      if (item.rarity) existing.rarity = item.rarity;
+      nextInventory = inventory.map((candidate) =>
+        candidate.id === existing.id
+          ? {
+              ...candidate,
+              quantity: candidate.quantity + item.quantity,
+              description: item.description ?? candidate.description,
+              rarity: item.rarity ?? candidate.rarity,
+              effectFormula: item.effectFormula ?? candidate.effectFormula,
+              isStackable: item.isStackable ?? candidate.isStackable,
+              isConsumable: item.isConsumable ?? candidate.isConsumable,
+              icon: item.icon ?? candidate.icon,
+            }
+          : candidate,
+      );
     } else {
       const newItem: InventoryItem = {
         id: crypto.randomUUID(),
         name: item.name,
         description: item.description ?? '',
         quantity: item.quantity,
-        isStackable: true,
-        isConsumable: true,
+        isStackable: item.isStackable ?? true,
+        isConsumable: item.isConsumable ?? true,
         rarity: item.rarity ?? 'common',
-        icon: '',
+        icon: item.icon ?? '',
+        ...(item.effectFormula ? { effectFormula: item.effectFormula } : {}),
       };
-      inventory.push(newItem);
+      nextInventory = [...inventory, newItem];
     }
-    await this.characterService.saveCharacter({ ...player, inventory });
+    await this.characterService.saveCharacter({ ...player, inventory: nextInventory });
   }
 
   async removeItem(playerName: string, itemIndex: number): Promise<void> {

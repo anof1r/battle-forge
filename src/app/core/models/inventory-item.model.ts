@@ -4,6 +4,7 @@ export interface InventoryItem {
   id: string;
   name: string;
   description: string;
+  effectFormula?: string;
   quantity: number;
   isStackable: boolean;
   isConsumable: boolean;

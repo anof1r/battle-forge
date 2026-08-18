@@ -295,6 +295,37 @@ describe('PlayerComponent', () => {
     expect(component.canAttack()).toBe(false);
   });
 
+  it('accepts manually counted damage and allows an additional attack without a turn lock', async () => {
+    battle.aliveEnemies.set([enemy]);
+    component.selectEnemy(enemy.id);
+    component.damageAmount.set(9);
+
+    component.attack();
+
+    await vi.waitFor(() => expect(battle.takeDamage).toHaveBeenNthCalledWith(1, enemy.id, 9));
+    await vi.waitFor(() => expect(component.attackMode()).toBe('additional'));
+
+    component.damageAmount.set(7);
+    component.attack();
+
+    await vi.waitFor(() => expect(battle.takeDamage).toHaveBeenNthCalledWith(2, enemy.id, 7));
+    expect(component.selectedEnemyId()).toBe(enemy.id);
+  });
+
+  it('shows Russian characteristic abbreviations and the additional-attack tab', () => {
+    component.character.set(character());
+    component.isLoggedIn.set(true);
+    battle.aliveEnemies.set([enemy]);
+    component.activeTab.set('arena');
+    component.selectEnemy(enemy.id);
+
+    fixture.detectChanges();
+
+    expect(component.getStatLabel('dex')).toBe('ЛОВ');
+    expect(fixture.nativeElement).toHaveTextContent('Доп. удар');
+    expect(fixture.nativeElement).toHaveTextContent('Ограничения на количество атак нет');
+  });
+
   it('renders the arena safely before the first current turn is assigned', () => {
     component.character.set(character());
     component.isLoggedIn.set(true);

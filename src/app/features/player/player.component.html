@@ -91,11 +91,11 @@
             <section class="player__stats-panel">
               <h2 class="player__panel-title">Характеристики</h2>
               <div class="player__stats-grid">
-                @for (stat of ['str', 'dex', 'con', 'int', 'wis', 'cha']; track stat) {
+                @for (stat of CHARACTER_STATS; track stat.key) {
                   <div class="player__stat-box">
-                    <span class="player__stat-label">{{ stat | uppercase }}</span>
-                    <span class="player__stat-value">{{ getStatValue(stat) }}</span>
-                    <span class="player__stat-mod">{{ getStatModString(stat) }}</span>
+                    <span class="player__stat-label" [attr.title]="stat.title">{{ stat.label }}</span>
+                    <span class="player__stat-value">{{ getStatValue(stat.key) }}</span>
+                    <span class="player__stat-mod">{{ getStatModString(stat.key) }}</span>
                   </div>
                 }
               </div>
@@ -108,7 +108,7 @@
                   >
                 </div>
                 <div class="player__vitality-item">
-                  <span class="player__vitality-label">AC</span>
+                  <span class="player__vitality-label">КД</span>
                   <span class="player__vitality-value">{{ char.ac }}</span>
                 </div>
                 <div class="player__vitality-item">
@@ -144,7 +144,7 @@
                         <span class="player__weapon-name">{{ weapon.name }}</span>
                         <span class="player__weapon-damage">{{ weapon.damage }}</span>
                         <span class="player__weapon-type">{{ weapon.damageType }}</span>
-                        <span class="player__weapon-ability">{{ weapon.ability | uppercase }}</span>
+                        <span class="player__weapon-ability">{{ getStatLabel(weapon.ability) }}</span>
                       </li>
                     }
                   </ul>
@@ -174,6 +174,9 @@
                             </span>
                           }
                         </div>
+                        @if (item.effectFormula) {
+                          <div class="player__inventory-effect">🎲 {{ item.effectFormula }}</div>
+                        }
                         <div class="player__inventory-actions">
                           <button class="player__inventory-btn" (click)="useItem(item)">
                             Использовать
@@ -336,8 +339,8 @@
                   >
                 </div>
                 <div class="player__combatant-stats">
-                  <span>AC {{ combatant.ac }}</span>
-                  <span>INIT {{ combatant.initiative }}</span>
+                  <span>КД {{ combatant.ac }}</span>
+                  <span>ИНИЦ {{ combatant.initiative }}</span>
                 </div>
                 @if (currentCombatant()?.id === combatant.id) {
                   <div class="player__combatant-turn">⚔️ Текущий ход</div>
@@ -350,7 +353,27 @@
 
           @if (selectedEnemy(); as enemy) {
             <div class="player__attack-panel">
-              <h3 class="player__attack-title">Атака</h3>
+              <h3 class="player__attack-title">
+                {{ attackMode() === 'main' ? 'Атака' : 'Дополнительный удар' }}
+              </h3>
+              <div class="player__attack-tabs" role="group" aria-label="Тип атаки">
+                <button
+                  type="button"
+                  class="player__attack-cancel"
+                  [class.player__attack-tab--active]="attackMode() === 'main'"
+                  (click)="setAttackMode('main')"
+                >
+                  Основной удар
+                </button>
+                <button
+                  type="button"
+                  class="player__attack-cancel"
+                  [class.player__attack-tab--active]="attackMode() === 'additional'"
+                  (click)="setAttackMode('additional')"
+                >
+                  + Доп. удар
+                </button>
+              </div>
               <div class="player__attack-row">
                 <span class="player__attack-target"> Цель: {{ enemy.name }} </span>
               </div>
@@ -384,6 +407,9 @@
                 </button>
                 <button class="player__attack-cancel" (click)="clearSelection()">Отмена</button>
               </div>
+              <p class="player__attack-hint">
+                Урон считается игроками вручную. Ограничения на количество атак нет.
+              </p>
             </div>
           } @else {
             <div class="player__attack-placeholder">

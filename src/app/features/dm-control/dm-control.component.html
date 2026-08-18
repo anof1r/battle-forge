@@ -174,9 +174,13 @@
             class="field__input"
             type="number"
             min="0"
+            [attr.max]="hpOperation() === 'heal' ? maxHealingAmount() : null"
             [value]="damageAmount()"
             (input)="onDamageAmountInput($event)"
           />
+          @if (hpOperation() === 'heal' && maxHealingAmount() !== null) {
+            <small class="field__hint">Можно восстановить не больше {{ maxHealingAmount() }} HP.</small>
+          }
         </div>
         @if (hpOperation() === 'damage') {
           <button
@@ -360,8 +364,8 @@
           <div class="enemy-item__info">
             <span class="enemy-item__name">{{ enemy.name }}</span>
             <span class="enemy-item__hp">HP: {{ enemy.currentHp }}/{{ enemy.maxHp }}</span>
-            <span class="enemy-item__ac">AC: {{ enemy.ac }}</span>
-            <span class="enemy-item__init">INIT: {{ enemy.initiative }}</span>
+            <span class="enemy-item__ac">КД: {{ enemy.ac }}</span>
+            <span class="enemy-item__init">ИНИЦ: {{ enemy.initiative }}</span>
             <span [class]="'enemy-item__life enemy-item__life--' + enemy.status">
               {{ lifeStatusLabel(enemy) }}
             </span>
@@ -400,8 +404,8 @@
             <span class="enemy-item__hp"
               >HP: {{ player.value.currentHp }}/{{ player.value.maxHp }}</span
             >
-            <span class="enemy-item__ac">AC: {{ player.value.ac }}</span>
-            <span class="enemy-item__init">INIT: {{ player.value.initiative }}</span>
+            <span class="enemy-item__ac">КД: {{ player.value.ac }}</span>
+            <span class="enemy-item__init">ИНИЦ: {{ player.value.initiative }}</span>
             <span [class]="'enemy-item__life enemy-item__life--' + player.value.status">
               {{ lifeStatusLabel(player.value) }}
             </span>
@@ -476,9 +480,11 @@
 
   @if (activePanel() === 'rewards') {
     <div class="dm-rewards-grid">
+  <app-dm-item-library />
+
   <!-- ===== ВЫДАЧА ПРЕДМЕТОВ ===== -->
   <details class="dm-section dm-section--inventory" open>
-    <summary class="dm-section__title">🎒 Выдать предмет игроку</summary>
+    <summary class="dm-section__title">🎒 Выдать разовый предмет</summary>
     <div class="dm-inventory-form">
       <div class="field-row">
         <div class="field">

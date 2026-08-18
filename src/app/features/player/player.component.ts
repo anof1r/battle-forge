@@ -6,7 +6,6 @@ import {
   computed,
   OnDestroy,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { CharacterService } from '../../core/services/character.service';
 import { BattleService } from '../../core/services/battle.service';
 import { InventoryService } from '../../core/services/inventory.service';
@@ -20,10 +19,19 @@ import { COMBATANT_STATUS, COMBATANT_TYPE } from '../../core/constants/combatant
 import { StatusEffectListComponent } from '../../shared/ui/status-effect-list/status-effect-list.component';
 import { CombatantLifeStateComponent } from '../../shared/ui/combatant-life-state/combatant-life-state.component';
 
+const CHARACTER_STATS = [
+  { key: 'str', label: 'СИЛ', title: 'Сила' },
+  { key: 'dex', label: 'ЛОВ', title: 'Ловкость' },
+  { key: 'con', label: 'ТЕЛ', title: 'Телосложение' },
+  { key: 'int', label: 'ИНТ', title: 'Интеллект' },
+  { key: 'wis', label: 'МДР', title: 'Мудрость' },
+  { key: 'cha', label: 'ХАР', title: 'Харизма' },
+] as const;
+
 @Component({
   selector: 'app-player',
   standalone: true,
-  imports: [CommonModule, StatusEffectListComponent, CombatantLifeStateComponent],
+  imports: [StatusEffectListComponent, CombatantLifeStateComponent],
   templateUrl: './player.component.html',
   styleUrl: './player.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -57,6 +65,7 @@ export class PlayerComponent implements OnDestroy {
   readonly selectedEnemyId = signal<string | null>(null);
   readonly damageAmount = signal<number>(0);
   readonly selectedWeaponIndex = signal<number>(0);
+  readonly attackMode = signal<'main' | 'additional'>('main');
 
   // --- Состояние использования заклинаний ---
   readonly usingSpellId = signal<string | null>(null);
@@ -71,6 +80,7 @@ export class PlayerComponent implements OnDestroy {
   // --- Данные из BattleService ---
   readonly COMBATANT_TYPE = COMBATANT_TYPE;
   readonly COMBATANT_STATUS = COMBATANT_STATUS;
+  readonly CHARACTER_STATS = CHARACTER_STATS;
   readonly aliveEnemies = this.battleService.aliveEnemies;
   readonly combatantsInTurnOrder = this.battleService.sortedCombatants;
   readonly currentCombatant = this.battleService.currentCombatant;
@@ -231,6 +241,11 @@ export class PlayerComponent implements OnDestroy {
     this.expandedAbility.set(this.expandedAbility() === name ? null : name);
   }
 
+  getStatLabel(stat: string): string {
+    const normalized = stat.toLowerCase();
+    return CHARACTER_STATS.find((candidate) => candidate.key === normalized)?.label ?? stat;
+  }
+
   getSpellMaxUses(spell: SpellData): number {
     return Math.max(1, spell.maxUses ?? 1);
   }
@@ -279,11 +294,16 @@ export class PlayerComponent implements OnDestroy {
   clearSelection(): void {
     this.selectedEnemyId.set(null);
     this.damageAmount.set(0);
+    this.attackMode.set('main');
   }
 
   onWeaponChange(event: Event): void {
     const select = event.target as HTMLSelectElement;
     this.selectedWeaponIndex.set(+select.value);
+  }
+
+  setAttackMode(mode: 'main' | 'additional'): void {
+    this.attackMode.set(mode);
   }
 
   onDamageInput(event: Event): void {
@@ -351,7 +371,10 @@ export class PlayerComponent implements OnDestroy {
     if (!enemy) return;
     this.battleService
       .takeDamage(enemy.id, this.damageAmount())
-      .then(() => this.damageAmount.set(0))
+      .then(() => {
+        this.damageAmount.set(0);
+        this.attackMode.set('additional');
+      })
       .catch((error: unknown) => this.logger.error('PlayerComponent.attack', error));
   }
 }

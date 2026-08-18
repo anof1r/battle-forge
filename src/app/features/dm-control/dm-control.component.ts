@@ -22,12 +22,13 @@ import {
   StatusEffectType,
 } from '../../core/constants/status-effect.constants';
 import { SceneTransitionMode } from '../../core/models';
+import { DmItemLibraryComponent } from './item-library/dm-item-library.component';
 import { DmSceneLibraryComponent } from './scene-library/dm-scene-library.component';
 
 @Component({
   selector: 'app-dm-control',
   standalone: true,
-  imports: [UpperCasePipe, KeyValuePipe, DmSceneLibraryComponent],
+  imports: [UpperCasePipe, KeyValuePipe, DmSceneLibraryComponent, DmItemLibraryComponent],
   templateUrl: './dm-control.component.html',
   styleUrl: './dm-control.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -111,6 +112,16 @@ export class DmControlComponent {
     () =>
       this.targetType() !== 'all' && this.damageAmount() > 0 && !!this.damageTargetId(),
   );
+
+  readonly selectedHpTarget = computed(() => {
+    const targetId = this.damageTargetId();
+    return targetId ? this.battleService.combatants()[targetId] ?? null : null;
+  });
+
+  readonly maxHealingAmount = computed<number | null>(() => {
+    const target = this.selectedHpTarget();
+    return target ? Math.max(0, target.maxHp - target.currentHp) : null;
+  });
 
   readonly selectedStatusTarget = computed(() => {
     const targetId = this.selectedStatusTargetId();
@@ -270,6 +281,7 @@ export class DmControlComponent {
     const value = select.value;
     // Если value пустая строка или "null" – считаем за null
     this.damageTargetId.set(value && value !== 'null' ? value : null);
+    this.clampHealingAmount();
   }
 
   onSelectPlayerForItem(event: Event): void {
@@ -281,7 +293,9 @@ export class DmControlComponent {
   onDamageAmountInput(event: Event): void {
     const input = event.target as HTMLInputElement;
     const value = Number(input.value);
-    this.damageAmount.set(value > 0 ? value : 0);
+    const safeValue = value > 0 ? value : 0;
+    const maximum = this.hpOperation() === 'heal' ? this.maxHealingAmount() : null;
+    this.damageAmount.set(maximum === null ? safeValue : Math.min(safeValue, maximum));
   }
 
   onStatusTargetChange(event: Event): void {
@@ -544,5 +558,13 @@ export class DmControlComponent {
     this.damageAmount.set(0);
     this.damageTargetId.set(null);
     this.damageMode.set('single');
+  }
+
+  private clampHealingAmount(): void {
+    if (this.hpOperation() !== 'heal') return;
+    const maximum = this.maxHealingAmount();
+    if (maximum !== null && this.damageAmount() > maximum) {
+      this.damageAmount.set(maximum);
+    }
   }
 }
