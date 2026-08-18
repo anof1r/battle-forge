@@ -287,6 +287,27 @@
             <h4>Оружие и атаки</h4>
             <span>{{ creatureActions().length }}</span>
           </header>
+          @if (savedActions().length > 0) {
+            <div class="saved-action-picker">
+              <label class="library-field">
+                <span>Добавить оружие из личной базы</span>
+                <select [value]="selectedActionTemplateId()" (change)="selectActionTemplate($event)">
+                  <option value="">Выберите оружие или атаку</option>
+                  @for (action of savedActions(); track action.id) {
+                    <option [value]="action.id">{{ action.name }} · {{ action.damage }} {{ action.damageType }}</option>
+                  }
+                </select>
+              </label>
+              <button
+                class="library-button"
+                type="button"
+                [disabled]="!selectedActionTemplateId()"
+                (click)="addSavedAction()"
+              >
+                Добавить мобу
+              </button>
+            </div>
+          }
           <div class="subeditor__grid">
             <label class="library-field"
               ><span>Название</span

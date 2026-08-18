@@ -11,6 +11,7 @@ describe('CharacterService', () => {
   let firebase: {
     get: ReturnType<typeof vi.fn>;
     set: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
     subscribe: ReturnType<typeof vi.fn>;
   };
 
@@ -29,6 +30,16 @@ describe('CharacterService', () => {
     ...overrides,
   });
 
+  const normalizedCharacter = (character: ParsedCharacter): ParsedCharacter => ({
+    ...character,
+    temporaryHp: character.temporaryHp ?? 0,
+    resistances: character.resistances ?? [],
+    inventory: character.inventory ?? [],
+    spells: character.spells ?? [],
+    spellSlots: character.spellSlots ?? [],
+    resources: character.resources ?? [],
+  });
+
   const createSpell = (overrides: Partial<SpellData> = {}): SpellData => ({
     id: 'spell-1',
     name: 'Fire Bolt',
@@ -43,6 +54,7 @@ describe('CharacterService', () => {
     firebase = {
       get: vi.fn(),
       set: vi.fn().mockResolvedValue(undefined),
+      update: vi.fn().mockResolvedValue(undefined),
       subscribe: vi.fn(),
     };
     TestBed.configureTestingModule({
@@ -60,7 +72,7 @@ describe('CharacterService', () => {
     firebase.subscribe.mockReturnValue(of(character));
 
     await expect(service.characterExists('Aria')).resolves.toBe(true);
-    await expect(service.loadCharacter('Aria')).resolves.toEqual(character);
+    await expect(service.loadCharacter('Aria')).resolves.toEqual(normalizedCharacter(character));
 
     const values: Array<ParsedCharacter | null> = [];
     service.subscribeToCharacter('Aria').subscribe((value) => values.push(value));
@@ -68,7 +80,7 @@ describe('CharacterService', () => {
     expect(firebase.get).toHaveBeenNthCalledWith(1, 'players/Aria');
     expect(firebase.get).toHaveBeenNthCalledWith(2, 'players/Aria');
     expect(firebase.subscribe).toHaveBeenCalledWith('players/Aria');
-    expect(values).toEqual([character]);
+    expect(values).toEqual([normalizedCharacter(character)]);
   });
 
   it('returns false and null when a character does not exist', async () => {
@@ -78,6 +90,34 @@ describe('CharacterService', () => {
     await expect(service.loadCharacter('Missing')).resolves.toBeNull();
   });
 
+  it('normalizes malformed optional Firebase fields without rejecting the character', async () => {
+    firebase.get.mockResolvedValue({
+      ...createCharacter(),
+      currentHp: 999,
+      temporaryHp: -5,
+      weapons: null,
+      spells: { legacy: true },
+      spellSlots: [
+        { level: 1, current: 9, max: 4 },
+        { level: 12, current: 1, max: 1 },
+        null,
+      ],
+      resources: [
+        { id: 'rage', name: 'Ярость', current: 10, max: 2, recovery: 'unknown' },
+        { id: 'broken' },
+      ],
+    });
+
+    await expect(service.loadCharacter('Aria')).resolves.toEqual(expect.objectContaining({
+      currentHp: 30,
+      temporaryHp: 0,
+      weapons: [],
+      spells: [],
+      spellSlots: [{ level: 1, current: 4, max: 4 }],
+      resources: [{ id: 'rage', name: 'Ярость', current: 2, max: 2, recovery: 'manual' }],
+    }));
+  });
+
   it('saves a character with a fresh timestamp without changing the input', async () => {
     const character = createCharacter();
     vi.spyOn(Date, 'now').mockReturnValue(4321);
@@ -85,7 +125,7 @@ describe('CharacterService', () => {
     await service.saveCharacter(character);
 
     expect(firebase.set).toHaveBeenCalledWith('players/Aria', {
-      ...character,
+      ...normalizedCharacter(character),
       lastUpdated: 4321,
     });
     expect(character).not.toHaveProperty('lastUpdated');
@@ -96,7 +136,10 @@ describe('CharacterService', () => {
     const borin = createCharacter({ name: 'Borin' });
     firebase.get.mockResolvedValueOnce({ aria, borin }).mockResolvedValueOnce(null);
 
-    await expect(service.getAllPlayers()).resolves.toEqual([aria, borin]);
+    await expect(service.getAllPlayers()).resolves.toEqual([
+      normalizedCharacter(aria),
+      normalizedCharacter(borin),
+    ]);
     await expect(service.getAllPlayers()).resolves.toEqual([]);
     expect(firebase.get).toHaveBeenCalledWith('players');
   });
@@ -105,6 +148,18 @@ describe('CharacterService', () => {
     await service.updatePlayerHp('Aria', -12);
 
     expect(firebase.set).toHaveBeenCalledWith('players/Aria/currentHp', 0);
+  });
+
+  it('atomically persists regular and temporary HP', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(9000);
+
+    await service.updatePlayerHealth('Aria', -2, 7.9);
+
+    expect(firebase.update).toHaveBeenCalledWith('players/Aria', {
+      currentHp: 0,
+      temporaryHp: 7,
+      lastUpdated: 9000,
+    });
   });
 
   it('adds a new spell and merges an update into an existing spell', async () => {
@@ -251,5 +306,58 @@ describe('CharacterService', () => {
         spells: [expect.objectContaining({ id: 'shield', usesRemaining: 3 })],
       }),
     );
+  });
+
+  it('spends a shared slot of the selected level and leaves spell counters untouched', async () => {
+    const spell = createSpell({ id: 'burning-hands', level: 1, isCantrip: false });
+    vi.spyOn(service, 'loadCharacter').mockResolvedValue(
+      createCharacter({
+        spells: [spell],
+        spellSlots: [
+          { level: 1, current: 0, max: 2 },
+          { level: 2, current: 1, max: 1 },
+        ],
+      }),
+    );
+    const save = vi.spyOn(service, 'saveCharacter').mockResolvedValue(undefined);
+
+    await expect(service.usePlayerSpell('Aria', spell.id, 2)).resolves.toBe(true);
+
+    expect(save).toHaveBeenCalledWith(expect.objectContaining({
+      spells: [spell],
+      spellSlots: [
+        { level: 1, current: 0, max: 2 },
+        { level: 2, current: 0, max: 1 },
+      ],
+    }));
+  });
+
+  it('restores only matching resources on a short rest', async () => {
+    vi.spyOn(service, 'loadCharacter').mockResolvedValue(createCharacter({
+      spellSlots: [
+        { level: 1, current: 0, max: 2, recovery: 'short-rest' },
+        { level: 2, current: 0, max: 1 },
+      ],
+      resources: [
+        { id: 'rage', name: 'Ярость', current: 0, max: 2, recovery: 'long-rest' },
+        { id: 'ki', name: 'Ци', current: 0, max: 3, recovery: 'short-rest' },
+        { id: 'manual', name: 'Особый заряд', current: 0, max: 1, recovery: 'manual' },
+      ],
+    }));
+    const save = vi.spyOn(service, 'saveCharacter').mockResolvedValue(undefined);
+
+    await service.completeShortRest('Aria');
+
+    expect(save).toHaveBeenCalledWith(expect.objectContaining({
+      spellSlots: [
+        { level: 1, current: 2, max: 2, recovery: 'short-rest' },
+        { level: 2, current: 0, max: 1 },
+      ],
+      resources: [
+        expect.objectContaining({ id: 'rage', current: 0 }),
+        expect.objectContaining({ id: 'ki', current: 3 }),
+        expect.objectContaining({ id: 'manual', current: 0 }),
+      ],
+    }));
   });
 });

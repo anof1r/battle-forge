@@ -14,4 +14,15 @@ export class StatusEffectListComponent {
   readonly label = input<string | null>(null);
 
   protected readonly definition = getStatusEffectDefinition;
+
+  protected tooltip(effect: ActiveStatusEffect): string {
+    const details = [
+      this.definition(effect.type).description,
+      effect.source ? `Источник: ${effect.source}` : '',
+      effect.concentrationSourceId ? 'Требует концентрации' : '',
+      effect.saveAbility ? `Спасбросок: ${effect.saveAbility}, СЛ ${effect.saveDc ?? '—'}` : '',
+      effect.notes ?? '',
+    ];
+    return details.filter(Boolean).join('\n');
+  }
 }

@@ -1,4 +1,5 @@
 import { EnemyAbility, EnemyAction } from './enemy.model';
+import { LibrarySource } from './library-source.model';
 
 export interface CreatureTemplate {
   id: string;
@@ -10,6 +11,7 @@ export interface CreatureTemplate {
   abilities: EnemyAbility[];
   resistances: string[];
   statuses: string[];
+  source?: LibrarySource;
   createdAt: number;
   lastUpdated: number;
 }

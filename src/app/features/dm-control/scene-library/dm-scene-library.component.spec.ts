@@ -5,6 +5,7 @@ import { CreatureTemplate, ScenePreset } from '../../../core/models';
 import { BattleService } from '../../../core/services/battle.service';
 import { LoggerService } from '../../../core/services/logger.service';
 import { SceneLibraryService } from '../../../core/services/scene-library.service';
+import { EnemyActionLibraryService } from '../../../core/services/enemy-action-library.service';
 import { DmSceneLibraryComponent } from './dm-scene-library.component';
 
 describe('DmSceneLibraryComponent', () => {
@@ -21,6 +22,29 @@ describe('DmSceneLibraryComponent', () => {
   };
   let battle: { addCreatureStacks: ReturnType<typeof vi.fn> };
   let logger: { error: ReturnType<typeof vi.fn> };
+  const savedActions = signal([
+    {
+      id: 'weapon-open5e-longsword',
+      name: 'Длинный меч',
+      description: 'Воинское оружие',
+      toHit: '+4',
+      damage: '1d8 + 2',
+      damageType: 'рубящий',
+      fullText: '',
+      source: {
+        provider: 'open5e' as const,
+        key: 'longsword',
+        documentKey: 'srd-2024',
+        documentName: 'SRD 2024',
+        permalink: '',
+        originalName: 'Longsword',
+        originalDescription: '',
+        importedAt: 100,
+      },
+      createdAt: 100,
+      lastUpdated: 100,
+    },
+  ]);
 
   const goblin: CreatureTemplate = {
     id: 'creature-goblin',
@@ -64,6 +88,7 @@ describe('DmSceneLibraryComponent', () => {
         { provide: SceneLibraryService, useValue: library },
         { provide: BattleService, useValue: battle },
         { provide: LoggerService, useValue: logger },
+        { provide: EnemyActionLibraryService, useValue: { actions: savedActions } },
       ],
     });
     fixture = TestBed.createComponent(DmSceneLibraryComponent);
@@ -98,6 +123,16 @@ describe('DmSceneLibraryComponent', () => {
     );
     await vi.waitFor(() => expect(component.savingCreature()).toBe(false));
     expect(component.creatureName()).toBe('');
+  });
+
+  it('adds a saved Open5e weapon to the creature editor', () => {
+    component.selectedActionTemplateId.set('weapon-open5e-longsword');
+    component.addSavedAction();
+
+    expect(component.creatureActions()).toEqual([
+      expect.objectContaining({ name: 'Длинный меч', damage: '1d8 + 2' }),
+    ]);
+    expect(component.selectedActionTemplateId()).toBe('');
   });
 
   it('merges duplicate creatures in a scene and saves the preset', async () => {

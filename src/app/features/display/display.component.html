@@ -105,6 +105,12 @@
                   <span class="seal__value">{{ enemy.currentHp }}</span>
                   <span class="seal__label">/ {{ enemy.maxHp }} HP</span>
                 </div>
+                @if ((enemy.temporaryHp ?? 0) > 0) {
+                  <div class="seal seal--hp">
+                    <span class="seal__value">{{ enemy.temporaryHp }}</span>
+                    <span class="seal__label">ВРЕМ. HP</span>
+                  </div>
+                }
               </div>
             </div>
 

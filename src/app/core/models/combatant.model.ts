@@ -9,12 +9,22 @@ export interface ActiveStatusEffect {
   damagePerTrigger?: number;
   trigger?: StatusEffectTrigger;
   remainingTriggers?: number;
+  source?: string;
+  concentrationSourceId?: string;
+  saveAbility?: string;
+  saveDc?: number;
+  notes?: string;
 }
 
 export interface StatusEffectOptions {
   damagePerTrigger?: number;
   trigger?: StatusEffectTrigger;
   durationTriggers?: number;
+  source?: string;
+  concentrationSourceId?: string;
+  saveAbility?: string;
+  saveDc?: number;
+  notes?: string;
 }
 
 export interface DeathSaves {
@@ -31,6 +41,7 @@ export interface Combatant {
   ac: number;
   maxHp: number;
   currentHp: number;
+  temporaryHp?: number;
   status: CombatantStatus;
   playerName?: string;
   emoji?: string;
@@ -46,12 +57,21 @@ export interface Combatant {
 
 export interface SpellData {
   id: string;
+  librarySpellId?: string;
+  sourceKey?: string;
   name: string;
   level: number;
   school?: string;
   description?: string;
   damageFormula?: string;
   damageType?: string;
+  higherLevel?: string;
+  castingTime?: string;
+  range?: string;
+  duration?: string;
+  components?: string;
+  isRitual?: boolean;
+  requiresConcentration?: boolean;
   isCantrip: boolean;
   isPrepared: boolean;
   maxUses?: number;

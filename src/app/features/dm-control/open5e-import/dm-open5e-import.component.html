@@ -1,0 +1,272 @@
+<section class="open5e-import" aria-labelledby="open5e-title">
+  <header class="open5e-import__header">
+    <div>
+      <p class="open5e-import__eyebrow">Внешний справочник → личная база</p>
+      <h2 id="open5e-title">📚 Импорт из Open5e</h2>
+      <p>Найдите запись на английском, вставьте перевод из LSS справа и сохраните один раз.</p>
+    </div>
+    <div class="open5e-import__counters" aria-label="Размер личной библиотеки">
+      <span>Заклинаний: {{ savedSpells().length }}</span>
+      <span>Атак: {{ savedActions().length }}</span>
+      <span>Существ: {{ savedCreatures().length }}</span>
+    </div>
+  </header>
+
+  <div class="open5e-import__tabs" role="tablist" aria-label="Тип данных Open5e">
+    <button
+      type="button"
+      role="tab"
+      [attr.aria-selected]="kind() === 'spell'"
+      [class.is-active]="kind() === 'spell'"
+      (click)="setKind('spell')"
+    >
+      🔮 Заклинания
+    </button>
+    <button
+      type="button"
+      role="tab"
+      [attr.aria-selected]="kind() === 'weapon'"
+      [class.is-active]="kind() === 'weapon'"
+      (click)="setKind('weapon')"
+    >
+      🗡️ Оружие мобов
+    </button>
+    <button
+      type="button"
+      role="tab"
+      [attr.aria-selected]="kind() === 'creature'"
+      [class.is-active]="kind() === 'creature'"
+      (click)="setKind('creature')"
+    >
+      👹 Существа
+    </button>
+  </div>
+
+  <div class="open5e-search">
+    <label class="open5e-field open5e-field--grow">
+      <span>Название на английском</span>
+      <input
+        type="search"
+        placeholder="Magic Missile, Longsword, Goblin…"
+        [value]="query()"
+        (input)="setQuery($event)"
+        (keydown)="onSearchKeydown($event)"
+      />
+    </label>
+    <label class="open5e-field">
+      <span>Источник</span>
+      <select [value]="documentKey()" (change)="setDocument($event)">
+        <option value="srd-2024">SRD 2024</option>
+        <option value="srd-2014">SRD 2014</option>
+        <option value="">Все открытые источники</option>
+      </select>
+    </label>
+    <button
+      class="open5e-button open5e-button--primary"
+      type="button"
+      [disabled]="!query().trim() || searching()"
+      (click)="search()"
+    >
+      {{ searching() ? 'Ищем…' : 'Найти' }}
+    </button>
+  </div>
+
+  @if (error()) {
+    <p class="open5e-message open5e-message--error" role="alert">{{ error() }}</p>
+  }
+  @if (feedback()) {
+    <p class="open5e-message open5e-message--success" role="status">{{ feedback() }}</p>
+  }
+
+  @if (results().length > 0) {
+    <div class="open5e-results" aria-label="Результаты поиска">
+      @for (entry of results(); track entry.kind + ':' + entry.document.key + ':' + entry.key) {
+        <button
+          type="button"
+          class="open5e-result"
+          [class.is-selected]="selected() === entry"
+          (click)="selectEntry(entry)"
+        >
+          <span class="open5e-result__title">
+            {{ entry.name }}
+            @if (isSaved(entry)) { <small>✓ в базе</small> }
+          </span>
+          <span>{{ resultMeta(entry) }}</span>
+          <span class="open5e-result__source">{{ entry.document.name }}</span>
+        </button>
+      }
+    </div>
+  }
+
+  @if (selectedSpell(); as spell) {
+    <div class="translation-workspace">
+      <section class="translation-column translation-column--original">
+        <header><span>Оригинал Open5e</span><strong>{{ spell.name }}</strong></header>
+        <dl class="original-facts">
+          <div><dt>Level</dt><dd>{{ spell.level }}</dd></div>
+          <div><dt>School</dt><dd>{{ spell.school || '—' }}</dd></div>
+          <div><dt>Casting time</dt><dd>{{ spell.castingTime || '—' }}</dd></div>
+          <div><dt>Range</dt><dd>{{ spell.range || '—' }}</dd></div>
+          <div><dt>Duration</dt><dd>{{ spell.duration || '—' }}</dd></div>
+          <div><dt>Components</dt><dd>{{ spell.components || '—' }}</dd></div>
+          <div><dt>Damage</dt><dd>{{ spell.damageFormula || '—' }} {{ spell.damageTypes.join(', ') }}</dd></div>
+        </dl>
+        <h4>Description</h4>
+        <p class="original-text">{{ spell.description || 'Описание отсутствует.' }}</p>
+        @if (spell.higherLevel) {
+          <h4>At Higher Levels</h4>
+          <p class="original-text">{{ spell.higherLevel }}</p>
+        }
+      </section>
+
+      <section class="translation-column translation-column--editable">
+        <header><span>Твой перевод</span><strong>Можно вставлять из LSS</strong></header>
+        <div class="translation-form translation-form--two">
+          <label class="open5e-field"><span>Название</span><input [value]="spellName()" (input)="setText(spellName, $event)" /></label>
+          <label class="open5e-field"><span>Школа</span><input [value]="spellSchool()" (input)="setText(spellSchool, $event)" /></label>
+          <label class="open5e-field"><span>Время накладывания</span><input [value]="spellCastingTime()" (input)="setText(spellCastingTime, $event)" /></label>
+          <label class="open5e-field"><span>Дистанция</span><input [value]="spellRange()" (input)="setText(spellRange, $event)" /></label>
+          <label class="open5e-field"><span>Длительность</span><input [value]="spellDuration()" (input)="setText(spellDuration, $event)" /></label>
+          <label class="open5e-field"><span>Компоненты</span><input [value]="spellComponents()" (input)="setText(spellComponents, $event)" /></label>
+          <label class="open5e-field"><span>Кость урона</span><input [value]="spellDamageFormula()" (input)="setText(spellDamageFormula, $event)" /></label>
+          <label class="open5e-field"><span>Тип урона</span><input [value]="spellDamageType()" (input)="setText(spellDamageType, $event)" /></label>
+          <label class="open5e-field open5e-field--wide"><span>Описание</span><textarea rows="8" [value]="spellDescription()" (input)="setText(spellDescription, $event)"></textarea></label>
+          <label class="open5e-field open5e-field--wide"><span>На больших уровнях</span><textarea rows="4" [value]="spellHigherLevel()" (input)="setText(spellHigherLevel, $event)"></textarea></label>
+        </div>
+        <div class="translation-actions">
+          <button class="open5e-button open5e-button--primary" type="button" [disabled]="!canSave() || saving()" (click)="saveSelected()">
+            {{ saving() ? 'Сохраняем…' : 'Сохранить в базу' }}
+          </button>
+          <label class="open5e-field open5e-field--player">
+            <span>Игрок</span>
+            <select [value]="selectedPlayerId()" (change)="setPlayer($event)">
+              <option value="">Выберите игрока</option>
+              @for (player of players(); track player.id) {
+                <option [value]="player.id">{{ player.name }}</option>
+              }
+            </select>
+          </label>
+          <button class="open5e-button" type="button" [disabled]="!canSave() || !selectedPlayerId() || saving() || giving()" (click)="saveAndGiveSpell()">
+            Сохранить и выдать
+          </button>
+        </div>
+      </section>
+    </div>
+  }
+
+  @if (selectedWeapon(); as weapon) {
+    <div class="translation-workspace">
+      <section class="translation-column translation-column--original">
+        <header><span>Оригинал Open5e</span><strong>{{ weapon.name }}</strong></header>
+        <dl class="original-facts">
+          <div><dt>Damage</dt><dd>{{ weapon.damageFormula || '—' }} {{ weapon.damageType }}</dd></div>
+          <div><dt>Range</dt><dd>{{ weapon.range || '—' }}</dd></div>
+          <div><dt>Properties</dt><dd>{{ weapon.properties.join(', ') || '—' }}</dd></div>
+        </dl>
+        <p class="original-text">{{ weapon.description }}</p>
+      </section>
+      <section class="translation-column translation-column--editable">
+        <header><span>Твой шаблон атаки</span><strong>Потом добавляется мобу</strong></header>
+        <div class="translation-form translation-form--two">
+          <label class="open5e-field"><span>Название</span><input [value]="weaponName()" (input)="setText(weaponName, $event)" /></label>
+          <label class="open5e-field"><span>Бонус атаки моба</span><input placeholder="+4" [value]="weaponToHit()" (input)="setText(weaponToHit, $event)" /></label>
+          <label class="open5e-field"><span>Кость урона</span><input [value]="weaponDamage()" (input)="setText(weaponDamage, $event)" /></label>
+          <label class="open5e-field"><span>Тип урона</span><input [value]="weaponDamageType()" (input)="setText(weaponDamageType, $event)" /></label>
+          <label class="open5e-field open5e-field--wide"><span>Свойства</span><textarea rows="3" [value]="weaponDescription()" (input)="setText(weaponDescription, $event)"></textarea></label>
+          <label class="open5e-field open5e-field--wide"><span>Дополнительный текст</span><textarea rows="4" [value]="weaponFullText()" (input)="setText(weaponFullText, $event)"></textarea></label>
+        </div>
+        <p class="translation-note">Бонус атаки зависит от характеристик конкретного моба, поэтому его можно задать здесь или поправить после добавления оружия существу.</p>
+        <button class="open5e-button open5e-button--primary" type="button" [disabled]="!canSave() || saving()" (click)="saveSelected()">
+          {{ saving() ? 'Сохраняем…' : 'Сохранить оружие' }}
+        </button>
+      </section>
+    </div>
+  }
+
+  @if (selectedCreature(); as creature) {
+    <div class="translation-workspace">
+      <section class="translation-column translation-column--original">
+        <header><span>Оригинал Open5e</span><strong>{{ creature.name }}</strong></header>
+        <dl class="original-facts">
+          <div><dt>Type</dt><dd>{{ creature.subtype }}</dd></div>
+          <div><dt>CR</dt><dd>{{ creature.challengeRating }}</dd></div>
+          <div><dt>HP</dt><dd>{{ creature.maxHp }}</dd></div>
+          <div><dt>AC</dt><dd>{{ creature.ac }}</dd></div>
+          <div><dt>Resistances</dt><dd>{{ creature.resistances.join(', ') || '—' }}</dd></div>
+        </dl>
+        <h4>Actions</h4>
+        @for (action of creature.actions; track $index) {
+          <article class="original-entry"><strong>{{ action.name }}</strong><span>{{ action.toHit }} · {{ action.damage }} {{ action.damageType }}</span><p>{{ action.fullText }}</p></article>
+        }
+        <h4>Traits</h4>
+        @for (ability of creature.abilities; track $index) {
+          <article class="original-entry"><strong>{{ ability.name }}</strong><p>{{ ability.description }}</p></article>
+        }
+      </section>
+      <section class="translation-column translation-column--editable">
+        <header><span>Твой перевод</span><strong>Сразу станет шаблоном сцены</strong></header>
+        <div class="translation-form translation-form--two">
+          <label class="open5e-field"><span>Название</span><input [value]="creatureName()" (input)="setText(creatureName, $event)" /></label>
+          <label class="open5e-field"><span>Тип</span><input [value]="creatureSubtype()" (input)="setText(creatureSubtype, $event)" /></label>
+          <label class="open5e-field"><span>Максимум HP</span><input type="number" min="1" [value]="creatureMaxHp()" (input)="onCreatureNumber(creatureMaxHp, $event, 1)" /></label>
+          <label class="open5e-field"><span>КД</span><input type="number" min="1" [value]="creatureAc()" (input)="onCreatureNumber(creatureAc, $event, 10)" /></label>
+          <label class="open5e-field open5e-field--wide"><span>Сопротивления через запятую</span><input [value]="creatureResistances()" (input)="setText(creatureResistances, $event)" /></label>
+        </div>
+        <h4>Перевод атак и оружия</h4>
+        @for (action of creatureActions(); track $index; let actionIndex = $index) {
+          <div class="nested-translation">
+            <label class="open5e-field"><span>Название</span><input [value]="action.name" (input)="updateCreatureAction(actionIndex, 'name', $event)" /></label>
+            <label class="open5e-field"><span>Бонус</span><input [value]="action.toHit" (input)="updateCreatureAction(actionIndex, 'toHit', $event)" /></label>
+            <label class="open5e-field"><span>Урон</span><input [value]="action.damage" (input)="updateCreatureAction(actionIndex, 'damage', $event)" /></label>
+            <label class="open5e-field"><span>Тип урона</span><input [value]="action.damageType" (input)="updateCreatureAction(actionIndex, 'damageType', $event)" /></label>
+            <label class="open5e-field open5e-field--wide"><span>Описание</span><textarea rows="3" [value]="action.fullText || ''" (input)="updateCreatureAction(actionIndex, 'fullText', $event)"></textarea></label>
+          </div>
+        }
+        <h4>Перевод способностей</h4>
+        @for (ability of creatureAbilities(); track $index; let abilityIndex = $index) {
+          <div class="nested-translation nested-translation--ability">
+            <label class="open5e-field"><span>Название</span><input [value]="ability.name" (input)="updateCreatureAbility(abilityIndex, 'name', $event)" /></label>
+            <label class="open5e-field open5e-field--wide"><span>Описание</span><textarea rows="4" [value]="ability.description" (input)="updateCreatureAbility(abilityIndex, 'description', $event)"></textarea></label>
+          </div>
+        }
+        <button class="open5e-button open5e-button--primary" type="button" [disabled]="!canSave() || saving()" (click)="saveSelected()">
+          {{ saving() ? 'Сохраняем…' : 'Сохранить существо' }}
+        </button>
+      </section>
+    </div>
+  }
+
+  @if (savedSpells().length > 0) {
+    <section class="saved-spell-give">
+      <div>
+        <h3>Быстро выдать сохранённое заклинание</h3>
+        <p>Здесь используются уже проверенные русские версии, без обращения к Open5e.</p>
+      </div>
+      <label class="open5e-field">
+        <span>Заклинание</span>
+        <select [value]="selectedSavedSpellId()" (change)="setSavedSpell($event)">
+          <option value="">Выберите из базы</option>
+          @for (spell of savedSpells(); track spell.id) {
+            <option [value]="spell.id">{{ spell.name }} · {{ spell.isCantrip ? 'заговор' : spell.level + ' ур.' }}</option>
+          }
+        </select>
+      </label>
+      <label class="open5e-field">
+        <span>Игрок</span>
+        <select [value]="selectedPlayerId()" (change)="setPlayer($event)">
+          <option value="">Выберите игрока</option>
+          @for (player of players(); track player.id) {
+            <option [value]="player.id">{{ player.name }}</option>
+          }
+        </select>
+      </label>
+      <button class="open5e-button open5e-button--primary" type="button" [disabled]="!selectedSavedSpellId() || !selectedPlayerId() || giving()" (click)="giveSavedSpell()">
+        {{ giving() ? 'Выдаём…' : 'Выдать игроку' }}
+      </button>
+    </section>
+  }
+
+  <footer class="open5e-attribution">
+    Данные импортируются из Open5e. Источник каждой записи сохраняется вместе с переводом; сторонние открытые источники могут отличаться от SRD.
+  </footer>
+</section>

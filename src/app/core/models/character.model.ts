@@ -23,6 +23,23 @@ export interface CharacterAbility {
   source?: 'resource' | 'feat';
 }
 
+export type ResourceRecovery = 'short-rest' | 'long-rest' | 'manual';
+
+export interface CharacterResource {
+  id: string;
+  name: string;
+  current: number;
+  max: number;
+  recovery: ResourceRecovery;
+}
+
+export interface SpellSlotPool {
+  level: number;
+  current: number;
+  max: number;
+  recovery?: Exclude<ResourceRecovery, 'manual'>;
+}
+
 /** Character sheet normalized from a raw LSS (Long Story Short) export. */
 export interface ParsedCharacter {
   name: string;
@@ -32,6 +49,7 @@ export interface ParsedCharacter {
   stats: CharacterStats;
   maxHp: number;
   currentHp: number;
+  temporaryHp?: number;
   ac: number;
   speed: number;
   weapons: CharacterWeapon[];
@@ -39,6 +57,8 @@ export interface ParsedCharacter {
   resistances?: string[];
   abilities: CharacterAbility[];
   spells?: SpellData[];
+  spellSlots?: SpellSlotPool[];
+  resources?: CharacterResource[];
 }
 
 // --- Raw LSS (Long Story Short) character sheet JSON shape ---
@@ -80,6 +100,10 @@ export interface LssResourceEntry {
   isDeleted?: boolean;
   name?: string;
   notes?: string;
+  value?: number | LssValue<number>;
+  current?: number | LssValue<number>;
+  max?: number | LssValue<number>;
+  recovery?: string;
 }
 
 export interface LssTextNode {

@@ -72,6 +72,8 @@ describe('BattleService', () => {
   let room$: ReplaySubject<BattleRoom | null>;
   let characterService: {
     updatePlayerHp: ReturnType<typeof vi.fn>;
+    updatePlayerHealth: ReturnType<typeof vi.fn>;
+    completeShortRest: ReturnType<typeof vi.fn>;
     completeLongRest: ReturnType<typeof vi.fn>;
   };
   let initiativeService: {
@@ -85,6 +87,8 @@ describe('BattleService', () => {
     firebase = new FirebaseServiceFake(room$.asObservable(), initialRoom);
     characterService = {
       updatePlayerHp: vi.fn().mockResolvedValue(undefined),
+      updatePlayerHealth: vi.fn().mockResolvedValue(undefined),
+      completeShortRest: vi.fn().mockResolvedValue(undefined),
       completeLongRest: vi.fn().mockResolvedValue(undefined),
     };
     initiativeService = {
@@ -116,6 +120,7 @@ describe('BattleService', () => {
       currentTurnIndex: 0,
       combatants: {},
       initiativeOrder: [],
+      history: [],
       lastUpdated: NOW,
     });
   });
@@ -257,22 +262,22 @@ describe('BattleService', () => {
 
     await service.takeDamage('enemy-1', 4);
 
-    expect(firebase.updateMock).toHaveBeenCalledWith(`${ROOM_PATH}/combatants/enemy-1`, {
-      currentHp: 6,
-      status: COMBATANT_STATUS.ALIVE,
-      deathSaves: null,
+    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+      'combatants/enemy-1/currentHp': 6,
+      'combatants/enemy-1/status': COMBATANT_STATUS.ALIVE,
+      'combatants/enemy-1/deathSaves': null,
+      history: expect.any(Array),
       lastUpdated: NOW,
-    });
+    }));
     expect(service.canUndo()).toBe(true);
     expect(characterService.updatePlayerHp).not.toHaveBeenCalled();
 
     await service.undoLastAction();
-    expect(firebase.updateMock).toHaveBeenLastCalledWith(`${ROOM_PATH}/combatants/enemy-1`, {
-      currentHp: 10,
-      status: COMBATANT_STATUS.ALIVE,
-      deathSaves: null,
+    expect(firebase.updateMock).toHaveBeenLastCalledWith(ROOM_PATH, expect.objectContaining({
+      'combatants/enemy-1': expect.objectContaining({ currentHp: 10 }),
+      history: null,
       lastUpdated: NOW,
-    });
+    }));
     expect(service.canUndo()).toBe(false);
   });
 
@@ -297,14 +302,15 @@ describe('BattleService', () => {
 
     await service.takeDamage('player-aria', 10);
 
-    expect(firebase.updateMock).toHaveBeenCalledWith(`${ROOM_PATH}/combatants/player-aria`, {
-      currentHp: 0,
-      status: COMBATANT_STATUS.DOWNED,
-      deathSaves: { successes: 0, failures: 0 },
+    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+      'combatants/player-aria/currentHp': 0,
+      'combatants/player-aria/status': COMBATANT_STATUS.DOWNED,
+      'combatants/player-aria/deathSaves': { successes: 0, failures: 0 },
+      history: expect.any(Array),
       lastUpdated: NOW,
-    });
-    expect(characterService.updatePlayerHp).toHaveBeenCalledOnce();
-    expect(characterService.updatePlayerHp).toHaveBeenCalledWith('Aria', 0);
+    }));
+    expect(characterService.updatePlayerHealth).toHaveBeenCalledOnce();
+    expect(characterService.updatePlayerHealth).toHaveBeenCalledWith('Aria', 0, 0);
   });
 
   it('marks an enemy dead on lethal damage', async () => {
@@ -314,12 +320,12 @@ describe('BattleService', () => {
 
     await service.takeDamage('enemy-1', 20);
 
-    expect(firebase.updateMock).toHaveBeenCalledWith(`${ROOM_PATH}/combatants/enemy-1`, {
-      currentHp: 0,
-      status: COMBATANT_STATUS.DEAD,
-      deathSaves: null,
-      lastUpdated: NOW,
-    });
+    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+      'combatants/enemy-1/currentHp': 0,
+      'combatants/enemy-1/status': COMBATANT_STATUS.DEAD,
+      'combatants/enemy-1/deathSaves': null,
+      history: expect.any(Array),
+    }));
   });
 
   it('stabilizes a downed player after the third successful death save', async () => {
@@ -346,12 +352,12 @@ describe('BattleService', () => {
       service.recordDeathSave('player_Aria', DEATH_SAVE_RESULT.SUCCESS),
     ).resolves.toBe(true);
 
-    expect(firebase.updateMock).toHaveBeenCalledWith(`${ROOM_PATH}/combatants/player_Aria`, {
-      currentHp: 0,
-      status: COMBATANT_STATUS.STABLE,
-      deathSaves: { successes: 3, failures: 1 },
-      lastUpdated: NOW,
-    });
+    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+      'combatants/player_Aria/currentHp': 0,
+      'combatants/player_Aria/status': COMBATANT_STATUS.STABLE,
+      'combatants/player_Aria/deathSaves': { successes: 3, failures: 1 },
+      history: expect.any(Array),
+    }));
   });
 
   it('kills a downed player after the third failed death save', async () => {
@@ -375,12 +381,12 @@ describe('BattleService', () => {
 
     await service.recordDeathSave('player_Aria', DEATH_SAVE_RESULT.FAILURE);
 
-    expect(firebase.updateMock).toHaveBeenCalledWith(`${ROOM_PATH}/combatants/player_Aria`, {
-      currentHp: 0,
-      status: COMBATANT_STATUS.DEAD,
-      deathSaves: { successes: 1, failures: 3 },
-      lastUpdated: NOW,
-    });
+    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+      'combatants/player_Aria/currentHp': 0,
+      'combatants/player_Aria/status': COMBATANT_STATUS.DEAD,
+      'combatants/player_Aria/deathSaves': { successes: 1, failures: 3 },
+      history: expect.any(Array),
+    }));
   });
 
   it('returns a player to battle on a critical success and through DM revival', async () => {
@@ -401,13 +407,13 @@ describe('BattleService', () => {
 
     await service.recordDeathSave('player_Aria', DEATH_SAVE_RESULT.CRITICAL_SUCCESS);
 
-    expect(firebase.updateMock).toHaveBeenCalledWith(`${ROOM_PATH}/combatants/player_Aria`, {
-      currentHp: 1,
-      status: COMBATANT_STATUS.ALIVE,
-      deathSaves: null,
-      lastUpdated: NOW,
-    });
-    expect(characterService.updatePlayerHp).toHaveBeenCalledWith('Aria', 1);
+    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+      'combatants/player_Aria/currentHp': 1,
+      'combatants/player_Aria/status': COMBATANT_STATUS.ALIVE,
+      'combatants/player_Aria/deathSaves': null,
+      history: expect.any(Array),
+    }));
+    expect(characterService.updatePlayerHealth).toHaveBeenCalledWith('Aria', 1, 0);
 
     room$.next(
       createRoom({
@@ -420,12 +426,12 @@ describe('BattleService', () => {
     firebase.clearCalls();
 
     await expect(service.revive('player_Aria')).resolves.toBe(true);
-    expect(firebase.updateMock).toHaveBeenCalledWith(`${ROOM_PATH}/combatants/player_Aria`, {
-      currentHp: 1,
-      status: COMBATANT_STATUS.ALIVE,
-      deathSaves: null,
-      lastUpdated: NOW,
-    });
+    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+      'combatants/player_Aria/currentHp': 1,
+      'combatants/player_Aria/status': COMBATANT_STATUS.ALIVE,
+      'combatants/player_Aria/deathSaves': null,
+      history: expect.any(Array),
+    }));
   });
 
   it('does nothing when damage target does not exist', async () => {
@@ -462,8 +468,11 @@ describe('BattleService', () => {
     expect(firebase.updateMock).toHaveBeenCalledOnce();
     expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, {
       'combatants/enemy-1/currentHp': 7,
+      'combatants/enemy-1/temporaryHp': 0,
       'combatants/enemy-1/status': COMBATANT_STATUS.ALIVE,
       'combatants/enemy-1/lastUpdated': NOW,
+      history: expect.any(Array),
+      lastUpdated: NOW,
     });
     expect(service.canUndo()).toBe(true);
   });
@@ -477,11 +486,12 @@ describe('BattleService', () => {
 
     await service.nextTurn();
 
-    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, {
+    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
       currentTurnIndex: 0,
       currentRound: 4,
       lastUpdated: NOW,
-    });
+      history: expect.any(Array),
+    }));
   });
 
   it('advances to the next combatant without incrementing the round', async () => {
@@ -502,11 +512,12 @@ describe('BattleService', () => {
 
     await service.nextTurn();
 
-    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, {
+    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
       currentTurnIndex: 1,
       currentRound: 3,
       lastUpdated: NOW,
-    });
+      history: expect.any(Array),
+    }));
   });
 
   it('coalesces repeated next-turn clicks while a transition is still saving', async () => {
@@ -576,6 +587,7 @@ describe('BattleService', () => {
       maxHp: 24,
       currentHp: 9,
       status: 'alive',
+      temporaryHp: 0,
       playerName: 'Aria',
       emoji: '🧙',
       lastUpdated: NOW,
@@ -644,12 +656,12 @@ describe('BattleService', () => {
 
     await service.heal('enemy-1', 10);
 
-    expect(firebase.updateMock).toHaveBeenCalledWith(`${ROOM_PATH}/combatants/enemy-1`, {
-      currentHp: 10,
-      status: COMBATANT_STATUS.ALIVE,
-      deathSaves: null,
-      lastUpdated: NOW,
-    });
+    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+      'combatants/enemy-1/currentHp': 10,
+      'combatants/enemy-1/status': COMBATANT_STATUS.ALIVE,
+      'combatants/enemy-1/deathSaves': null,
+      history: expect.any(Array),
+    }));
     expect(service.canUndo()).toBe(true);
   });
 
@@ -673,7 +685,7 @@ describe('BattleService', () => {
 
     await service.heal('player_Aria', 3);
 
-    expect(characterService.updatePlayerHp).toHaveBeenCalledWith('Aria', 7);
+    expect(characterService.updatePlayerHealth).toHaveBeenCalledWith('Aria', 7, 0);
   });
 
   it('returns a downed player to life when they receive healing', async () => {
@@ -698,13 +710,13 @@ describe('BattleService', () => {
 
     await service.heal('player_Aria', 4);
 
-    expect(firebase.updateMock).toHaveBeenCalledWith(`${ROOM_PATH}/combatants/player_Aria`, {
-      currentHp: 4,
-      status: COMBATANT_STATUS.ALIVE,
-      deathSaves: null,
-      lastUpdated: NOW,
-    });
-    expect(characterService.updatePlayerHp).toHaveBeenCalledWith('Aria', 4);
+    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+      'combatants/player_Aria/currentHp': 4,
+      'combatants/player_Aria/status': COMBATANT_STATUS.ALIVE,
+      'combatants/player_Aria/deathSaves': null,
+      history: expect.any(Array),
+    }));
+    expect(characterService.updatePlayerHealth).toHaveBeenCalledWith('Aria', 4, 0);
   });
 
   it('adds a unique status effect to a combatant', async () => {
@@ -717,16 +729,17 @@ describe('BattleService', () => {
       service.addStatusEffect('enemy-1', STATUS_EFFECT_TYPE.BURNING),
     ).resolves.toBe(true);
 
-    expect(firebase.updateMock).toHaveBeenCalledWith(`${ROOM_PATH}/combatants/enemy-1`, {
-      activeEffects: [
+    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+      'combatants/enemy-1/activeEffects': [
         {
           id: `effect_${UUID}`,
           type: STATUS_EFFECT_TYPE.BURNING,
           appliedAt: NOW,
         },
       ],
+      history: expect.any(Array),
       lastUpdated: NOW,
-    });
+    }));
   });
 
   it('stores configured turn damage, timing, and duration on an effect', async () => {
@@ -741,8 +754,8 @@ describe('BattleService', () => {
       durationTriggers: 2,
     });
 
-    expect(firebase.updateMock).toHaveBeenCalledWith(`${ROOM_PATH}/combatants/enemy-1`, {
-      activeEffects: [
+    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+      'combatants/enemy-1/activeEffects': [
         {
           id: `effect_${UUID}`,
           type: STATUS_EFFECT_TYPE.BURNING,
@@ -752,8 +765,9 @@ describe('BattleService', () => {
           remainingTriggers: 2,
         },
       ],
+      history: expect.any(Array),
       lastUpdated: NOW,
-    });
+    }));
   });
 
   it('processes end/start effects once, expires them, and downs the next player', async () => {
@@ -847,11 +861,12 @@ describe('BattleService', () => {
 
     await service.nextTurn();
 
-    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, {
+    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
       currentTurnIndex: 3,
       currentRound: 1,
       lastUpdated: NOW,
-    });
+      history: expect.any(Array),
+    }));
   });
 
   it('does not duplicate an existing status effect', async () => {
@@ -892,10 +907,11 @@ describe('BattleService', () => {
     firebase.clearCalls();
 
     await expect(service.removeStatusEffect('enemy-1', 'effect-poison')).resolves.toBe(true);
-    expect(firebase.updateMock).toHaveBeenCalledWith(`${ROOM_PATH}/combatants/enemy-1`, {
-      activeEffects: null,
+    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+      'combatants/enemy-1/activeEffects': null,
+      history: expect.any(Array),
       lastUpdated: NOW,
-    });
+    }));
   });
 
   it('delegates initiative operations and moves the room into initiative state', async () => {
@@ -1035,6 +1051,178 @@ describe('BattleService', () => {
       }),
     );
     expect(service.canUndo()).toBe(false);
+  });
+
+  it('absorbs damage with temporary HP before regular HP and syncs both values', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(NOW);
+    const aria = createCombatant({
+      id: 'player_Aria',
+      type: COMBATANT_TYPE.PLAYER,
+      name: 'Aria',
+      playerName: 'Aria',
+      currentHp: 10,
+      temporaryHp: 5,
+    });
+    await setup(createRoom({ combatants: { player_Aria: aria }, initiativeOrder: ['player_Aria'] }));
+    firebase.clearCalls();
+
+    await service.takeDamage('player_Aria', 7);
+
+    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+      'combatants/player_Aria/currentHp': 8,
+      'combatants/player_Aria/temporaryHp': 0,
+      'combatants/player_Aria/status': COMBATANT_STATUS.ALIVE,
+    }));
+    expect(characterService.updatePlayerHealth).toHaveBeenCalledWith('Aria', 8, 0);
+  });
+
+  it('damages a deduplicated mixed selection in one write', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(NOW);
+    const goblin = createCombatant({ id: 'goblin', currentHp: 10 });
+    const aria = createCombatant({
+      id: 'player_Aria',
+      type: COMBATANT_TYPE.PLAYER,
+      name: 'Aria',
+      playerName: 'Aria',
+      currentHp: 9,
+    });
+    await setup(createRoom({
+      combatants: { goblin, player_Aria: aria },
+      initiativeOrder: ['goblin', 'player_Aria'],
+    }));
+    firebase.clearCalls();
+
+    await service.damageMany(['goblin', 'player_Aria', 'goblin', 'missing'], 4);
+
+    expect(firebase.updateMock).toHaveBeenCalledOnce();
+    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+      'combatants/goblin': expect.objectContaining({ currentHp: 6 }),
+      'combatants/player_Aria': expect.objectContaining({ currentHp: 5 }),
+      history: expect.any(Array),
+    }));
+    expect(characterService.updatePlayerHealth).toHaveBeenCalledWith('Aria', 5, 0);
+  });
+
+  it('replaces effects maintained by the same concentration source across targets', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(NOW);
+    const first = createCombatant({
+      id: 'enemy-1',
+      activeEffects: [{
+        id: 'old-concentration',
+        type: STATUS_EFFECT_TYPE.CHARMED,
+        appliedAt: 1,
+        concentrationSourceId: 'player_Aria',
+      }],
+    });
+    const second = createCombatant({ id: 'enemy-2' });
+    await setup(createRoom({
+      combatants: { 'enemy-1': first, 'enemy-2': second },
+      initiativeOrder: ['enemy-1', 'enemy-2'],
+    }));
+    firebase.clearCalls();
+
+    await service.addStatusEffect('enemy-2', STATUS_EFFECT_TYPE.FRIGHTENED, {
+      source: 'Ария',
+      concentrationSourceId: 'player_Aria',
+    });
+
+    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+      'combatants/enemy-1/activeEffects': null,
+      'combatants/enemy-2/activeEffects': [expect.objectContaining({
+        type: STATUS_EFFECT_TYPE.FRIGHTENED,
+        source: 'Ария',
+        concentrationSourceId: 'player_Aria',
+      })],
+    }));
+  });
+
+  it('restores a persisted reversible action after a service reload', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(NOW);
+    const current = createCombatant({ id: 'enemy-1', currentHp: 4 });
+    const previous = createCombatant({ id: 'enemy-1', currentHp: 10 });
+    await setup(createRoom({
+      combatants: { 'enemy-1': current },
+      history: [{
+        id: 'persisted-action',
+        type: 'damage',
+        targetId: 'enemy-1',
+        value: 6,
+        timestamp: NOW - 1,
+        reversible: true,
+        description: 'Goblin: −6 HP',
+        undoState: { combatants: { 'enemy-1': previous } },
+      }],
+    }));
+    firebase.clearCalls();
+
+    expect(service.canUndo()).toBe(true);
+    await service.undoLastAction();
+
+    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+      'combatants/enemy-1': expect.objectContaining({ currentHp: 10 }),
+      history: null,
+    }));
+    expect(service.canUndo()).toBe(false);
+  });
+
+  it('supports emergency current-turn selection and initiative reordering', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(NOW);
+    await setup(createRoom({
+      combatants: {
+        'enemy-1': createCombatant({ id: 'enemy-1' }),
+        'enemy-2': createCombatant({ id: 'enemy-2' }),
+      },
+      initiativeOrder: ['enemy-1', 'enemy-2'],
+      currentTurnIndex: 0,
+    }));
+    firebase.clearCalls();
+
+    await expect(service.setCurrentTurn('enemy-2')).resolves.toBe(true);
+    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+      currentTurnIndex: 1,
+      history: expect.any(Array),
+    }));
+
+    firebase.updateMock.mockClear();
+    await expect(service.moveCombatant('enemy-2', -1)).resolves.toBe(true);
+    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+      initiativeOrder: ['enemy-2', 'enemy-1'],
+      currentTurnIndex: 1,
+      history: expect.any(Array),
+    }));
+  });
+
+  it('finishes a scene with a short rest for living players only', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(NOW);
+    const aria = createCombatant({
+      id: 'player_Aria',
+      type: COMBATANT_TYPE.PLAYER,
+      playerName: 'Aria',
+      currentHp: 3,
+      temporaryHp: 2,
+    });
+    const dead = createCombatant({
+      id: 'player_Borin',
+      type: COMBATANT_TYPE.PLAYER,
+      playerName: 'Borin',
+      currentHp: 0,
+      status: COMBATANT_STATUS.DEAD,
+    });
+    await setup(createRoom({
+      combatants: { player_Aria: aria, player_Borin: dead },
+      initiativeOrder: ['player_Aria', 'player_Borin'],
+    }));
+    firebase.clearCalls();
+
+    await service.finishScene('short-rest');
+
+    const writtenRoom = firebase.setMock.mock.calls[0][1] as BattleRoom;
+    expect(writtenRoom.combatants['player_Aria']).toEqual(expect.objectContaining({
+      currentHp: 3,
+      temporaryHp: 2,
+    }));
+    expect(characterService.completeShortRest).toHaveBeenCalledWith('Aria');
+    expect(characterService.completeShortRest).not.toHaveBeenCalledWith('Borin');
   });
 });
 

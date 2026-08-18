@@ -18,6 +18,7 @@ import { Combatant, SpellData } from '../../core/models/combatant.model';
 import { COMBATANT_STATUS, COMBATANT_TYPE } from '../../core/constants/combatant.constants';
 import { StatusEffectListComponent } from '../../shared/ui/status-effect-list/status-effect-list.component';
 import { CombatantLifeStateComponent } from '../../shared/ui/combatant-life-state/combatant-life-state.component';
+import { parseJsonWithTrailingCommaRecovery } from '../../core/utils';
 
 const CHARACTER_STATS = [
   { key: 'str', label: 'СИЛ', title: 'Сила' },
@@ -70,6 +71,9 @@ export class PlayerComponent implements OnDestroy {
   // --- Состояние использования заклинаний ---
   readonly usingSpellId = signal<string | null>(null);
   readonly spellUseError = signal<string | null>(null);
+  readonly selectedSpellSlots = signal<Record<string, number>>({});
+  readonly usingResourceId = signal<string | null>(null);
+  readonly resourceUseError = signal<string | null>(null);
 
   // --- Состояние модального окна использования предмета ---
   readonly modalMode = signal<'use' | 'examine'>('use');
@@ -88,6 +92,8 @@ export class PlayerComponent implements OnDestroy {
 
   // --- Производные значения ---
   readonly weapons = computed(() => this.character()?.weapons ?? []);
+  readonly spellSlots = computed(() => this.character()?.spellSlots ?? []);
+  readonly characterResources = computed(() => this.character()?.resources ?? []);
 
   readonly playerCombatant = computed(() => {
     const playerName = this.character()?.name;
@@ -170,7 +176,9 @@ export class PlayerComponent implements OnDestroy {
     reader.onload = (e) => {
       let parsed: ParsedCharacter;
       try {
-        const rawJson = JSON.parse(e.target?.result as string) as LssCharacterSheet;
+        const rawJson = parseJsonWithTrailingCommaRecovery<LssCharacterSheet>(
+          e.target?.result as string,
+        );
         parsed = this.parser.parseCharacter(rawJson);
       } catch (error) {
         this.error.set('Не удалось распарсить файл. Убедитесь, что это JSON с LSS.');
@@ -219,6 +227,9 @@ export class PlayerComponent implements OnDestroy {
     this.damageAmount.set(0);
     this.usingSpellId.set(null);
     this.spellUseError.set(null);
+    this.selectedSpellSlots.set({});
+    this.usingResourceId.set(null);
+    this.resourceUseError.set(null);
   }
 
   switchTab(tab: 'character' | 'arena'): void {
@@ -254,8 +265,33 @@ export class PlayerComponent implements OnDestroy {
     return Math.max(0, spell.usesRemaining ?? this.getSpellMaxUses(spell));
   }
 
+  getAvailableSlotLevels(spell: SpellData): number[] {
+    return this.spellSlots()
+      .filter((slot) => slot.level >= spell.level && slot.current > 0)
+      .map((slot) => slot.level);
+  }
+
+  getSelectedSlotLevel(spell: SpellData): number {
+    const available = this.getAvailableSlotLevels(spell);
+    const selected = this.selectedSpellSlots()[spell.id];
+    return available.includes(selected) ? selected : (available[0] ?? spell.level);
+  }
+
+  setSpellSlotLevel(spellId: string, event: Event): void {
+    const level = Math.max(1, Math.min(9, Number((event.target as HTMLSelectElement).value)));
+    this.selectedSpellSlots.update((slots) => ({ ...slots, [spellId]: level }));
+  }
+
+  hasSharedSpellSlots(): boolean {
+    return this.spellSlots().length > 0;
+  }
+
   canUseSpell(spell: SpellData): boolean {
-    return spell.isPrepared && (spell.isCantrip || this.getSpellUsesRemaining(spell) > 0);
+    if (!spell.isPrepared) return false;
+    if (spell.isCantrip) return true;
+    return this.hasSharedSpellSlots()
+      ? this.getAvailableSlotLevels(spell).length > 0
+      : this.getSpellUsesRemaining(spell) > 0;
   }
 
   useSpell(spell: SpellData): void {
@@ -265,7 +301,11 @@ export class PlayerComponent implements OnDestroy {
     this.usingSpellId.set(spell.id);
     this.spellUseError.set(null);
     this.characterService
-      .usePlayerSpell(character.name, spell.id)
+      .usePlayerSpell(
+        character.name,
+        spell.id,
+        this.hasSharedSpellSlots() ? this.getSelectedSlotLevel(spell) : undefined,
+      )
       .then((success) => {
         if (!success) {
           this.spellUseError.set('Заклинание сейчас нельзя использовать. Обновите персонажа.');
@@ -276,6 +316,24 @@ export class PlayerComponent implements OnDestroy {
         this.spellUseError.set('Не удалось отметить использование заклинания. Попробуйте ещё раз.');
       })
       .finally(() => this.usingSpellId.set(null));
+  }
+
+  useResource(resourceId: string): void {
+    const character = this.character();
+    const resource = this.characterResources().find((candidate) => candidate.id === resourceId);
+    if (!character || !resource || resource.current <= 0 || this.usingResourceId()) return;
+    this.usingResourceId.set(resourceId);
+    this.resourceUseError.set(null);
+    this.characterService
+      .useResource(character.name, resourceId)
+      .then((success) => {
+        if (!success) this.resourceUseError.set('Ресурс уже исчерпан или был изменён.');
+      })
+      .catch((error: unknown) => {
+        this.logger.error('PlayerComponent.useResource', error);
+        this.resourceUseError.set('Не удалось списать ресурс.');
+      })
+      .finally(() => this.usingResourceId.set(null));
   }
 
   selectEnemy(enemyId: string): void {

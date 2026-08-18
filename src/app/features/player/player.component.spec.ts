@@ -22,6 +22,7 @@ describe('PlayerComponent', () => {
     saveCharacter: ReturnType<typeof vi.fn>;
     subscribeToCharacter: ReturnType<typeof vi.fn>;
     usePlayerSpell: ReturnType<typeof vi.fn>;
+    useResource: ReturnType<typeof vi.fn>;
   };
   let inventoryService: { consumeItem: ReturnType<typeof vi.fn> };
   let parser: {
@@ -107,6 +108,7 @@ describe('PlayerComponent', () => {
       saveCharacter: vi.fn().mockResolvedValue(undefined),
       subscribeToCharacter: vi.fn().mockReturnValue(of(character())),
       usePlayerSpell: vi.fn().mockResolvedValue(true),
+      useResource: vi.fn().mockResolvedValue(true),
     };
     inventoryService = {
       consumeItem: vi.fn().mockResolvedValue(true),
@@ -234,6 +236,28 @@ describe('PlayerComponent', () => {
     expect(component.loginName()).toBe('Aria');
     expect(characterService.subscribeToCharacter).toHaveBeenCalledWith('Aria');
     expect(battle.addPlayerToBattle).toHaveBeenCalledWith(parsed, 0);
+  });
+
+  it('recovers trailing commas in an uploaded LSS wrapper', async () => {
+    const parsed = character({ name: 'Квольхраф' });
+    parser.parseCharacter.mockReturnValue(parsed);
+
+    class FakeFileReader {
+      onload: ((event: { target: { result: string } }) => void) | null = null;
+
+      readAsText(): void {
+        this.onload?.({ target: { result: '{"data":{},}' } });
+      }
+    }
+    vi.stubGlobal('FileReader', FakeFileReader);
+
+    component.onFileSelected({
+      target: { files: [new File([''], 'kvollhraf.json')] },
+    } as unknown as Event);
+
+    await vi.waitFor(() => expect(characterService.saveCharacter).toHaveBeenCalledWith(parsed));
+    expect(parser.parseCharacter).toHaveBeenCalledWith({ data: {} });
+    expect(component.error()).toBeNull();
   });
 
   it('keeps the player session active and logs when joining the battle fails', async () => {
@@ -510,7 +534,7 @@ describe('PlayerComponent', () => {
     buttons[1].click();
 
     await vi.waitFor(() =>
-      expect(characterService.usePlayerSpell).toHaveBeenCalledWith('Aria', shield.id),
+      expect(characterService.usePlayerSpell).toHaveBeenCalledWith('Aria', shield.id, undefined),
     );
     await vi.waitFor(() => expect(component.usingSpellId()).toBeNull());
   });
@@ -537,5 +561,37 @@ describe('PlayerComponent', () => {
       ),
     );
     expect(component.spellUseError()).not.toBeNull();
+  });
+
+  it('uses an available shared slot at or above the spell level', async () => {
+    const shield = spell();
+    component.character.set(character({
+      spells: [shield],
+      spellSlots: [
+        { level: 1, current: 0, max: 2 },
+        { level: 2, current: 1, max: 1, recovery: 'short-rest' },
+      ],
+    }));
+
+    expect(component.getAvailableSlotLevels(shield)).toEqual([2]);
+    expect(component.canUseSpell(shield)).toBe(true);
+    component.useSpell(shield);
+
+    await vi.waitFor(() => expect(characterService.usePlayerSpell).toHaveBeenCalledWith(
+      'Aria',
+      shield.id,
+      2,
+    ));
+  });
+
+  it('lets the player spend a configured class resource', async () => {
+    component.character.set(character({
+      resources: [{ id: 'rage', name: 'Ярость', current: 2, max: 2, recovery: 'long-rest' }],
+    }));
+
+    component.useResource('rage');
+
+    await vi.waitFor(() => expect(characterService.useResource).toHaveBeenCalledWith('Aria', 'rage'));
+    await vi.waitFor(() => expect(component.usingResourceId()).toBeNull());
   });
 });

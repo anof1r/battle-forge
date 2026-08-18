@@ -90,6 +90,31 @@
   gap: var(--bf-space-4);
 }
 
+.dm-multi-targets,
+.dm-history {
+  display: grid;
+  gap: var(--bf-space-2);
+  max-height: 18rem;
+  overflow: auto;
+  padding: var(--bf-space-3);
+  border: 1px solid #4b3b21;
+  border-radius: var(--bf-radius-sm);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.dm-history__entry {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--bf-space-3);
+  color: #b9aa8c;
+  font-size: 0.76rem;
+
+  time {
+    color: #746b5c;
+    white-space: nowrap;
+  }
+}
+
 .dm-section--controls {
   grid-column: 1 / -1;
 }

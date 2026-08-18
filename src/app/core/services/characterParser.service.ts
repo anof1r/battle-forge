@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import {
   CharacterAbility,
+  CharacterResource,
   CharacterStats,
   CharacterWeapon,
   LssCharacterData,
@@ -9,6 +10,7 @@ import {
   ParsedCharacter,
 } from '../models/character.model';
 import { LoggerService } from './logger.service';
+import { parseJsonWithTrailingCommaRecovery } from '../utils';
 
 export type { ParsedCharacter } from '../models/character.model';
 
@@ -46,6 +48,7 @@ export class CharacterParserService {
 
     const weapons = this.parseWeapons(dataObj);
     const { abilities, resistances } = this.parseResourcesAndText(dataObj);
+    const resources = this.parseTrackedResources(dataObj);
 
     return {
       name,
@@ -55,11 +58,14 @@ export class CharacterParserService {
       stats: parsedStats,
       maxHp,
       currentHp,
+      temporaryHp: 0,
       ac,
       speed,
       weapons,
       resistances,
       abilities,
+      spellSlots: [],
+      resources,
     };
   }
 
@@ -70,7 +76,7 @@ export class CharacterParserService {
   private resolveDataObject(jsonData: LssCharacterSheet): LssCharacterData {
     if (typeof jsonData.data === 'string') {
       try {
-        return JSON.parse(jsonData.data) as LssCharacterData;
+        return parseJsonWithTrailingCommaRecovery<LssCharacterData>(jsonData.data);
       } catch (error) {
         this.logger.error('CharacterParserService.parseCharacter', error);
         return jsonData as LssCharacterData;
@@ -148,6 +154,35 @@ export class CharacterParserService {
     }, []);
 
     return { abilities: uniqueAbilities, resistances };
+  }
+
+  private parseTrackedResources(dataObj: LssCharacterData): CharacterResource[] {
+    const result: CharacterResource[] = [];
+    for (const resource of Object.values(dataObj.resources ?? {})) {
+      if (resource.isDeleted || !resource.name) continue;
+      const maximum = this.resourceNumber(resource.max);
+      if (maximum === null || maximum <= 0) continue;
+      const current = this.resourceNumber(resource.current ?? resource.value) ?? maximum;
+      const recoveryText = resource.recovery?.toLowerCase() ?? '';
+      const recovery = recoveryText.includes('short') || recoveryText.includes('корот')
+        ? ('short-rest' as const)
+        : recoveryText.includes('long') || recoveryText.includes('долг')
+          ? ('long-rest' as const)
+          : ('manual' as const);
+      result.push({
+        id: `resource_lss_${result.length}`,
+        name: resource.name,
+        max: Math.floor(maximum),
+        current: Math.max(0, Math.min(Math.floor(maximum), Math.floor(current))),
+        recovery,
+      });
+    }
+    return result;
+  }
+
+  private resourceNumber(value: number | { value?: number } | undefined): number | null {
+    const candidate = typeof value === 'number' ? value : value?.value;
+    return typeof candidate === 'number' && Number.isFinite(candidate) ? candidate : null;
   }
 
   private extractTraits(content: LssTextNode[]): CharacterAbility[] {

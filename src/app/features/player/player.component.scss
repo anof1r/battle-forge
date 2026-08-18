@@ -353,6 +353,29 @@
   border-radius: 4px;
 }
 
+.player__slot-pools,
+.player__resource-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--bf-space-2);
+  margin-bottom: var(--bf-space-3);
+}
+
+.player__slot-pools span,
+.player__resource-card {
+  padding: var(--bf-space-2);
+  border: 1px solid #5c4827;
+  border-radius: var(--bf-radius-sm);
+  background: rgba(0, 0, 0, 0.2);
+  color: #d8c384;
+}
+
+.player__resource-card {
+  display: flex;
+  align-items: center;
+  gap: var(--bf-space-2);
+}
+
 .player__inventory-effect {
   margin-bottom: var(--bf-space-2);
   color: #dbc47f;

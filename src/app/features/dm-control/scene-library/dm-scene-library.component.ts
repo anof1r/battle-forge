@@ -9,6 +9,7 @@ import {
 import { BattleService } from '../../../core/services/battle.service';
 import { LoggerService } from '../../../core/services/logger.service';
 import { SceneLibraryService } from '../../../core/services/scene-library.service';
+import { EnemyActionLibraryService } from '../../../core/services/enemy-action-library.service';
 import {
   CreatureTemplate,
   EnemyAbility,
@@ -28,9 +29,11 @@ export class DmSceneLibraryComponent {
   private readonly library = inject(SceneLibraryService);
   private readonly battle = inject(BattleService);
   private readonly logger = inject(LoggerService);
+  private readonly actionLibrary = inject(EnemyActionLibraryService);
 
   readonly creatures = this.library.creatures;
   readonly scenes = this.library.scenes;
+  readonly savedActions = this.actionLibrary.actions;
 
   readonly creatureId = signal<string | null>(null);
   readonly creatureName = signal('');
@@ -48,6 +51,7 @@ export class DmSceneLibraryComponent {
   readonly actionDamageType = signal('');
   readonly actionDescription = signal('');
   readonly actionFullText = signal('');
+  readonly selectedActionTemplateId = signal('');
   readonly abilityName = signal('');
   readonly abilityDescription = signal('');
 
@@ -107,6 +111,29 @@ export class DmSceneLibraryComponent {
     this.actionDamageType.set('');
     this.actionDescription.set('');
     this.actionFullText.set('');
+  }
+
+  selectActionTemplate(event: Event): void {
+    this.selectedActionTemplateId.set((event.target as HTMLSelectElement).value);
+  }
+
+  addSavedAction(): void {
+    const template = this.savedActions().find(
+      (action) => action.id === this.selectedActionTemplateId(),
+    );
+    if (!template) return;
+    this.creatureActions.update((actions) => [
+      ...actions,
+      {
+        name: template.name,
+        description: template.description,
+        toHit: template.toHit,
+        damage: template.damage,
+        damageType: template.damageType,
+        fullText: template.fullText,
+      },
+    ]);
+    this.selectedActionTemplateId.set('');
   }
 
   removeAction(index: number): void {
@@ -302,6 +329,7 @@ export class DmSceneLibraryComponent {
     this.creatureStatuses.set('');
     this.creatureActions.set([]);
     this.creatureAbilities.set([]);
+    this.selectedActionTemplateId.set('');
   }
 
   resetSceneEditor(): void {

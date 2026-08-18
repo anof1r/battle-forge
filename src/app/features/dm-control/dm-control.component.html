@@ -18,6 +18,13 @@
   <nav class="dm-workspace-tabs" aria-label="Разделы панели ДМа">
     <button
       type="button"
+      [class.dm-workspace-tabs__button--active]="activePanel() === 'library'"
+      (click)="activePanel.set('library')"
+    >
+      📚 Open5e и переводы
+    </button>
+    <button
+      type="button"
       [class.dm-workspace-tabs__button--active]="activePanel() === 'scenes'"
       (click)="activePanel.set('scenes')"
     >
@@ -39,6 +46,10 @@
       🎁 Игроки и награды
     </button>
   </nav>
+
+  @if (activePanel() === 'library') {
+    <app-dm-open5e-import />
+  }
 
   @if (activePanel() === 'scenes') {
     <app-dm-scene-library />
@@ -76,13 +87,22 @@
         <button class="dm-btn" [disabled]="advancingTurn()" (click)="nextTurn()">
           {{ advancingTurn() ? '⏳ Обработка хода…' : '➡️ Следующий ход' }}
         </button>
-        <button class="dm-btn" (click)="undoLastAction()">↩️ Отменить</button>
+        <button class="dm-btn" [disabled]="!canUndo()" (click)="undoLastAction()">
+          ↩️ Отменить
+        </button>
         <button
           class="dm-btn dm-btn--secondary"
           [disabled]="transitioningScene()"
           (click)="finishScene('preserve')"
         >
           🏁 Завершить сцену
+        </button>
+        <button
+          class="dm-btn"
+          [disabled]="transitioningScene()"
+          (click)="finishScene('short-rest')"
+        >
+          ☕ Короткий отдых
         </button>
         <button
           class="dm-btn dm-btn--success"
@@ -115,6 +135,13 @@
         >
           ❤️ Добавить HP
         </button>
+        <button
+          type="button"
+          [class.dm-hp-tabs__button--active]="hpOperation() === 'temporary'"
+          (click)="setHpOperation('temporary')"
+        >
+          🛡️ Временные HP
+        </button>
       </div>
 
       <div class="dm-damage__target-type">
@@ -123,7 +150,7 @@
             type="radio"
             [value]="'enemies'"
             [checked]="targetType() === 'enemies'"
-            (change)="targetType.set('enemies'); damageTargetId.set(null)"
+            (change)="setHpTargetType('enemies')"
           />
           Враги
         </label>
@@ -132,7 +159,7 @@
             type="radio"
             [value]="'players'"
             [checked]="targetType() === 'players'"
-            (change)="targetType.set('players'); damageTargetId.set(null)"
+            (change)="setHpTargetType('players')"
           />
           Игроки
         </label>
@@ -142,14 +169,25 @@
               type="radio"
               [value]="'all'"
               [checked]="targetType() === 'all'"
-              (change)="targetType.set('all'); damageTargetId.set(null)"
+              (change)="setHpTargetType('all')"
             />
             Все враги (массовый урон)
           </label>
         }
+        @if (hpOperation() !== 'temporary') {
+          <label class="dm-damage__radio">
+            <input
+              type="radio"
+              [value]="'selected'"
+              [checked]="targetType() === 'selected'"
+              (change)="setHpTargetType('selected')"
+            />
+            Выбрать несколько
+          </label>
+        }
       </div>
 
-      @if (targetType() !== 'all') {
+      @if (targetType() !== 'all' && targetType() !== 'selected') {
         <div class="dm-damage__target-select">
           <label class="field__label">Цель</label>
           <select
@@ -167,9 +205,26 @@
         </div>
       }
 
+      @if (targetType() === 'selected') {
+        <div class="dm-multi-targets" aria-label="Выбор нескольких целей">
+          @for (target of availableTargets(); track target.id) {
+            <label class="dm-damage__radio">
+              <input
+                type="checkbox"
+                [checked]="selectedCombatantIds().includes(target.id)"
+                (change)="toggleHpTarget(target.id, $any($event.target).checked)"
+              />
+              {{ target.name }} · {{ target.currentHp }}/{{ target.maxHp }} HP
+            </label>
+          }
+        </div>
+      }
+
       <div class="dm-damage__controls">
         <div class="field">
-          <label class="field__label">{{ hpOperation() === 'damage' ? 'Урон' : 'Лечение' }}</label>
+          <label class="field__label">
+            {{ hpOperation() === 'damage' ? 'Урон' : hpOperation() === 'heal' ? 'Лечение' : 'Временные HP' }}
+          </label>
           <input
             class="field__input"
             type="number"
@@ -190,13 +245,21 @@
           >
             💥 Нанести урон
           </button>
-        } @else {
+        } @else if (hpOperation() === 'heal') {
           <button
             class="dm-btn dm-btn--success"
             [disabled]="!canApplyHealing()"
             (click)="applyHealing()"
           >
             ❤️ Добавить HP
+          </button>
+        } @else {
+          <button
+            class="dm-btn dm-btn--success"
+            [disabled]="!canApplyTemporaryHp()"
+            (click)="applyTemporaryHp()"
+          >
+            🛡️ Установить временные HP
           </button>
         }
         <button class="dm-btn dm-btn--secondary" (click)="cancelDamage()">✕ Сбросить</button>
@@ -279,6 +342,59 @@
             </select>
           </label>
         }
+        <label class="field">
+          <span class="field__label">Источник</span>
+          <input
+            class="field__input"
+            type="text"
+            placeholder="Заклинание или способность"
+            [value]="statusSource()"
+            (input)="statusSource.set($any($event.target).value)"
+          />
+        </label>
+        <label class="field">
+          <span class="field__label">Концентрация</span>
+          <select
+            class="field__input"
+            [value]="statusConcentrationSourceId()"
+            (change)="statusConcentrationSourceId.set($any($event.target).value)"
+          >
+            <option value="">Не требуется</option>
+            @for (combatant of sortedByInitiative(); track combatant.id) {
+              <option [value]="combatant.id">Концентрируется: {{ combatant.name }}</option>
+            }
+          </select>
+        </label>
+        <label class="field">
+          <span class="field__label">Спасбросок</span>
+          <input
+            class="field__input"
+            type="text"
+            placeholder="ЛОВ, ТЕЛ, МДР…"
+            [value]="statusSaveAbility()"
+            (input)="statusSaveAbility.set($any($event.target).value)"
+          />
+        </label>
+        <label class="field">
+          <span class="field__label">Сложность</span>
+          <input
+            class="field__input"
+            type="number"
+            min="0"
+            [value]="statusSaveDc()"
+            (input)="statusSaveDc.set(+$any($event.target).value || 0)"
+          />
+        </label>
+        <label class="field">
+          <span class="field__label">Заметка</span>
+          <input
+            class="field__input"
+            type="text"
+            placeholder="Повторить спасбросок в конце хода"
+            [value]="statusNotes()"
+            (input)="statusNotes.set($any($event.target).value)"
+          />
+        </label>
       </div>
 
       <button
@@ -310,6 +426,15 @@
                   @if (effect.remainingTriggers) {
                     <small>×{{ effect.remainingTriggers }}</small>
                   }
+                  @if (effect.source) {
+                    <small>{{ effect.source }}</small>
+                  }
+                  @if (effect.concentrationSourceId) {
+                    <small>Концентрация</small>
+                  }
+                  @if (effect.saveAbility) {
+                    <small>{{ effect.saveAbility }} СЛ {{ effect.saveDc || '—' }}</small>
+                  }
                   <button
                     type="button"
                     [disabled]="removingEffectId() !== null"
@@ -326,6 +451,20 @@
           <p class="empty-hint">На участниках пока нет активных эффектов.</p>
         }
       </div>
+    </div>
+  </details>
+
+  <details class="dm-section dm-section--history">
+    <summary class="dm-section__title">📜 Журнал боя ({{ battleHistory().length }})</summary>
+    <div class="dm-history">
+      @for (entry of battleHistory().slice().reverse(); track entry.id) {
+        <div class="dm-history__entry">
+          <span>{{ entry.description }}</span>
+          <time>{{ entry.timestamp | date: 'HH:mm:ss' }}</time>
+        </div>
+      } @empty {
+        <p class="empty-hint">Действия появятся после изменения боя.</p>
+      }
     </div>
   </details>
 
@@ -364,6 +503,9 @@
           <div class="enemy-item__info">
             <span class="enemy-item__name">{{ enemy.name }}</span>
             <span class="enemy-item__hp">HP: {{ enemy.currentHp }}/{{ enemy.maxHp }}</span>
+            @if ((enemy.temporaryHp ?? 0) > 0) {
+              <span class="enemy-item__hp">🛡️ {{ enemy.temporaryHp }}</span>
+            }
             <span class="enemy-item__ac">КД: {{ enemy.ac }}</span>
             <span class="enemy-item__init">ИНИЦ: {{ enemy.initiative }}</span>
             <span [class]="'enemy-item__life enemy-item__life--' + enemy.status">
@@ -374,6 +516,15 @@
             }
           </div>
           <div class="enemy-item__actions">
+            <button class="dm-btn dm-btn--small" title="Сделать текущим ходом" (click)="setCurrentTurn(enemy.id)">
+              ▶
+            </button>
+            <button class="dm-btn dm-btn--small" title="Выше в инициативе" (click)="moveCombatant(enemy.id, -1)">
+              ↑
+            </button>
+            <button class="dm-btn dm-btn--small" title="Ниже в инициативе" (click)="moveCombatant(enemy.id, 1)">
+              ↓
+            </button>
             @if (enemy.status === COMBATANT_STATUS.DEAD) {
               <button class="dm-btn dm-btn--small dm-btn--success" (click)="reviveCombatant(enemy.id)">
                 Вернуть в бой
@@ -404,6 +555,9 @@
             <span class="enemy-item__hp"
               >HP: {{ player.value.currentHp }}/{{ player.value.maxHp }}</span
             >
+            @if ((player.value.temporaryHp ?? 0) > 0) {
+              <span class="enemy-item__hp">🛡️ {{ player.value.temporaryHp }}</span>
+            }
             <span class="enemy-item__ac">КД: {{ player.value.ac }}</span>
             <span class="enemy-item__init">ИНИЦ: {{ player.value.initiative }}</span>
             <span [class]="'enemy-item__life enemy-item__life--' + player.value.status">
@@ -424,6 +578,27 @@
             }
           </div>
           <div class="enemy-item__actions">
+            <button
+              class="dm-btn dm-btn--small"
+              title="Сделать текущим ходом"
+              (click)="setCurrentTurn(player.value.id)"
+            >
+              ▶
+            </button>
+            <button
+              class="dm-btn dm-btn--small"
+              title="Выше в инициативе"
+              (click)="moveCombatant(player.value.id, -1)"
+            >
+              ↑
+            </button>
+            <button
+              class="dm-btn dm-btn--small"
+              title="Ниже в инициативе"
+              (click)="moveCombatant(player.value.id, 1)"
+            >
+              ↓
+            </button>
             @if (player.value.status === COMBATANT_STATUS.DOWNED) {
               <button
                 class="dm-btn dm-btn--small dm-btn--success"
@@ -480,6 +655,7 @@
 
   @if (activePanel() === 'rewards') {
     <div class="dm-rewards-grid">
+  <app-dm-character-resources />
   <app-dm-item-library />
 
   <!-- ===== ВЫДАЧА ПРЕДМЕТОВ ===== -->
@@ -595,18 +771,6 @@
             (input)="onSpellLevelInput($event)"
           />
         </div>
-        @if (!isSpellCantrip()) {
-          <div class="field">
-            <label class="field__label">Количество использований</label>
-            <input
-              class="field__input"
-              type="number"
-              min="1"
-              [value]="spellMaxUses()"
-              (input)="onSpellMaxUsesInput($event)"
-            />
-          </div>
-        }
       </div>
       <div class="field-row">
         <div class="field">
@@ -665,7 +829,7 @@
           (click)="restoreSpells()"
           [disabled]="!selectedPlayerIdForSpell()"
         >
-          ↻ Восстановить использования
+          ↻ Восстановить ячейки
         </button>
       </div>
     </div>

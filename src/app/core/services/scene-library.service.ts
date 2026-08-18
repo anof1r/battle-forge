@@ -105,6 +105,7 @@ export class SceneLibraryService {
       abilities: Array.isArray(creature.abilities) ? creature.abilities : [],
       resistances: Array.isArray(creature.resistances) ? creature.resistances : [],
       statuses: Array.isArray(creature.statuses) ? creature.statuses : [],
+      ...(creature.source ? { source: creature.source } : {}),
       createdAt: creature.createdAt ?? creature.lastUpdated ?? 0,
       lastUpdated: creature.lastUpdated ?? 0,
     };

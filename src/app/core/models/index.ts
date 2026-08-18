@@ -7,3 +7,7 @@ export * from './scene-library.model';
 export * from './inventory-item.model';
 export * from './character.model';
 export * from './item-template.model';
+export * from './library-source.model';
+export * from './spell-template.model';
+export * from './enemy-action-template.model';
+export * from './open5e.model';

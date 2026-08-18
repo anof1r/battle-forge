@@ -1,6 +1,15 @@
 import { BattleActionType } from '../constants/battle-action.constants';
+import type { BattleStatus } from '../constants/battle-status.constants';
 import type { CombatantStatus } from '../constants/combatant.constants';
-import type { DeathSaves } from './combatant.model';
+import type { Combatant, DeathSaves } from './combatant.model';
+
+export interface BattleUndoState {
+  combatants?: Record<string, Combatant | null>;
+  initiativeOrder?: string[];
+  currentRound?: number;
+  currentTurnIndex?: number;
+  status?: BattleStatus;
+}
 
 export interface BattleAction {
   id: string;
@@ -13,4 +22,5 @@ export interface BattleAction {
   previousValue?: number;
   previousStatus?: CombatantStatus;
   previousDeathSaves?: DeathSaves;
+  undoState?: BattleUndoState;
 }

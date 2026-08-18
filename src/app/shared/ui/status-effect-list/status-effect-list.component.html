@@ -8,7 +8,7 @@
       <span
         [class]="'effect-chip effect-chip--' + effect.type"
         [attr.aria-label]="definition(effect.type).label"
-        [attr.title]="definition(effect.type).description"
+        [attr.title]="tooltip(effect)"
       >
         <span class="effect-chip__icon" aria-hidden="true">
           {{ definition(effect.type).icon }}
@@ -19,6 +19,12 @@
         }
         @if (effect.remainingTriggers) {
           <span class="effect-chip__meta">×{{ effect.remainingTriggers }}</span>
+        }
+        @if (effect.concentrationSourceId) {
+          <span class="effect-chip__meta">Конц.</span>
+        }
+        @if (effect.saveAbility) {
+          <span class="effect-chip__meta">{{ effect.saveAbility }} {{ effect.saveDc || '' }}</span>
         }
       </span>
     }

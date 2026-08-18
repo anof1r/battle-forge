@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { KeyValuePipe, UpperCasePipe } from '@angular/common';
+import { DatePipe, KeyValuePipe, UpperCasePipe } from '@angular/common';
 import { BattleService } from '../../core/services/battle.service';
 import { CharacterService } from '../../core/services/character.service';
 import { InventoryService } from '../../core/services/inventory.service';
@@ -24,11 +24,21 @@ import {
 import { SceneTransitionMode } from '../../core/models';
 import { DmItemLibraryComponent } from './item-library/dm-item-library.component';
 import { DmSceneLibraryComponent } from './scene-library/dm-scene-library.component';
+import { DmCharacterResourcesComponent } from './character-resources/dm-character-resources.component';
+import { DmOpen5eImportComponent } from './open5e-import/dm-open5e-import.component';
 
 @Component({
   selector: 'app-dm-control',
   standalone: true,
-  imports: [UpperCasePipe, KeyValuePipe, DmSceneLibraryComponent, DmItemLibraryComponent],
+  imports: [
+    DatePipe,
+    UpperCasePipe,
+    KeyValuePipe,
+    DmSceneLibraryComponent,
+    DmItemLibraryComponent,
+    DmCharacterResourcesComponent,
+    DmOpen5eImportComponent,
+  ],
   templateUrl: './dm-control.component.html',
   styleUrl: './dm-control.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -45,14 +55,15 @@ export class DmControlComponent {
   readonly COMBATANT_STATUS = COMBATANT_STATUS;
   readonly DEATH_SAVE_RESULT = DEATH_SAVE_RESULT;
 
-  readonly activePanel = signal<'scenes' | 'battle' | 'rewards'>('scenes');
+  readonly activePanel = signal<'library' | 'scenes' | 'battle' | 'rewards'>('scenes');
 
   // --- Панель изменения HP ---
-  readonly hpOperation = signal<'damage' | 'heal'>('damage');
-  readonly targetType = signal<'enemies' | 'players' | 'all'>('enemies');
+  readonly hpOperation = signal<'damage' | 'heal' | 'temporary'>('damage');
+  readonly targetType = signal<'enemies' | 'players' | 'all' | 'selected'>('enemies');
   readonly damageTargetId = signal<string | null>(null);
   readonly damageAmount = signal(0);
   readonly damageMode = signal<'single' | 'all'>('single');
+  readonly selectedCombatantIds = signal<string[]>([]);
 
   // --- Панель статус-эффектов ---
   readonly STATUS_EFFECT_DEFINITIONS = STATUS_EFFECT_DEFINITIONS;
@@ -64,6 +75,11 @@ export class DmControlComponent {
   readonly statusDamage = signal(0);
   readonly statusDuration = signal(0);
   readonly statusTrigger = signal<StatusEffectTrigger>(STATUS_EFFECT_TRIGGER.TURN_START);
+  readonly statusSource = signal('');
+  readonly statusConcentrationSourceId = signal('');
+  readonly statusSaveAbility = signal('');
+  readonly statusSaveDc = signal(0);
+  readonly statusNotes = signal('');
   readonly advancingTurn = signal(false);
   readonly transitioningScene = signal(false);
 
@@ -82,7 +98,6 @@ export class DmControlComponent {
   readonly spellDescription = signal('');
   readonly spellDamageFormula = signal('');
   readonly spellDamageType = signal('');
-  readonly spellMaxUses = signal(1);
   readonly isSpellCantrip = computed(() => this.spellLevel() === 0);
 
   // --- UI подготовки/инициативы ---
@@ -96,6 +111,8 @@ export class DmControlComponent {
   readonly currentRound = this.battleService.currentRound;
   readonly currentEnemy = this.battleService.currentCombatant;
   readonly playersInBattle = this.battleService.playersInBattle;
+  readonly battleHistory = this.battleService.history;
+  readonly canUndo = this.battleService.canUndo;
 
   // --- Производные значения ---
   readonly allCombatants = computed(() => Object.values(this.battleService.combatants()));
@@ -105,12 +122,21 @@ export class DmControlComponent {
     if (this.targetType() === 'all') {
       return this.damageAmount() > 0 && this.aliveEnemies().length > 0;
     }
+    if (this.targetType() === 'selected') {
+      return this.damageAmount() > 0 && this.selectedCombatantIds().length > 0;
+    }
     return this.damageAmount() > 0 && !!this.damageTargetId();
   });
 
-  readonly canApplyHealing = computed(
-    () =>
-      this.targetType() !== 'all' && this.damageAmount() > 0 && !!this.damageTargetId(),
+  readonly canApplyHealing = computed(() => {
+    if (this.targetType() === 'selected') {
+      return this.damageAmount() > 0 && this.selectedCombatantIds().length > 0;
+    }
+    return this.targetType() !== 'all' && this.damageAmount() > 0 && !!this.damageTargetId();
+  });
+
+  readonly canApplyTemporaryHp = computed(
+    () => this.damageAmount() >= 0 && !!this.damageTargetId() && this.targetType() !== 'all',
   );
 
   readonly selectedHpTarget = computed(() => {
@@ -156,8 +182,12 @@ export class DmControlComponent {
     } else if (type === 'players') {
       const playersObj = this.playersInBattle();
       return Object.values(playersObj).filter((p) => p.status !== COMBATANT_STATUS.DEAD);
+    } else if (type === 'selected') {
+      return this.sortedByInitiative().filter(
+        (combatant) => combatant.status !== COMBATANT_STATUS.DEAD,
+      );
     } else {
-      return [];
+      return this.aliveEnemies();
     }
   });
 
@@ -221,12 +251,6 @@ export class DmControlComponent {
     this.spellLevel.set(Math.min(9, Math.max(0, Number.isFinite(level) ? level : 0)));
   }
 
-  onSpellMaxUsesInput(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const maxUses = Number(input.value);
-    this.spellMaxUses.set(Math.max(1, Number.isFinite(maxUses) ? Math.floor(maxUses) : 1));
-  }
-
   giveSpell(): void {
     const playerId = this.selectedPlayerIdForSpell();
     const name = this.spellName().trim();
@@ -244,9 +268,6 @@ export class DmControlComponent {
       damageType: this.spellDamageType().trim(),
       isCantrip: level === 0,
       isPrepared: true,
-      ...(level === 0
-        ? {}
-        : { maxUses: this.spellMaxUses(), usesRemaining: this.spellMaxUses() }),
     };
 
     this.characterService
@@ -263,7 +284,6 @@ export class DmControlComponent {
     this.spellDescription.set('');
     this.spellDamageFormula.set('');
     this.spellDamageType.set('');
-    this.spellMaxUses.set(1);
   }
 
   restoreSpells(): void {
@@ -335,12 +355,31 @@ export class DmControlComponent {
     return getStatusEffectDefinition(type);
   }
 
-  setHpOperation(operation: 'damage' | 'heal'): void {
+  setHpOperation(operation: 'damage' | 'heal' | 'temporary'): void {
     this.hpOperation.set(operation);
-    if (operation === 'heal' && this.targetType() === 'all') {
+    if (operation !== 'damage' && this.targetType() === 'all') {
       this.targetType.set('enemies');
     }
+    if (operation === 'temporary' && this.targetType() === 'selected') {
+      this.targetType.set('players');
+    }
     this.resetDamagePanel();
+  }
+
+  setHpTargetType(type: 'enemies' | 'players' | 'all' | 'selected'): void {
+    this.targetType.set(type);
+    this.damageTargetId.set(null);
+    if (type !== 'selected') this.selectedCombatantIds.set([]);
+  }
+
+  toggleHpTarget(combatantId: string, checked: boolean): void {
+    this.selectedCombatantIds.update((ids) =>
+      checked
+        ? ids.includes(combatantId)
+          ? ids
+          : [...ids, combatantId]
+        : ids.filter((id) => id !== combatantId),
+    );
   }
 
   onItemQuantityInput(event: Event): void {
@@ -418,6 +457,14 @@ export class DmControlComponent {
       return;
     }
 
+    if (this.targetType() === 'selected') {
+      this.battleService
+        .damageMany(this.selectedCombatantIds(), amount)
+        .then(() => this.resetDamagePanel())
+        .catch((error: unknown) => this.logger.error('DmControlComponent.applyDamage', error));
+      return;
+    }
+
     const targetId = this.damageTargetId();
     if (!targetId) return;
 
@@ -429,6 +476,13 @@ export class DmControlComponent {
 
   applyHealing(): void {
     if (!this.canApplyHealing()) return;
+    if (this.targetType() === 'selected') {
+      this.battleService
+        .healMany(this.selectedCombatantIds(), this.damageAmount())
+        .then(() => this.resetDamagePanel())
+        .catch((error: unknown) => this.logger.error('DmControlComponent.applyHealing', error));
+      return;
+    }
     const targetId = this.damageTargetId();
     if (!targetId) return;
 
@@ -436,6 +490,16 @@ export class DmControlComponent {
       .heal(targetId, this.damageAmount())
       .then(() => this.resetDamagePanel())
       .catch((error: unknown) => this.logger.error('DmControlComponent.applyHealing', error));
+  }
+
+  applyTemporaryHp(): void {
+    if (!this.canApplyTemporaryHp()) return;
+    const targetId = this.damageTargetId();
+    if (!targetId) return;
+    this.battleService
+      .setTemporaryHp(targetId, this.damageAmount())
+      .then(() => this.resetDamagePanel())
+      .catch((error: unknown) => this.logger.error('DmControlComponent.applyTemporaryHp', error));
   }
 
   applyStatusEffect(): void {
@@ -449,6 +513,11 @@ export class DmControlComponent {
         damagePerTrigger: this.statusDamage(),
         durationTriggers: this.statusDuration(),
         trigger: this.statusTrigger(),
+        source: this.statusSource(),
+        concentrationSourceId: this.statusConcentrationSourceId() || undefined,
+        saveAbility: this.statusSaveAbility(),
+        saveDc: this.statusSaveDc(),
+        notes: this.statusNotes(),
       })
       .then((added) => {
         if (!added) {
@@ -457,6 +526,11 @@ export class DmControlComponent {
         }
         this.statusDamage.set(0);
         this.statusDuration.set(0);
+        this.statusSource.set('');
+        this.statusConcentrationSourceId.set('');
+        this.statusSaveAbility.set('');
+        this.statusSaveDc.set(0);
+        this.statusNotes.set('');
       })
       .catch((error: unknown) => {
         this.logger.error('DmControlComponent.applyStatusEffect', error);
@@ -524,7 +598,9 @@ export class DmControlComponent {
     const message =
       mode === 'long-rest'
         ? 'Завершить сцену, убрать врагов и полностью восстановить живых игроков?'
-        : 'Завершить сцену, убрать врагов и сохранить текущее HP игроков?';
+        : mode === 'short-rest'
+          ? 'Завершить сцену с коротким отдыхом? HP не изменится.'
+          : 'Завершить сцену, убрать врагов и сохранить текущее HP игроков?';
     if (!confirm(message)) return;
 
     this.transitioningScene.set(true);
@@ -558,10 +634,23 @@ export class DmControlComponent {
     this.damageAmount.set(0);
     this.damageTargetId.set(null);
     this.damageMode.set('single');
+    this.selectedCombatantIds.set([]);
+  }
+
+  setCurrentTurn(combatantId: string): void {
+    this.battleService
+      .setCurrentTurn(combatantId)
+      .catch((error: unknown) => this.logger.error('DmControlComponent.setCurrentTurn', error));
+  }
+
+  moveCombatant(combatantId: string, direction: -1 | 1): void {
+    this.battleService
+      .moveCombatant(combatantId, direction)
+      .catch((error: unknown) => this.logger.error('DmControlComponent.moveCombatant', error));
   }
 
   private clampHealingAmount(): void {
-    if (this.hpOperation() !== 'heal') return;
+    if (this.hpOperation() !== 'heal' || this.targetType() === 'selected') return;
     const maximum = this.maxHealingAmount();
     if (maximum !== null && this.damageAmount() > maximum) {
       this.damageAmount.set(maximum);

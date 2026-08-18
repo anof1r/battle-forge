@@ -3,11 +3,13 @@ import { provideRouter } from '@angular/router';
 
 import { routes } from './app.routes';
 import { provideServiceWorker } from '@angular/service-worker';
+import { provideHttpClient } from '@angular/common/http';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideZoneChangeDetection({ eventCoalescing: true }),
+    provideHttpClient(),
     provideRouter(routes), provideServiceWorker('ngsw-worker.js', {
             enabled: !isDevMode(),
             registrationStrategy: 'registerWhenStable:30000'

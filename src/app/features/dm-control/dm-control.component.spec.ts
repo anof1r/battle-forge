@@ -23,6 +23,8 @@ describe('DmControlComponent', () => {
     sortedCombatants: WritableSignal<Combatant[]>;
     currentRound: WritableSignal<number>;
     currentCombatant: WritableSignal<Combatant | null>;
+    history: WritableSignal<[]>;
+    canUndo: WritableSignal<boolean>;
     playersInBattle: WritableSignal<Record<string, Combatant>>;
     combatants: WritableSignal<Record<string, Combatant>>;
     enemies: WritableSignal<Record<string, Combatant>>;
@@ -38,7 +40,10 @@ describe('DmControlComponent', () => {
     startBattle: ReturnType<typeof vi.fn>;
     damageAll: ReturnType<typeof vi.fn>;
     takeDamage: ReturnType<typeof vi.fn>;
+    damageMany: ReturnType<typeof vi.fn>;
     heal: ReturnType<typeof vi.fn>;
+    healMany: ReturnType<typeof vi.fn>;
+    setTemporaryHp: ReturnType<typeof vi.fn>;
     addStatusEffect: ReturnType<typeof vi.fn>;
     removeStatusEffect: ReturnType<typeof vi.fn>;
     recordDeathSave: ReturnType<typeof vi.fn>;
@@ -48,11 +53,16 @@ describe('DmControlComponent', () => {
     resetScene: ReturnType<typeof vi.fn>;
     finishScene: ReturnType<typeof vi.fn>;
     addCreatureStacks: ReturnType<typeof vi.fn>;
+    setCurrentTurn: ReturnType<typeof vi.fn>;
+    moveCombatant: ReturnType<typeof vi.fn>;
   };
   let characterService: {
     getAllPlayers: ReturnType<typeof vi.fn>;
     updatePlayerSpells: ReturnType<typeof vi.fn>;
     restorePlayerSpells: ReturnType<typeof vi.fn>;
+    loadCharacter: ReturnType<typeof vi.fn>;
+    setSpellSlotPool: ReturnType<typeof vi.fn>;
+    upsertResource: ReturnType<typeof vi.fn>;
   };
   let inventoryService: { giveItem: ReturnType<typeof vi.fn> };
   let logger: { error: ReturnType<typeof vi.fn> };
@@ -105,6 +115,8 @@ describe('DmControlComponent', () => {
       sortedCombatants: signal<Combatant[]>([]),
       currentRound: signal(1),
       currentCombatant: signal<Combatant | null>(null),
+      history: signal([]),
+      canUndo: signal(false),
       playersInBattle: signal<Record<string, Combatant>>({}),
       combatants: signal<Record<string, Combatant>>({}),
       enemies: signal<Record<string, Combatant>>({}),
@@ -120,7 +132,10 @@ describe('DmControlComponent', () => {
       startBattle: vi.fn().mockResolvedValue(undefined),
       damageAll: vi.fn().mockResolvedValue(undefined),
       takeDamage: vi.fn().mockResolvedValue(undefined),
+      damageMany: vi.fn().mockResolvedValue(undefined),
       heal: vi.fn().mockResolvedValue(undefined),
+      healMany: vi.fn().mockResolvedValue(undefined),
+      setTemporaryHp: vi.fn().mockResolvedValue(undefined),
       addStatusEffect: vi.fn().mockResolvedValue(true),
       removeStatusEffect: vi.fn().mockResolvedValue(true),
       recordDeathSave: vi.fn().mockResolvedValue(true),
@@ -130,11 +145,16 @@ describe('DmControlComponent', () => {
       resetScene: vi.fn().mockResolvedValue(undefined),
       finishScene: vi.fn().mockResolvedValue(undefined),
       addCreatureStacks: vi.fn().mockResolvedValue([]),
+      setCurrentTurn: vi.fn().mockResolvedValue(true),
+      moveCombatant: vi.fn().mockResolvedValue(true),
     };
     characterService = {
       getAllPlayers: vi.fn().mockResolvedValue([]),
       updatePlayerSpells: vi.fn().mockResolvedValue(undefined),
       restorePlayerSpells: vi.fn().mockResolvedValue(undefined),
+      loadCharacter: vi.fn().mockResolvedValue(null),
+      setSpellSlotPool: vi.fn().mockResolvedValue(undefined),
+      upsertResource: vi.fn().mockResolvedValue(undefined),
     };
     inventoryService = {
       giveItem: vi.fn().mockResolvedValue(undefined),
@@ -270,13 +290,11 @@ describe('DmControlComponent', () => {
     expect(component.isSpellCantrip()).toBe(true);
   });
 
-  it('gives a leveled spell its configured uses and resets the usage field', async () => {
+  it('gives a leveled spell without creating a separate per-spell counter', async () => {
     vi.spyOn(crypto, 'randomUUID').mockReturnValue('00000000-0000-4000-8000-000000000003');
     component.selectedPlayerIdForSpell.set('player_Aria');
     component.spellName.set('Shield');
     component.spellLevel.set(1);
-    component.spellMaxUses.set(3);
-
     component.giveSpell();
 
     await vi.waitFor(() =>
@@ -286,12 +304,12 @@ describe('DmControlComponent', () => {
           name: 'Shield',
           level: 1,
           isCantrip: false,
-          maxUses: 3,
-          usesRemaining: 3,
         }),
       ),
     );
-    await vi.waitFor(() => expect(component.spellMaxUses()).toBe(1));
+    const granted = characterService.updatePlayerSpells.mock.calls[0][1];
+    expect(granted).not.toHaveProperty('maxUses');
+    expect(granted).not.toHaveProperty('usesRemaining');
   });
 
   it('restores spell uses for the selected player', async () => {
@@ -320,7 +338,7 @@ describe('DmControlComponent', () => {
     expect(component.availableTargets()).toEqual([alivePlayer]);
 
     component.targetType.set('all');
-    expect(component.availableTargets()).toEqual([]);
+    expect(component.availableTargets()).toEqual([enemy()]);
   });
 
   it('renders combatant lists safely before the first turn is assigned', () => {
@@ -453,6 +471,11 @@ describe('DmControlComponent', () => {
         damagePerTrigger: 3,
         durationTriggers: 2,
         trigger: 'turn-start',
+        source: '',
+        concentrationSourceId: undefined,
+        saveAbility: '',
+        saveDc: 0,
+        notes: '',
       }),
     );
     component.removeStatusEffect(goblin.id, 'effect-fire');

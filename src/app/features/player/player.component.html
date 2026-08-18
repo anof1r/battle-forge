@@ -111,6 +111,12 @@
                   <span class="player__vitality-label">КД</span>
                   <span class="player__vitality-value">{{ char.ac }}</span>
                 </div>
+                @if ((char.temporaryHp ?? 0) > 0) {
+                  <div class="player__vitality-item">
+                    <span class="player__vitality-label">🛡️ Врем. HP</span>
+                    <span class="player__vitality-value">{{ char.temporaryHp }}</span>
+                  </div>
+                }
                 <div class="player__vitality-item">
                   <span class="player__vitality-label">Скорость</span>
                   <span class="player__vitality-value">{{ char.speed }}</span>
@@ -194,9 +200,43 @@
                 </div>
               }
 
+              @if ((char.resources?.length ?? 0) > 0) {
+                <div class="player__spells">
+                  <h2 class="player__panel-title">⚡ Ресурсы</h2>
+                  <div class="player__resource-grid">
+                    @for (resource of char.resources ?? []; track resource.id) {
+                      <div class="player__resource-card">
+                        <strong>{{ resource.name }}</strong>
+                        <span>{{ resource.current }} / {{ resource.max }}</span>
+                        <button
+                          class="player__inventory-btn"
+                          [disabled]="resource.current <= 0 || usingResourceId() !== null"
+                          (click)="useResource(resource.id)"
+                        >
+                          {{ usingResourceId() === resource.id ? 'Списываем…' : 'Использовать' }}
+                        </button>
+                      </div>
+                    }
+                  </div>
+                  @if (resourceUseError()) {
+                    <p class="player__spell-error" role="alert">{{ resourceUseError() }}</p>
+                  }
+                </div>
+              }
+
               @if (char.spells && char.spells.length > 0) {
                 <div class="player__spells">
                   <h2 class="player__panel-title">🔮 Заклинания</h2>
+                  @if (hasSharedSpellSlots()) {
+                    <div class="player__slot-pools" aria-label="Ячейки заклинаний">
+                      @for (slot of spellSlots(); track slot.level) {
+                        <span>
+                          {{ slot.level }} ур.: {{ slot.current }}/{{ slot.max }}
+                          @if (slot.recovery === 'short-rest') { · короткий отдых }
+                        </span>
+                      }
+                    </div>
+                  }
                   <div class="player__spells-grid">
                     @for (spell of char.spells; track spell.id) {
                       <div class="player__spell-card">
@@ -230,8 +270,24 @@
                           <span class="player__spell-uses">
                             @if (spell.isCantrip) {
                               Использования: ∞
+                            } @else if (hasSharedSpellSlots()) {
+                              @if (getAvailableSlotLevels(spell).length > 0) {
+                                <label>
+                                  Ячейка
+                                  <select
+                                    [value]="getSelectedSlotLevel(spell)"
+                                    (change)="setSpellSlotLevel(spell.id, $event)"
+                                  >
+                                    @for (level of getAvailableSlotLevels(spell); track level) {
+                                      <option [value]="level">{{ level }} уровень</option>
+                                    }
+                                  </select>
+                                </label>
+                              } @else {
+                                Нет доступных ячеек
+                              }
                             } @else {
-                              Использования: {{ getSpellUsesRemaining(spell) }} / {{ getSpellMaxUses(spell) }}
+                              Старый счётчик: {{ getSpellUsesRemaining(spell) }} / {{ getSpellMaxUses(spell) }}
                             }
                           </span>
                           <button
@@ -341,6 +397,9 @@
                 <div class="player__combatant-stats">
                   <span>КД {{ combatant.ac }}</span>
                   <span>ИНИЦ {{ combatant.initiative }}</span>
+                  @if ((combatant.temporaryHp ?? 0) > 0) {
+                    <span>🛡️ {{ combatant.temporaryHp }} врем. HP</span>
+                  }
                 </div>
                 @if (currentCombatant()?.id === combatant.id) {
                   <div class="player__combatant-turn">⚔️ Текущий ход</div>
