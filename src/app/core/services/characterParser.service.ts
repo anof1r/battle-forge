@@ -10,7 +10,7 @@ import {
   ParsedCharacter,
 } from '../models/character.model';
 import { LoggerService } from './logger.service';
-import { parseJsonWithTrailingCommaRecovery } from '../utils';
+import { getAutomaticSpellSlots, parseJsonWithTrailingCommaRecovery } from '../utils';
 
 export type { ParsedCharacter } from '../models/character.model';
 
@@ -41,8 +41,10 @@ export class CharacterParserService {
     const parsedStats = this.parseStats(dataObj);
 
     const vitality = dataObj.vitality ?? {};
-    const maxHp = vitality['hp-max']?.value ?? DEFAULT_MAX_HP;
-    const currentHp = vitality['hp-current']?.value ?? maxHp;
+    const baseMaxHp = vitality['hp-max']?.value ?? DEFAULT_MAX_HP;
+    const constitutionHpBonus = this.getModifier(parsedStats.con) * Math.max(1, level);
+    const maxHp = Math.max(1, baseMaxHp + constitutionHpBonus);
+    const currentHp = Math.min(maxHp, Math.max(0, vitality['hp-current']?.value ?? maxHp));
     const speed = vitality.speed?.value ?? DEFAULT_SPEED;
     const ac = this.parseAc(vitality.ac?.value, parsedStats.dex);
 
@@ -64,7 +66,7 @@ export class CharacterParserService {
       weapons,
       resistances,
       abilities,
-      spellSlots: [],
+      spellSlots: getAutomaticSpellSlots(charClass, level),
       resources,
     };
   }

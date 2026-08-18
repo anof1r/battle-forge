@@ -29,6 +29,14 @@ const CHARACTER_STATS = [
   { key: 'cha', label: 'ХАР', title: 'Харизма' },
 ] as const;
 
+interface SpellDescriptionPart {
+  text: string;
+  isDice: boolean;
+}
+
+const DICE_NOTATION_PATTERN = /(\d+\s*[dдк]\s*\d+(?:\s*[+\-−]\s*\d+)?)/giu;
+const EXACT_DICE_NOTATION_PATTERN = /^\d+\s*[dдк]\s*\d+(?:\s*[+\-−]\s*\d+)?$/iu;
+
 @Component({
   selector: 'app-player',
   standalone: true,
@@ -263,6 +271,13 @@ export class PlayerComponent implements OnDestroy {
 
   getSpellUsesRemaining(spell: SpellData): number {
     return Math.max(0, spell.usesRemaining ?? this.getSpellMaxUses(spell));
+  }
+
+  spellDescriptionParts(description: string): SpellDescriptionPart[] {
+    return description
+      .split(DICE_NOTATION_PATTERN)
+      .filter((text) => text.length > 0)
+      .map((text) => ({ text, isDice: EXACT_DICE_NOTATION_PATTERN.test(text) }));
   }
 
   getAvailableSlotLevels(spell: SpellData): number[] {

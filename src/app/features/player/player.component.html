@@ -260,11 +260,23 @@
                         }
                         @if (spell.damageFormula && spell.damageType) {
                           <div class="player__spell-damage">
-                            {{ spell.damageFormula }} {{ spell.damageType }}
+                            <strong class="player__dice-notation">{{ spell.damageFormula }}</strong>
+                            <span>{{ spell.damageType }}</span>
                           </div>
                         }
                         @if (spell.description) {
-                          <p class="player__spell-description">{{ spell.description }}</p>
+                          <details class="player__spell-details">
+                            <summary>Описание заклинания</summary>
+                            <p class="player__spell-description">
+                              @for (part of spellDescriptionParts(spell.description); track $index) {
+                                @if (part.isDice) {
+                                  <strong class="player__dice-notation">{{ part.text }}</strong>
+                                } @else {
+                                  <span>{{ part.text }}</span>
+                                }
+                              }
+                            </p>
+                          </details>
                         }
                         <div class="player__spell-actions">
                           <span class="player__spell-uses">

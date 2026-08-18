@@ -18,24 +18,17 @@
   <nav class="dm-workspace-tabs" aria-label="Разделы панели ДМа">
     <button
       type="button"
-      [class.dm-workspace-tabs__button--active]="activePanel() === 'library'"
-      (click)="activePanel.set('library')"
-    >
-      📚 Open5e и переводы
-    </button>
-    <button
-      type="button"
       [class.dm-workspace-tabs__button--active]="activePanel() === 'scenes'"
       (click)="activePanel.set('scenes')"
     >
-      🗺️ Сцены и существа
+      <b>1</b> 🗺️ Сцены и существа
     </button>
     <button
       type="button"
       [class.dm-workspace-tabs__button--active]="activePanel() === 'battle'"
       (click)="activePanel.set('battle')"
     >
-      ⚔️ Текущий бой
+      <b>2</b> ⚔️ Бой
       <span>{{ aliveEnemies().length + (playersInBattle() | keyvalue).length }}</span>
     </button>
     <button
@@ -43,7 +36,14 @@
       [class.dm-workspace-tabs__button--active]="activePanel() === 'rewards'"
       (click)="activePanel.set('rewards')"
     >
-      🎁 Игроки и награды
+      <b>3</b> 🎁 Игроки и награды
+    </button>
+    <button
+      type="button"
+      [class.dm-workspace-tabs__button--active]="activePanel() === 'library'"
+      (click)="activePanel.set('library')"
+    >
+      <b>4</b> 📚 Переводы Open5E
     </button>
   </nav>
 
@@ -64,7 +64,9 @@
     <div class="dm-controls-group">
       <h3 class="dm-controls-group__title">⚙️ Подготовка</h3>
       <div class="dm-controls">
-        <button class="dm-btn" (click)="loadPlayersToBattle()">🎮 Загрузить игроков</button>
+        <button class="dm-btn" [disabled]="playersLoading()" (click)="loadPlayersToBattle()">
+          {{ playersLoading() ? '⏳ Загружаем игроков…' : '🔄 Обновить игроков из базы' }}
+        </button>
         @if (battleStatus() === BATTLE_STATUS.PREPARATION) {
           <button class="dm-btn" (click)="startInitiativeRolls()">🎲 Бросить инициативу</button>
         }
@@ -80,6 +82,12 @@
           <button class="dm-btn dm-btn--success" (click)="startBattle()">⚔️ Начать битву</button>
         }
       </div>
+      @if (playerSyncMessage()) {
+        <p class="dm-sync-message" role="status">{{ playerSyncMessage() }}</p>
+      }
+      @if (playerSyncError()) {
+        <p class="dm-sync-message dm-sync-message--error" role="alert">{{ playerSyncError() }}</p>
+      }
     </div>
     <div class="dm-controls-group">
       <h3 class="dm-controls-group__title">⏳ Управление ходом</h3>
@@ -113,6 +121,124 @@
         </button>
         <button class="dm-btn dm-btn--danger" (click)="resetScene()">🔄 Сбросить</button>
       </div>
+    </div>
+  </details>
+
+  <!-- ===== ЕДИНЫЙ СПИСОК УЧАСТНИКОВ ===== -->
+  <details class="dm-section dm-section--combatants" open>
+    <summary class="dm-section__title">
+      👥 Участники боя ({{ sortedByInitiative().length }})
+    </summary>
+    <div class="combatant-list">
+      @for (combatant of sortedByInitiative(); track combatant.id; let order = $index) {
+        <article
+          class="combatant-item"
+          [class.combatant-item--active]="currentEnemy()?.id === combatant.id"
+          [class.combatant-item--player]="combatant.type === COMBATANT_TYPE.PLAYER"
+          [class.combatant-item--downed]="combatant.status === COMBATANT_STATUS.DOWNED"
+          [class.combatant-item--dead]="combatant.status === COMBATANT_STATUS.DEAD"
+        >
+          <span class="combatant-item__order" [attr.aria-label]="'Позиция ' + (order + 1)">
+            {{ order + 1 }}
+          </span>
+          <div class="combatant-item__body">
+            <div class="combatant-item__heading">
+              <strong>{{ combatant.name }}</strong>
+              <span class="combatant-item__type">
+                {{ combatant.type === COMBATANT_TYPE.PLAYER ? 'Игрок' : 'Существо' }}
+              </span>
+              @if (currentEnemy()?.id === combatant.id) {
+                <span class="combatant-item__current">⚔️ Сейчас ходит</span>
+              }
+            </div>
+            <div class="combatant-item__stats">
+              <b>HP {{ combatant.currentHp }}/{{ combatant.maxHp }}</b>
+              @if ((combatant.temporaryHp ?? 0) > 0) {
+                <span>🛡️ {{ combatant.temporaryHp }}</span>
+              }
+              <span>КД {{ combatant.ac }}</span>
+              <span>Инициатива {{ combatant.initiative }}</span>
+              <span [class]="'combatant-item__life combatant-item__life--' + combatant.status">
+                {{ lifeStatusLabel(combatant) }}
+              </span>
+              @if (
+                combatant.type === COMBATANT_TYPE.PLAYER &&
+                (combatant.status === COMBATANT_STATUS.DOWNED ||
+                  combatant.status === COMBATANT_STATUS.STABLE ||
+                  combatant.status === COMBATANT_STATUS.DEAD)
+              ) {
+                <span class="combatant-item__death-saves">
+                  ✓ {{ combatant.deathSaves?.successes ?? 0 }}/3 ·
+                  ✕ {{ combatant.deathSaves?.failures ?? 0 }}/3
+                </span>
+              }
+            </div>
+          </div>
+          <div class="combatant-item__actions">
+            <button
+              class="dm-btn dm-btn--small"
+              title="Сделать текущим ходом"
+              [attr.aria-label]="'Передать ход: ' + combatant.name"
+              (click)="setCurrentTurn(combatant.id)"
+            >▶</button>
+            <button
+              class="dm-btn dm-btn--small"
+              title="Выше в инициативе"
+              [attr.aria-label]="'Поднять в инициативе: ' + combatant.name"
+              (click)="moveCombatant(combatant.id, -1)"
+            >↑</button>
+            <button
+              class="dm-btn dm-btn--small"
+              title="Ниже в инициативе"
+              [attr.aria-label]="'Опустить в инициативе: ' + combatant.name"
+              (click)="moveCombatant(combatant.id, 1)"
+            >↓</button>
+            @if (
+              combatant.type === COMBATANT_TYPE.PLAYER &&
+              combatant.status === COMBATANT_STATUS.DOWNED
+            ) {
+              <button
+                class="dm-btn dm-btn--small dm-btn--success"
+                (click)="recordDeathSave(combatant.id, DEATH_SAVE_RESULT.SUCCESS)"
+              >✓ Успех</button>
+              <button
+                class="dm-btn dm-btn--small dm-btn--danger"
+                (click)="recordDeathSave(combatant.id, DEATH_SAVE_RESULT.FAILURE)"
+              >✕ Провал</button>
+              <button
+                class="dm-btn dm-btn--small"
+                title="Натуральная 20: подняться с 1 HP"
+                (click)="recordDeathSave(combatant.id, DEATH_SAVE_RESULT.CRITICAL_SUCCESS)"
+              >20</button>
+              <button
+                class="dm-btn dm-btn--small"
+                title="Натуральная 1: два провала"
+                (click)="recordDeathSave(combatant.id, DEATH_SAVE_RESULT.CRITICAL_FAILURE)"
+              >1</button>
+            }
+            @if (
+              (combatant.type === COMBATANT_TYPE.ENEMY &&
+                combatant.status === COMBATANT_STATUS.DEAD) ||
+              (combatant.type === COMBATANT_TYPE.PLAYER &&
+                combatant.status !== COMBATANT_STATUS.ALIVE)
+            ) {
+              <button
+                class="dm-btn dm-btn--small dm-btn--success"
+                (click)="reviveCombatant(combatant.id)"
+              >Вернуть в бой</button>
+            }
+            <button
+              class="dm-btn dm-btn--small dm-btn--secondary"
+              [attr.aria-label]="'Убрать из боя: ' + combatant.name"
+              (click)="removeCombatant(combatant)"
+            >✕</button>
+          </div>
+        </article>
+      } @empty {
+        <div class="empty-hint">
+          Участников пока нет. Игроки загрузятся из базы автоматически, существ добавьте из сцены.
+        </div>
+      }
     </div>
   </details>
 
@@ -487,168 +613,6 @@
       </div>
     </details>
   }
-
-  <!-- ===== СПИСОК ВРАГОВ ===== -->
-  <details class="dm-section dm-section--enemies" open>
-    <summary class="dm-section__title">
-      👹 Враги (в строю {{ aliveEnemies().length }} / всего {{ enemiesList().length }})
-    </summary>
-    <div class="enemy-list">
-      @for (enemy of enemiesList(); track enemy.id) {
-        <div
-          class="enemy-item"
-          [class.enemy-item--active]="currentEnemy() === enemy"
-          [class.enemy-item--dead]="enemy.status === COMBATANT_STATUS.DEAD"
-        >
-          <div class="enemy-item__info">
-            <span class="enemy-item__name">{{ enemy.name }}</span>
-            <span class="enemy-item__hp">HP: {{ enemy.currentHp }}/{{ enemy.maxHp }}</span>
-            @if ((enemy.temporaryHp ?? 0) > 0) {
-              <span class="enemy-item__hp">🛡️ {{ enemy.temporaryHp }}</span>
-            }
-            <span class="enemy-item__ac">КД: {{ enemy.ac }}</span>
-            <span class="enemy-item__init">ИНИЦ: {{ enemy.initiative }}</span>
-            <span [class]="'enemy-item__life enemy-item__life--' + enemy.status">
-              {{ lifeStatusLabel(enemy) }}
-            </span>
-            @if (currentEnemy() === enemy) {
-              <span class="enemy-item__status">⚔️ Текущий</span>
-            }
-          </div>
-          <div class="enemy-item__actions">
-            <button class="dm-btn dm-btn--small" title="Сделать текущим ходом" (click)="setCurrentTurn(enemy.id)">
-              ▶
-            </button>
-            <button class="dm-btn dm-btn--small" title="Выше в инициативе" (click)="moveCombatant(enemy.id, -1)">
-              ↑
-            </button>
-            <button class="dm-btn dm-btn--small" title="Ниже в инициативе" (click)="moveCombatant(enemy.id, 1)">
-              ↓
-            </button>
-            @if (enemy.status === COMBATANT_STATUS.DEAD) {
-              <button class="dm-btn dm-btn--small dm-btn--success" (click)="reviveCombatant(enemy.id)">
-                Вернуть в бой
-              </button>
-            }
-            <button class="dm-btn dm-btn--small" (click)="removeEnemy(enemy.id)">✕</button>
-          </div>
-        </div>
-      } @empty {
-        <div class="empty-hint">Нет врагов. Добавьте их через форму выше.</div>
-      }
-    </div>
-  </details>
-
-  <!-- ===== СПИСОК ИГРОКОВ ===== -->
-  <details class="dm-section dm-section--players" open>
-    <summary class="dm-section__title">🎭 Игроки в бою ({{ (playersInBattle() | keyvalue).length }})</summary>
-    <div class="enemy-list">
-      @for (player of playersInBattle() | keyvalue; track player.value.id) {
-        <div
-          class="enemy-item"
-          [class.enemy-item--active]="currentEnemy() === player.value"
-          [class.enemy-item--downed]="player.value.status === COMBATANT_STATUS.DOWNED"
-          [class.enemy-item--dead]="player.value.status === COMBATANT_STATUS.DEAD"
-        >
-          <div class="enemy-item__info">
-            <span class="enemy-item__name">{{ player.value.name }}</span>
-            <span class="enemy-item__hp"
-              >HP: {{ player.value.currentHp }}/{{ player.value.maxHp }}</span
-            >
-            @if ((player.value.temporaryHp ?? 0) > 0) {
-              <span class="enemy-item__hp">🛡️ {{ player.value.temporaryHp }}</span>
-            }
-            <span class="enemy-item__ac">КД: {{ player.value.ac }}</span>
-            <span class="enemy-item__init">ИНИЦ: {{ player.value.initiative }}</span>
-            <span [class]="'enemy-item__life enemy-item__life--' + player.value.status">
-              {{ lifeStatusLabel(player.value) }}
-            </span>
-            @if (
-              player.value.status === COMBATANT_STATUS.DOWNED ||
-              player.value.status === COMBATANT_STATUS.STABLE ||
-              player.value.status === COMBATANT_STATUS.DEAD
-            ) {
-              <span class="enemy-item__death-saves">
-                ✓ {{ player.value.deathSaves?.successes ?? 0 }}/3 ·
-                ✕ {{ player.value.deathSaves?.failures ?? 0 }}/3
-              </span>
-            }
-            @if (currentEnemy() === player.value) {
-              <span class="enemy-item__status">⚔️ Текущий</span>
-            }
-          </div>
-          <div class="enemy-item__actions">
-            <button
-              class="dm-btn dm-btn--small"
-              title="Сделать текущим ходом"
-              (click)="setCurrentTurn(player.value.id)"
-            >
-              ▶
-            </button>
-            <button
-              class="dm-btn dm-btn--small"
-              title="Выше в инициативе"
-              (click)="moveCombatant(player.value.id, -1)"
-            >
-              ↑
-            </button>
-            <button
-              class="dm-btn dm-btn--small"
-              title="Ниже в инициативе"
-              (click)="moveCombatant(player.value.id, 1)"
-            >
-              ↓
-            </button>
-            @if (player.value.status === COMBATANT_STATUS.DOWNED) {
-              <button
-                class="dm-btn dm-btn--small dm-btn--success"
-                (click)="recordDeathSave(player.value.id, DEATH_SAVE_RESULT.SUCCESS)"
-              >
-                ✓ Успех
-              </button>
-              <button
-                class="dm-btn dm-btn--small dm-btn--danger"
-                (click)="recordDeathSave(player.value.id, DEATH_SAVE_RESULT.FAILURE)"
-              >
-                ✕ Провал
-              </button>
-              <button
-                class="dm-btn dm-btn--small"
-                title="Натуральная 20: подняться с 1 HP"
-                (click)="recordDeathSave(player.value.id, DEATH_SAVE_RESULT.CRITICAL_SUCCESS)"
-              >
-                20
-              </button>
-              <button
-                class="dm-btn dm-btn--small"
-                title="Натуральная 1: два провала"
-                (click)="recordDeathSave(player.value.id, DEATH_SAVE_RESULT.CRITICAL_FAILURE)"
-              >
-                1
-              </button>
-            }
-            @if (player.value.status !== COMBATANT_STATUS.ALIVE) {
-              <button
-                class="dm-btn dm-btn--small dm-btn--success"
-                (click)="reviveCombatant(player.value.id)"
-              >
-                Вернуть в бой
-              </button>
-            }
-            <button
-              class="dm-btn dm-btn--small"
-              (click)="removePlayerFromBattle(player.value.id)"
-              title="Убрать из боя"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-      } @empty {
-        <div class="empty-hint">Нет игроков в бою. Нажмите "Загрузить игроков".</div>
-      }
-    </div>
-  </details>
 
     </div>
   }

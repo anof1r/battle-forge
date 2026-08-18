@@ -65,6 +65,35 @@ describe('CharacterParserService', () => {
     });
   });
 
+  it('adds the Constitution modifier for every character level to maximum HP', () => {
+    const parsed = service.parseCharacter({
+      data: {
+        info: { level: { value: 3 } },
+        stats: { con: { score: 14 } },
+        vitality: { 'hp-max': { value: 18 } },
+      },
+    });
+
+    expect(parsed.maxHp).toBe(24);
+    expect(parsed.currentHp).toBe(24);
+  });
+
+  it('preserves explicitly tracked current HP when applying the Constitution maximum bonus', () => {
+    const parsed = service.parseCharacter({
+      data: {
+        info: { level: { value: 2 } },
+        stats: { con: { score: 16 } },
+        vitality: {
+          'hp-max': { value: 14 },
+          'hp-current': { value: 7 },
+        },
+      },
+    });
+
+    expect(parsed.maxHp).toBe(20);
+    expect(parsed.currentHp).toBe(7);
+  });
+
   it('accepts a string payload and applies stable defaults for missing fields', () => {
     const sheet: LssCharacterSheet = { data: JSON.stringify({}) };
 
@@ -101,6 +130,50 @@ describe('CharacterParserService', () => {
       { id: 'resource_lss_0', name: 'Ци', current: 2, max: 5, recovery: 'short-rest' },
       { id: 'resource_lss_1', name: 'Ярость', current: 3, max: 3, recovery: 'long-rest' },
     ]);
+  });
+
+  it('creates 2024 spell slots automatically for full and half casters', () => {
+    const wizard = service.parseCharacter({
+      data: {
+        info: { charClass: { value: 'Волшебник' }, level: { value: 5 } },
+      },
+    });
+    const paladin = service.parseCharacter({
+      data: {
+        info: { charClass: { value: 'Paladin' }, level: { value: 1 } },
+      },
+    });
+
+    expect(wizard.spellSlots).toEqual([
+      { level: 1, current: 4, max: 4 },
+      { level: 2, current: 3, max: 3 },
+      { level: 3, current: 2, max: 2 },
+    ]);
+    expect(paladin.spellSlots).toEqual([{ level: 1, current: 2, max: 2 }]);
+  });
+
+  it('creates short-rest Pact Magic slots for a warlock', () => {
+    const warlock = service.parseCharacter({
+      data: {
+        info: { charClass: { value: 'Колдун' }, level: { value: 5 } },
+      },
+    });
+
+    expect(warlock.spellSlots).toEqual([
+      { level: 3, current: 2, max: 2, recovery: 'short-rest' },
+    ]);
+  });
+
+  it('does not invent slots for non-casters, unknown classes, or multiclass labels', () => {
+    const monk = service.parseCharacter({
+      data: { info: { charClass: { value: 'Монах' }, level: { value: 5 } } },
+    });
+    const multiclass = service.parseCharacter({
+      data: { info: { charClass: { value: 'Wizard / Fighter' }, level: { value: 5 } } },
+    });
+
+    expect(monk.spellSlots).toEqual([]);
+    expect(multiclass.spellSlots).toEqual([]);
   });
 
   it('extracts resources, nested traits and feats while removing duplicate abilities', () => {

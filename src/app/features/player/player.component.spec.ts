@@ -539,6 +539,32 @@ describe('PlayerComponent', () => {
     await vi.waitFor(() => expect(component.usingSpellId()).toBeNull());
   });
 
+  it('collapses spell descriptions and highlights dice notation inside the text', () => {
+    const description = 'Цель получает 2d6+3 урона огнём и ещё 1к4 урона в конце хода.';
+    component.character.set(character({
+      spells: [spell({ description, damageFormula: '2d6+3', damageType: 'огонь' })],
+    }));
+    component.isLoggedIn.set(true);
+
+    fixture.detectChanges();
+
+    const details = fixture.nativeElement.querySelector<HTMLDetailsElement>(
+      '.player__spell-details',
+    );
+    const highlighted = Array.from<HTMLElement>(
+      fixture.nativeElement.querySelectorAll('.player__spell-description .player__dice-notation'),
+    );
+
+    expect(details).not.toBeNull();
+    expect(details?.open).toBe(false);
+    expect(details?.querySelector('summary')).toHaveTextContent('Описание заклинания');
+    expect(highlighted.map((element) => element.textContent)).toEqual(['2d6+3', '1к4']);
+    expect(details?.querySelector('.player__spell-description')).toHaveTextContent(description);
+
+    details?.querySelector<HTMLElement>('summary')?.click();
+    expect(details?.open).toBe(true);
+  });
+
   it('disables unavailable spells and reports persistence failures', async () => {
     const exhausted = spell({ usesRemaining: 0 });
     const available = spell({ id: 'available' });

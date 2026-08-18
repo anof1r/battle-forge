@@ -598,6 +598,40 @@ describe('BattleService', () => {
     });
   });
 
+  it('synchronizes all stored players in one room update without overwriting combat HP', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(NOW);
+    const existingAria = createCombatant({
+      id: 'player_Aria',
+      type: COMBATANT_TYPE.PLAYER,
+      name: 'Aria',
+      playerName: 'Aria',
+      currentHp: 5,
+    });
+    const room = createRoom({
+      combatants: { 'enemy-1': createCombatant(), player_Aria: existingAria },
+      initiativeOrder: ['enemy-1'],
+    });
+    await setup(room);
+    firebase.clearCalls();
+    const borin = { ...createPlayer(), name: 'Borin', currentHp: 11 };
+
+    await service.syncPlayersToBattle([createPlayer(), borin]);
+
+    expect(firebase.setMock).not.toHaveBeenCalled();
+    expect(firebase.updateMock).toHaveBeenCalledOnce();
+    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, {
+      'combatants/player_Borin': expect.objectContaining({
+        id: 'player_Borin',
+        name: 'Borin',
+        currentHp: 11,
+        initiative: 0,
+      }),
+      initiativeOrder: ['enemy-1', 'player_Aria', 'player_Borin'],
+      lastUpdated: NOW,
+    });
+    expect(firebase.updateMock.mock.calls[0][1]).not.toHaveProperty('combatants/player_Aria');
+  });
+
   it('does not add a player already present in the room', async () => {
     await setup(
       createRoom({

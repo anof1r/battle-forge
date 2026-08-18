@@ -61,6 +61,7 @@ export class BattleService {
   private readonly damageCalc = inject(DamageCalculationService);
   private readonly roomPath = buildRoomPath(MAIN_ROOM_ID);
   private readonly actionHistory = signal<BattleAction[]>([]);
+  private readonly roomInitialization: Promise<void>;
   private turnTransition: Promise<void> | null = null;
 
   private readonly room = toSignal(
@@ -116,7 +117,7 @@ export class BattleService {
   readonly canUndo = computed(() => this.history().some((entry) => entry.reversible));
 
   constructor() {
-    void this.ensureRoomExists();
+    this.roomInitialization = this.ensureRoomExists();
   }
 
   private async ensureRoomExists(): Promise<void> {
@@ -220,6 +221,35 @@ export class BattleService {
     await this.appendToInitiativeOrder(id);
   }
 
+  async syncPlayersToBattle(players: readonly ParsedCharacter[]): Promise<void> {
+    await this.roomInitialization;
+    if (players.length === 0) return;
+
+    const persistedRoom = await this.firebaseService.get<BattleRoom>(this.roomPath);
+    const combatants = persistedRoom?.combatants ?? {};
+    const persistedOrder = persistedRoom?.initiativeOrder ?? [];
+    const initiativeOrder = [...new Set(persistedOrder)];
+    const updates: Record<string, unknown> = {};
+
+    for (const player of players) {
+      const id = `player_${player.name}`;
+      if (!combatants[id]) {
+        updates[`combatants/${id}`] = this.createPlayerCombatant(player, 0);
+      }
+      if (!initiativeOrder.includes(id)) initiativeOrder.push(id);
+    }
+
+    if (Object.keys(updates).length === 0 && initiativeOrder.length === persistedOrder.length) {
+      return;
+    }
+
+    await this.firebaseService.update(this.roomPath, {
+      ...updates,
+      initiativeOrder,
+      lastUpdated: Date.now(),
+    });
+  }
+
   async removePlayerFromBattle(playerName: string): Promise<void> {
     const id = `player_${playerName}`;
     await this.firebaseService.remove(`${this.roomPath}/combatants/${id}`);
@@ -282,6 +312,23 @@ export class BattleService {
         damaged.temporaryHp ?? 0,
       );
     }
+  }
+
+  private createPlayerCombatant(player: ParsedCharacter, initiative: number): Combatant {
+    return {
+      id: `player_${player.name}`,
+      type: COMBATANT_TYPE.PLAYER,
+      name: player.name,
+      initiative,
+      ac: player.ac,
+      maxHp: player.maxHp,
+      currentHp: player.currentHp,
+      temporaryHp: player.temporaryHp ?? 0,
+      status: COMBATANT_STATUS.ALIVE,
+      playerName: player.name,
+      emoji: '🧙',
+      lastUpdated: Date.now(),
+    };
   }
 
   async setCurrentTurn(combatantId: string): Promise<boolean> {

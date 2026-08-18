@@ -16,10 +16,18 @@
     } @else if (character(); as char) {
       <section>
         <h3>Ячейки заклинаний</h3>
-        <div class="resource-manager__chips">
+        <p class="resource-manager__hint">Выберите уровень ячейки, затем измените остаток или максимум.</p>
+        <div class="resource-manager__slots">
           @for (level of [1, 2, 3, 4, 5, 6, 7, 8, 9]; track level) {
-            <button type="button" (click)="editSlot(level)">
-              {{ level }} ур. · {{ slotAt(level).current }}/{{ slotAt(level).max }}
+            <button
+              type="button"
+              class="resource-manager__slot"
+              [class.resource-manager__slot--selected]="slotLevel() === level"
+              [class.resource-manager__slot--configured]="slotAt(level).max > 0"
+              (click)="editSlot(level)"
+            >
+              <span>{{ level }} уровень</span>
+              <strong>{{ slotAt(level).current }}/{{ slotAt(level).max }}</strong>
             </button>
           }
         </div>

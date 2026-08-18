@@ -28,7 +28,7 @@ describe('DmControlComponent', () => {
     playersInBattle: WritableSignal<Record<string, Combatant>>;
     combatants: WritableSignal<Record<string, Combatant>>;
     enemies: WritableSignal<Record<string, Combatant>>;
-    addPlayerToBattle: ReturnType<typeof vi.fn>;
+    syncPlayersToBattle: ReturnType<typeof vi.fn>;
     removePlayerFromBattle: ReturnType<typeof vi.fn>;
     addEnemy: ReturnType<typeof vi.fn>;
     updateEnemy: ReturnType<typeof vi.fn>;
@@ -120,7 +120,7 @@ describe('DmControlComponent', () => {
       playersInBattle: signal<Record<string, Combatant>>({}),
       combatants: signal<Record<string, Combatant>>({}),
       enemies: signal<Record<string, Combatant>>({}),
-      addPlayerToBattle: vi.fn().mockResolvedValue(undefined),
+      syncPlayersToBattle: vi.fn().mockResolvedValue(undefined),
       removePlayerFromBattle: vi.fn().mockResolvedValue(undefined),
       addEnemy: vi.fn().mockResolvedValue('enemy-new'),
       updateEnemy: vi.fn().mockResolvedValue(undefined),
@@ -195,31 +195,18 @@ describe('DmControlComponent', () => {
     component = fixture.componentInstance;
   });
 
-  it('loads saved players sequentially to avoid initiative-order write races', async () => {
+  it('automatically synchronizes all saved players in one battle-service operation', async () => {
     const aria = player('Aria');
     const borin = player('Borin');
-    let resolveFirst: (() => void) | undefined;
     characterService.getAllPlayers.mockResolvedValue([aria, borin]);
-    battle.addPlayerToBattle
-      .mockImplementationOnce(
-        () =>
-          new Promise<void>((resolve) => {
-            resolveFirst = resolve;
-          }),
-      )
-      .mockResolvedValueOnce(undefined);
 
     component.ngOnInit();
 
     await vi.waitFor(() =>
-      expect(battle.addPlayerToBattle).toHaveBeenCalledWith(aria, 0),
+      expect(battle.syncPlayersToBattle).toHaveBeenCalledWith([aria, borin]),
     );
-    expect(battle.addPlayerToBattle).toHaveBeenCalledTimes(1);
-
-    resolveFirst?.();
-    await vi.waitFor(() =>
-      expect(battle.addPlayerToBattle).toHaveBeenNthCalledWith(2, borin, 0),
-    );
+    expect(battle.syncPlayersToBattle).toHaveBeenCalledTimes(1);
+    expect(component.playersLoading()).toBe(false);
   });
 
   it('logs player loading failures without breaking component initialization', async () => {
@@ -347,6 +334,7 @@ describe('DmControlComponent', () => {
     battle.aliveEnemies.set([goblin]);
     battle.enemies.set({ [goblin.id]: goblin });
     battle.playersInBattle.set({ [aria.id]: aria });
+    battle.sortedCombatants.set([goblin, aria]);
     battle.currentCombatant.set(null);
     component.activePanel.set('battle');
 
@@ -354,7 +342,22 @@ describe('DmControlComponent', () => {
 
     expect(fixture.nativeElement).toHaveTextContent('Goblin');
     expect(fixture.nativeElement).toHaveTextContent('Aria');
-    expect(fixture.nativeElement.querySelector('.enemy-item--active')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.combatant-item--active')).toBeNull();
+  });
+
+  it('orders the main workspaces as scenes, battle, rewards, then Open5e', () => {
+    fixture.detectChanges();
+
+    const labels = Array.from(
+      fixture.nativeElement.querySelectorAll<HTMLButtonElement>('.dm-workspace-tabs button'),
+    ).map((button) => button.textContent?.replace(/\s+/g, ' ').trim());
+
+    expect(labels).toEqual([
+      '1 🗺️ Сцены и существа',
+      '2 ⚔️ Бой 0',
+      '3 🎁 Игроки и награды',
+      '4 📚 Переводы Open5E',
+    ]);
   });
 
   it('switches between focused desktop workspaces instead of rendering a long dashboard', () => {

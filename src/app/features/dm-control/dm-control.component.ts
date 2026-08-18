@@ -53,6 +53,7 @@ export class DmControlComponent {
   // --- Константы для шаблона ---
   readonly BATTLE_STATUS = BATTLE_STATUS;
   readonly COMBATANT_STATUS = COMBATANT_STATUS;
+  readonly COMBATANT_TYPE = COMBATANT_TYPE;
   readonly DEATH_SAVE_RESULT = DEATH_SAVE_RESULT;
 
   readonly activePanel = signal<'library' | 'scenes' | 'battle' | 'rewards'>('scenes');
@@ -103,6 +104,9 @@ export class DmControlComponent {
   // --- UI подготовки/инициативы ---
   readonly showInitiativeRolls = signal(false);
   readonly initiativeRolls = signal<Record<string, number>>({});
+  readonly playersLoading = signal(false);
+  readonly playerSyncMessage = signal<string | null>(null);
+  readonly playerSyncError = signal<string | null>(null);
 
   // --- Данные из BattleService ---
   readonly battleStatus = this.battleService.battleStatus;
@@ -192,23 +196,30 @@ export class DmControlComponent {
   });
 
   ngOnInit(): void {
-    this.loadPlayersToBattleSilent();
+    void this.loadPlayersToBattleSilent();
   }
 
-  // Adds players sequentially — each write reads/appends to the shared initiativeOrder array,
-  // so running them in parallel would race and drop entries.
-  private loadPlayersToBattleSilent(): Promise<void> {
-    return this.characterService
-      .getAllPlayers()
-      .then((players) =>
-        players.reduce<Promise<void>>(
-          (chain, player) => chain.then(() => this.battleService.addPlayerToBattle(player, 0)),
-          Promise.resolve(),
-        ),
-      )
-      .catch((error: unknown) =>
-        this.logger.error('DmControlComponent.loadPlayersToBattle', error),
-      );
+  private async loadPlayersToBattleSilent(showFeedback = false): Promise<void> {
+    if (this.playersLoading()) return;
+    this.playersLoading.set(true);
+    this.playerSyncError.set(null);
+    if (showFeedback) this.playerSyncMessage.set(null);
+    try {
+      const players = await this.characterService.getAllPlayers();
+      await this.battleService.syncPlayersToBattle(players);
+      if (showFeedback) {
+        this.playerSyncMessage.set(
+          players.length > 0
+            ? `Список игроков обновлён: ${players.length}.`
+            : 'В базе пока нет сохранённых игроков.',
+        );
+      }
+    } catch (error) {
+      this.logger.error('DmControlComponent.loadPlayersToBattle', error);
+      this.playerSyncError.set('Не удалось загрузить игроков из базы. Попробуйте обновить список.');
+    } finally {
+      this.playersLoading.set(false);
+    }
   }
 
   removePlayerFromBattle(playerId: string): void {
@@ -218,6 +229,14 @@ export class DmControlComponent {
       .catch((error: unknown) =>
         this.logger.error('DmControlComponent.removePlayerFromBattle', error),
       );
+  }
+
+  removeCombatant(combatant: Combatant): void {
+    if (combatant.type === COMBATANT_TYPE.PLAYER) {
+      this.removePlayerFromBattle(combatant.id);
+      return;
+    }
+    this.removeEnemy(combatant.id);
   }
 
   giveItem(): void {
@@ -389,9 +408,7 @@ export class DmControlComponent {
   }
 
   loadPlayersToBattle(): void {
-    this.loadPlayersToBattleSilent().then(() => {
-      alert('Игроки загружены. Теперь задайте им инициативу в панели инициативы.');
-    });
+    void this.loadPlayersToBattleSilent(true);
   }
 
   endBattle(): void {

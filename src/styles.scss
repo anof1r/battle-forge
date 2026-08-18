@@ -48,6 +48,20 @@ select {
   color: inherit;
 }
 
+select {
+  color-scheme: dark;
+}
+
+select option,
+select optgroup {
+  background: #17110b;
+  color: #fff0c7;
+}
+
+select option:disabled {
+  color: #b8aa91;
+}
+
 /* Scrollbar Styles */
 ::-webkit-scrollbar {
   width: 10px;
