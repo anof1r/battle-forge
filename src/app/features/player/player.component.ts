@@ -18,11 +18,12 @@ import { InventoryItem } from '../../core/models/inventory-item.model';
 import { Combatant, SpellData } from '../../core/models/combatant.model';
 import { COMBATANT_STATUS, COMBATANT_TYPE } from '../../core/constants/combatant.constants';
 import { StatusEffectListComponent } from '../../shared/ui/status-effect-list/status-effect-list.component';
+import { CombatantLifeStateComponent } from '../../shared/ui/combatant-life-state/combatant-life-state.component';
 
 @Component({
   selector: 'app-player',
   standalone: true,
-  imports: [CommonModule, StatusEffectListComponent],
+  imports: [CommonModule, StatusEffectListComponent, CombatantLifeStateComponent],
   templateUrl: './player.component.html',
   styleUrl: './player.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -69,6 +70,7 @@ export class PlayerComponent implements OnDestroy {
 
   // --- Данные из BattleService ---
   readonly COMBATANT_TYPE = COMBATANT_TYPE;
+  readonly COMBATANT_STATUS = COMBATANT_STATUS;
   readonly aliveEnemies = this.battleService.aliveEnemies;
   readonly combatantsInTurnOrder = this.battleService.sortedCombatants;
   readonly currentCombatant = this.battleService.currentCombatant;

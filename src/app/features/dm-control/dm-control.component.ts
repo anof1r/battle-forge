@@ -6,14 +6,22 @@ import { InventoryService } from '../../core/services/inventory.service';
 import { LoggerService } from '../../core/services/logger.service';
 import { Combatant, SpellData } from '../../core/models/combatant.model';
 import { BATTLE_STATUS } from '../../core/constants/battle-status.constants';
-import { COMBATANT_STATUS, COMBATANT_TYPE } from '../../core/constants/combatant.constants';
+import {
+  COMBATANT_STATUS,
+  COMBATANT_TYPE,
+  DEATH_SAVE_RESULT,
+  DeathSaveResult,
+} from '../../core/constants/combatant.constants';
 import { ItemRarity, ITEM_RARITY } from '../../core/constants/item-rarity.constants';
 import {
   getStatusEffectDefinition,
   STATUS_EFFECT_DEFINITIONS,
+  STATUS_EFFECT_TRIGGER,
   STATUS_EFFECT_TYPE,
+  StatusEffectTrigger,
   StatusEffectType,
 } from '../../core/constants/status-effect.constants';
+import { SceneTransitionMode } from '../../core/models';
 import { DmSceneLibraryComponent } from './scene-library/dm-scene-library.component';
 
 @Component({
@@ -33,6 +41,8 @@ export class DmControlComponent {
 
   // --- Константы для шаблона ---
   readonly BATTLE_STATUS = BATTLE_STATUS;
+  readonly COMBATANT_STATUS = COMBATANT_STATUS;
+  readonly DEATH_SAVE_RESULT = DEATH_SAVE_RESULT;
 
   readonly activePanel = signal<'scenes' | 'battle' | 'rewards'>('scenes');
 
@@ -50,6 +60,11 @@ export class DmControlComponent {
   readonly applyingStatus = signal(false);
   readonly removingEffectId = signal<string | null>(null);
   readonly statusError = signal<string | null>(null);
+  readonly statusDamage = signal(0);
+  readonly statusDuration = signal(0);
+  readonly statusTrigger = signal<StatusEffectTrigger>(STATUS_EFFECT_TRIGGER.TURN_START);
+  readonly advancingTurn = signal(false);
+  readonly transitioningScene = signal(false);
 
   // --- Панель выдачи предметов ---
   readonly selectedPlayerIdForItem = signal<string | null>(null);
@@ -106,9 +121,18 @@ export class DmControlComponent {
     const target = this.selectedStatusTarget();
     return (
       !!target &&
+      target.status !== COMBATANT_STATUS.DEAD &&
       !(target.activeEffects ?? []).some((effect) => effect.type === this.selectedStatusEffect())
     );
   });
+
+  readonly selectedStatusDefinition = computed(() =>
+    getStatusEffectDefinition(this.selectedStatusEffect()),
+  );
+
+  readonly hasTurnStatusConfig = computed(
+    () => this.statusDamage() > 0 || this.statusDuration() > 0,
+  );
 
   readonly combatantsWithEffects = computed(() =>
     this.sortedByInitiative().filter((combatant) => (combatant.activeEffects?.length ?? 0) > 0),
@@ -120,7 +144,7 @@ export class DmControlComponent {
       return this.aliveEnemies();
     } else if (type === 'players') {
       const playersObj = this.playersInBattle();
-      return Object.values(playersObj).filter((p) => p.status === COMBATANT_STATUS.ALIVE);
+      return Object.values(playersObj).filter((p) => p.status !== COMBATANT_STATUS.DEAD);
     } else {
       return [];
     }
@@ -268,7 +292,29 @@ export class DmControlComponent {
 
   selectStatusEffect(type: StatusEffectType): void {
     this.selectedStatusEffect.set(type);
+    if (!getStatusEffectDefinition(type).damageCapable) this.statusDamage.set(0);
     this.statusError.set(null);
+  }
+
+  onStatusDamageInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const value = Number(input.value);
+    this.statusDamage.set(Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0);
+  }
+
+  onStatusDurationInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const value = Number(input.value);
+    this.statusDuration.set(Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0);
+  }
+
+  onStatusTriggerChange(event: Event): void {
+    const select = event.target as HTMLSelectElement;
+    this.statusTrigger.set(
+      select.value === STATUS_EFFECT_TRIGGER.TURN_END
+        ? STATUS_EFFECT_TRIGGER.TURN_END
+        : STATUS_EFFECT_TRIGGER.TURN_START,
+    );
   }
 
   statusEffectDefinition(type: StatusEffectType) {
@@ -385,9 +431,18 @@ export class DmControlComponent {
     this.applyingStatus.set(true);
     this.statusError.set(null);
     this.battleService
-      .addStatusEffect(targetId, this.selectedStatusEffect())
+      .addStatusEffect(targetId, this.selectedStatusEffect(), {
+        damagePerTrigger: this.statusDamage(),
+        durationTriggers: this.statusDuration(),
+        trigger: this.statusTrigger(),
+      })
       .then((added) => {
-        if (!added) this.statusError.set('Эффект уже назначен или участник больше недоступен.');
+        if (!added) {
+          this.statusError.set('Эффект уже назначен или участник больше недоступен.');
+          return;
+        }
+        this.statusDamage.set(0);
+        this.statusDuration.set(0);
       })
       .catch((error: unknown) => {
         this.logger.error('DmControlComponent.applyStatusEffect', error);
@@ -417,9 +472,56 @@ export class DmControlComponent {
   }
 
   nextTurn(): void {
+    if (this.advancingTurn()) return;
+    this.advancingTurn.set(true);
     this.battleService
       .nextTurn()
-      .catch((error: unknown) => this.logger.error('DmControlComponent.nextTurn', error));
+      .catch((error: unknown) => this.logger.error('DmControlComponent.nextTurn', error))
+      .finally(() => this.advancingTurn.set(false));
+  }
+
+  recordDeathSave(combatantId: string, result: DeathSaveResult): void {
+    this.battleService
+      .recordDeathSave(combatantId, result)
+      .catch((error: unknown) => this.logger.error('DmControlComponent.recordDeathSave', error));
+  }
+
+  reviveCombatant(combatantId: string): void {
+    this.battleService
+      .revive(combatantId, 1)
+      .catch((error: unknown) => this.logger.error('DmControlComponent.reviveCombatant', error));
+  }
+
+  lifeStatusLabel(combatant: Combatant): string {
+    switch (combatant.status) {
+      case COMBATANT_STATUS.DOWNED:
+        return 'Без сознания';
+      case COMBATANT_STATUS.STABLE:
+        return 'Стабилен';
+      case COMBATANT_STATUS.DEAD:
+        return 'Погиб';
+      default:
+        return 'В строю';
+    }
+  }
+
+  finishScene(mode: SceneTransitionMode): void {
+    if (this.transitioningScene()) return;
+    const message =
+      mode === 'long-rest'
+        ? 'Завершить сцену, убрать врагов и полностью восстановить живых игроков?'
+        : 'Завершить сцену, убрать врагов и сохранить текущее HP игроков?';
+    if (!confirm(message)) return;
+
+    this.transitioningScene.set(true);
+    this.battleService
+      .finishScene(mode)
+      .then(() => {
+        this.showInitiativeRolls.set(false);
+        this.activePanel.set('scenes');
+      })
+      .catch((error: unknown) => this.logger.error('DmControlComponent.finishScene', error))
+      .finally(() => this.transitioningScene.set(false));
   }
 
   undoLastAction(): void {

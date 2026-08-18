@@ -3,15 +3,27 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { FirebaseService } from './firebase.service';
 import { InitiativeService } from './initiative.service';
 import { DamageCalculationService } from './damage-calculation.service';
-import { BattleAction, BattleRoom, SceneCreatureStack } from '../models';
-import { Combatant } from '../models/combatant.model';
+import { BattleAction, BattleRoom, SceneCreatureStack, SceneTransitionMode } from '../models';
+import {
+  ActiveStatusEffect,
+  Combatant,
+  DeathSaves,
+  StatusEffectOptions,
+} from '../models/combatant.model';
 import { ParsedCharacter } from '../models/character.model';
 import { CharacterService } from './character.service';
 import { BATTLE_STATUS } from '../constants/battle-status.constants';
-import { COMBATANT_STATUS, COMBATANT_TYPE } from '../constants/combatant.constants';
+import {
+  COMBATANT_STATUS,
+  COMBATANT_TYPE,
+  DEATH_SAVE_RESULT,
+  DeathSaveResult,
+} from '../constants/combatant.constants';
 import { BATTLE_ACTION_TYPE } from '../constants/battle-action.constants';
 import {
   getStatusEffectDefinition,
+  STATUS_EFFECT_TRIGGER,
+  StatusEffectTrigger,
   StatusEffectType,
 } from '../constants/status-effect.constants';
 import { MAIN_ROOM_ID, roomPath as buildRoomPath } from '../constants/firebase-paths.constants';
@@ -26,6 +38,11 @@ const EMPTY_ROOM: BattleRoom = {
   lastUpdated: Date.now(),
 };
 
+interface ProcessedTurnEffects {
+  combatant: Combatant;
+  changed: boolean;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -36,6 +53,7 @@ export class BattleService {
   private readonly damageCalc = inject(DamageCalculationService);
   private readonly roomPath = buildRoomPath(MAIN_ROOM_ID);
   private readonly actionHistory = signal<BattleAction[]>([]);
+  private turnTransition: Promise<void> | null = null;
 
   private readonly room = toSignal(this.firebaseService.subscribe<BattleRoom>(this.roomPath), {
     initialValue: null,
@@ -225,24 +243,30 @@ export class BattleService {
 
   async takeDamage(combatantId: string, damage: number): Promise<void> {
     const c = this.combatants()[combatantId];
-    if (!c) return;
-    const newHp = this.damageCalc.applyDamage(c.currentHp, damage);
+    if (!c || c.status === COMBATANT_STATUS.DEAD || damage <= 0) return;
+    const damaged = this.applyDamageToCombatant(c, damage);
     await this.firebaseService.update(
       `${this.roomPath}/combatants/${combatantId}`,
-      withTimestamp({ currentHp: newHp }),
+      withTimestamp({
+        currentHp: damaged.currentHp,
+        status: damaged.status,
+        deathSaves: damaged.deathSaves ?? null,
+      }),
     );
 
     if (c.type === COMBATANT_TYPE.PLAYER && c.playerName) {
-      await this.characterService.updatePlayerHp(c.playerName, newHp);
+      await this.characterService.updatePlayerHp(c.playerName, damaged.currentHp);
     }
 
     this.logAction({
       type: BATTLE_ACTION_TYPE.DAMAGE,
       targetId: combatantId,
       value: damage,
-      description: `${c.name} takes ${damage} damage (${newHp}/${c.maxHp} HP)`,
+      description: `${c.name} takes ${damage} damage (${damaged.currentHp}/${c.maxHp} HP)`,
       reversible: true,
       previousValue: c.currentHp,
+      previousStatus: c.status,
+      previousDeathSaves: c.deathSaves,
     });
   }
 
@@ -252,10 +276,9 @@ export class BattleService {
     const now = Date.now();
     const updates: Record<string, unknown> = {};
     for (const enemy of targets) {
-      updates[`combatants/${enemy.id}/currentHp`] = this.damageCalc.applyDamage(
-        enemy.currentHp,
-        damage,
-      );
+      const damaged = this.applyDamageToCombatant(enemy, damage);
+      updates[`combatants/${enemy.id}/currentHp`] = damaged.currentHp;
+      updates[`combatants/${enemy.id}/status`] = damaged.status;
       updates[`combatants/${enemy.id}/lastUpdated`] = now;
     }
     await this.firebaseService.update(this.roomPath, updates);
@@ -270,11 +293,16 @@ export class BattleService {
 
   async heal(combatantId: string, amount: number): Promise<void> {
     const c = this.combatants()[combatantId];
-    if (!c) return;
+    if (!c || c.status === COMBATANT_STATUS.DEAD || amount <= 0) return;
     const newHp = this.damageCalc.applyHeal(c.currentHp, amount, c.maxHp);
+    const status = newHp > 0 ? COMBATANT_STATUS.ALIVE : c.status;
     await this.firebaseService.update(
       `${this.roomPath}/combatants/${combatantId}`,
-      withTimestamp({ currentHp: newHp }),
+      withTimestamp({
+        currentHp: newHp,
+        status,
+        deathSaves: newHp > 0 ? null : c.deathSaves,
+      }),
     );
     if (c.type === COMBATANT_TYPE.PLAYER && c.playerName) {
       await this.characterService.updatePlayerHp(c.playerName, newHp);
@@ -286,20 +314,101 @@ export class BattleService {
       description: `${c.name} heals ${amount} HP (${newHp}/${c.maxHp} HP)`,
       reversible: true,
       previousValue: c.currentHp,
+      previousStatus: c.status,
+      previousDeathSaves: c.deathSaves,
     });
   }
 
-  async addStatusEffect(combatantId: string, type: StatusEffectType): Promise<boolean> {
+  async recordDeathSave(combatantId: string, result: DeathSaveResult): Promise<boolean> {
     const combatant = this.combatants()[combatantId];
-    if (!combatant) return false;
+    if (
+      !combatant ||
+      combatant.type !== COMBATANT_TYPE.PLAYER ||
+      combatant.status !== COMBATANT_STATUS.DOWNED
+    ) {
+      return false;
+    }
+
+    const current = combatant.deathSaves ?? { successes: 0, failures: 0 };
+    let deathSaves: DeathSaves = { ...current };
+    let status: Combatant['status'] = combatant.status;
+    let currentHp = combatant.currentHp;
+
+    if (result === DEATH_SAVE_RESULT.CRITICAL_SUCCESS) {
+      currentHp = 1;
+      status = COMBATANT_STATUS.ALIVE;
+      deathSaves = { successes: 0, failures: 0 };
+    } else if (result === DEATH_SAVE_RESULT.CRITICAL_FAILURE) {
+      deathSaves.failures = Math.min(3, deathSaves.failures + 2);
+    } else if (result === DEATH_SAVE_RESULT.SUCCESS) {
+      deathSaves.successes = Math.min(3, deathSaves.successes + 1);
+    } else {
+      deathSaves.failures = Math.min(3, deathSaves.failures + 1);
+    }
+
+    if (status !== COMBATANT_STATUS.ALIVE) {
+      if (deathSaves.failures >= 3) status = COMBATANT_STATUS.DEAD;
+      else if (deathSaves.successes >= 3) status = COMBATANT_STATUS.STABLE;
+    }
+
+    await this.firebaseService.update(
+      `${this.roomPath}/combatants/${combatantId}`,
+      withTimestamp({
+        currentHp,
+        status,
+        deathSaves: status === COMBATANT_STATUS.ALIVE ? null : deathSaves,
+      }),
+    );
+    if (currentHp > 0 && combatant.playerName) {
+      await this.characterService.updatePlayerHp(combatant.playerName, currentHp);
+    }
+    return true;
+  }
+
+  async revive(combatantId: string, hp = 1): Promise<boolean> {
+    const combatant = this.combatants()[combatantId];
+    if (!combatant || combatant.status === COMBATANT_STATUS.ALIVE) return false;
+
+    const currentHp = Math.max(1, Math.min(combatant.maxHp, Math.floor(hp)));
+    await this.firebaseService.update(
+      `${this.roomPath}/combatants/${combatantId}`,
+      withTimestamp({
+        currentHp,
+        status: COMBATANT_STATUS.ALIVE,
+        deathSaves: null,
+      }),
+    );
+    if (combatant.type === COMBATANT_TYPE.PLAYER && combatant.playerName) {
+      await this.characterService.updatePlayerHp(combatant.playerName, currentHp);
+    }
+    return true;
+  }
+
+  async addStatusEffect(
+    combatantId: string,
+    type: StatusEffectType,
+    options: StatusEffectOptions = {},
+  ): Promise<boolean> {
+    const combatant = this.combatants()[combatantId];
+    if (!combatant || combatant.status === COMBATANT_STATUS.DEAD) return false;
     const currentEffects = combatant.activeEffects ?? [];
     if (currentEffects.some((effect) => effect.type === type)) return false;
 
     const definition = getStatusEffectDefinition(type);
-    const activeEffects = [
-      ...currentEffects,
-      { id: `effect_${crypto.randomUUID()}`, type, appliedAt: Date.now() },
-    ];
+    const damagePerTrigger = Math.max(0, Math.floor(options.damagePerTrigger ?? 0));
+    const durationTriggers = Math.max(0, Math.floor(options.durationTriggers ?? 0));
+    const hasTurnBehavior = damagePerTrigger > 0 || durationTriggers > 0;
+    const effect: ActiveStatusEffect = {
+      id: `effect_${crypto.randomUUID()}`,
+      type,
+      appliedAt: Date.now(),
+      ...(damagePerTrigger > 0 ? { damagePerTrigger } : {}),
+      ...(hasTurnBehavior
+        ? { trigger: options.trigger ?? STATUS_EFFECT_TRIGGER.TURN_START }
+        : {}),
+      ...(durationTriggers > 0 ? { remainingTriggers: durationTriggers } : {}),
+    };
+    const activeEffects = [...currentEffects, effect];
     await this.firebaseService.update(
       `${this.roomPath}/combatants/${combatantId}`,
       withTimestamp({ activeEffects }),
@@ -337,26 +446,29 @@ export class BattleService {
     return true;
   }
 
-  async nextTurn(): Promise<void> {
-    const order = this.initiativeOrder();
-    const nextIndex = this.currentTurnIndex() + 1;
-    const isNewRound = nextIndex >= order.length;
-    await this.firebaseService.update(
-      this.roomPath,
-      withTimestamp({
-        currentTurnIndex: isNewRound ? 0 : nextIndex,
-        currentRound: isNewRound ? this.currentRound() + 1 : this.currentRound(),
-      }),
-    );
+  nextTurn(): Promise<void> {
+    if (this.turnTransition) return this.turnTransition;
+    this.turnTransition = this.advanceTurn().finally(() => {
+      this.turnTransition = null;
+    });
+    return this.turnTransition;
   }
 
   async undoLastAction(): Promise<void> {
     const last = this.actionHistory().at(-1);
     if (!last?.reversible || last.previousValue === undefined) return;
+    const combatant = this.combatants()[last.targetId];
     await this.firebaseService.update(
       `${this.roomPath}/combatants/${last.targetId}`,
-      withTimestamp({ currentHp: last.previousValue }),
+      withTimestamp({
+        currentHp: last.previousValue,
+        ...(last.previousStatus ? { status: last.previousStatus } : {}),
+        deathSaves: last.previousDeathSaves ?? null,
+      }),
     );
+    if (combatant?.type === COMBATANT_TYPE.PLAYER && combatant.playerName) {
+      await this.characterService.updatePlayerHp(combatant.playerName, last.previousValue);
+    }
     this.actionHistory.update((history) => history.slice(0, -1));
   }
 
@@ -370,6 +482,206 @@ export class BattleService {
   async resetScene(): Promise<void> {
     await this.firebaseService.set(this.roomPath, withTimestamp(EMPTY_ROOM));
     this.actionHistory.set([]);
+  }
+
+  async finishScene(mode: SceneTransitionMode = 'preserve'): Promise<void> {
+    const players = Object.values(this.playersInBattle());
+    const retainedPlayers: Record<string, Combatant> = {};
+
+    for (const player of players) {
+      const rested = mode === 'long-rest' && player.status !== COMBATANT_STATUS.DEAD;
+      const retained: Combatant = {
+        ...player,
+        initiative: 0,
+        currentHp: rested ? player.maxHp : player.currentHp,
+        status: rested ? COMBATANT_STATUS.ALIVE : player.status,
+        lastUpdated: Date.now(),
+      };
+      delete retained.activeEffects;
+      if (rested || retained.status === COMBATANT_STATUS.ALIVE) delete retained.deathSaves;
+      retainedPlayers[player.id] = retained;
+    }
+
+    const previousOrder = this.initiativeOrder();
+    const orderedPlayerIds = [
+      ...previousOrder.filter((id) => retainedPlayers[id] !== undefined),
+      ...Object.keys(retainedPlayers).filter((id) => !previousOrder.includes(id)),
+    ];
+    const nextRoom: BattleRoom = {
+      status: BATTLE_STATUS.PREPARATION,
+      currentRound: 1,
+      currentTurnIndex: 0,
+      combatants: retainedPlayers,
+      initiativeOrder: orderedPlayerIds,
+      lastUpdated: Date.now(),
+    };
+
+    await this.firebaseService.set(this.roomPath, nextRoom);
+    if (mode === 'long-rest') {
+      for (const player of players) {
+        if (player.status === COMBATANT_STATUS.DEAD || !player.playerName) continue;
+        await this.characterService.completeLongRest(player.playerName, player.maxHp);
+      }
+    }
+    this.actionHistory.set([]);
+  }
+
+  private async advanceTurn(): Promise<void> {
+    const room = this.room();
+    if (!room || room.status !== BATTLE_STATUS.BATTLE || room.initiativeOrder.length === 0) {
+      return;
+    }
+
+    const combatants = { ...room.combatants };
+    const updates: Record<string, unknown> = {};
+    const changedPlayerHp = new Map<string, number>();
+    const currentId = room.initiativeOrder[room.currentTurnIndex];
+    const current = currentId ? combatants[currentId] : undefined;
+    if (current && current.status !== COMBATANT_STATUS.DEAD) {
+      const processed = this.processTurnEffects(current, STATUS_EFFECT_TRIGGER.TURN_END);
+      if (processed.changed) {
+        combatants[current.id] = processed.combatant;
+        updates[`combatants/${current.id}`] = processed.combatant;
+        this.trackChangedPlayerHp(current, processed.combatant, changedPlayerHp);
+      }
+    }
+
+    let nextIndex: number | null = null;
+    let nextRound = room.currentRound;
+    const orderLength = room.initiativeOrder.length;
+    for (let offset = 1; offset <= orderLength; offset += 1) {
+      const absoluteIndex = room.currentTurnIndex + offset;
+      const candidateIndex = absoluteIndex % orderLength;
+      const candidateId = room.initiativeOrder[candidateIndex];
+      const candidate = combatants[candidateId];
+      if (!candidate || candidate.status === COMBATANT_STATUS.DEAD) continue;
+
+      const processed = this.processTurnEffects(candidate, STATUS_EFFECT_TRIGGER.TURN_START);
+      if (processed.changed) {
+        combatants[candidate.id] = processed.combatant;
+        updates[`combatants/${candidate.id}`] = processed.combatant;
+        this.trackChangedPlayerHp(candidate, processed.combatant, changedPlayerHp);
+      }
+      if (this.canTakeTurn(processed.combatant)) {
+        nextIndex = candidateIndex;
+        nextRound = room.currentRound + Math.floor(absoluteIndex / orderLength);
+        break;
+      }
+    }
+
+    if (nextIndex === null) {
+      if (Object.keys(updates).length === 0) return;
+    } else {
+      updates['currentTurnIndex'] = nextIndex;
+      updates['currentRound'] = nextRound;
+    }
+    updates['lastUpdated'] = Date.now();
+    await this.firebaseService.update(this.roomPath, updates);
+
+    for (const [playerName, hp] of changedPlayerHp) {
+      await this.characterService.updatePlayerHp(playerName, hp);
+    }
+  }
+
+  private processTurnEffects(
+    combatant: Combatant,
+    trigger: StatusEffectTrigger,
+  ): ProcessedTurnEffects {
+    const effects = combatant.activeEffects ?? [];
+    if (effects.length === 0) return { combatant, changed: false };
+
+    let updated = combatant;
+    let changed = false;
+    const activeEffects: ActiveStatusEffect[] = [];
+    for (const effect of effects) {
+      const shouldProcess =
+        effect.trigger === trigger &&
+        ((effect.damagePerTrigger ?? 0) > 0 || effect.remainingTriggers !== undefined);
+      if (!shouldProcess) {
+        activeEffects.push(effect);
+        continue;
+      }
+
+      changed = true;
+      if ((effect.damagePerTrigger ?? 0) > 0 && updated.status !== COMBATANT_STATUS.DEAD) {
+        updated = this.applyDamageToCombatant(updated, effect.damagePerTrigger ?? 0);
+      }
+      if (effect.remainingTriggers === undefined || effect.remainingTriggers > 1) {
+        activeEffects.push(
+          effect.remainingTriggers === undefined
+            ? effect
+            : { ...effect, remainingTriggers: effect.remainingTriggers - 1 },
+        );
+      }
+    }
+
+    const processed: Combatant = {
+      ...updated,
+      lastUpdated: Date.now(),
+    };
+    if (activeEffects.length > 0) processed.activeEffects = activeEffects;
+    else delete processed.activeEffects;
+    return { combatant: processed, changed };
+  }
+
+  private applyDamageToCombatant(combatant: Combatant, damage: number): Combatant {
+    if (damage <= 0 || combatant.status === COMBATANT_STATUS.DEAD) return combatant;
+
+    if (
+      combatant.type === COMBATANT_TYPE.PLAYER &&
+      (combatant.currentHp === 0 ||
+        combatant.status === COMBATANT_STATUS.DOWNED ||
+        combatant.status === COMBATANT_STATUS.STABLE)
+    ) {
+      const deathSaves =
+        combatant.status === COMBATANT_STATUS.STABLE
+          ? { successes: 0, failures: 1 }
+          : {
+              successes: combatant.deathSaves?.successes ?? 0,
+              failures: Math.min(3, (combatant.deathSaves?.failures ?? 0) + 1),
+            };
+      return {
+        ...combatant,
+        currentHp: 0,
+        status:
+          deathSaves.failures >= 3 ? COMBATANT_STATUS.DEAD : COMBATANT_STATUS.DOWNED,
+        deathSaves,
+      };
+    }
+
+    const currentHp = this.damageCalc.applyDamage(combatant.currentHp, damage);
+    if (currentHp > 0) return { ...combatant, currentHp };
+    if (combatant.type === COMBATANT_TYPE.ENEMY) {
+      return { ...combatant, currentHp: 0, status: COMBATANT_STATUS.DEAD };
+    }
+    return {
+      ...combatant,
+      currentHp: 0,
+      status: COMBATANT_STATUS.DOWNED,
+      deathSaves: { successes: 0, failures: 0 },
+    };
+  }
+
+  private canTakeTurn(combatant: Combatant): boolean {
+    return (
+      combatant.status === COMBATANT_STATUS.ALIVE ||
+      (combatant.type === COMBATANT_TYPE.PLAYER &&
+        combatant.status === COMBATANT_STATUS.DOWNED)
+    );
+  }
+
+  private trackChangedPlayerHp(
+    before: Combatant,
+    after: Combatant,
+    changedPlayerHp: Map<string, number>,
+  ): void {
+    if (
+      before.currentHp !== after.currentHp &&
+      after.type === COMBATANT_TYPE.PLAYER &&
+      after.playerName
+    ) {
+      changedPlayerHp.set(after.playerName, after.currentHp);
+    }
   }
 
   private async appendToInitiativeOrder(combatantId: string): Promise<void> {

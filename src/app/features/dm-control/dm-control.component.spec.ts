@@ -40,9 +40,12 @@ describe('DmControlComponent', () => {
     heal: ReturnType<typeof vi.fn>;
     addStatusEffect: ReturnType<typeof vi.fn>;
     removeStatusEffect: ReturnType<typeof vi.fn>;
+    recordDeathSave: ReturnType<typeof vi.fn>;
+    revive: ReturnType<typeof vi.fn>;
     nextTurn: ReturnType<typeof vi.fn>;
     undoLastAction: ReturnType<typeof vi.fn>;
     resetScene: ReturnType<typeof vi.fn>;
+    finishScene: ReturnType<typeof vi.fn>;
     addCreatureStacks: ReturnType<typeof vi.fn>;
   };
   let characterService: {
@@ -119,9 +122,12 @@ describe('DmControlComponent', () => {
       heal: vi.fn().mockResolvedValue(undefined),
       addStatusEffect: vi.fn().mockResolvedValue(true),
       removeStatusEffect: vi.fn().mockResolvedValue(true),
+      recordDeathSave: vi.fn().mockResolvedValue(true),
+      revive: vi.fn().mockResolvedValue(true),
       nextTurn: vi.fn().mockResolvedValue(undefined),
       undoLastAction: vi.fn().mockResolvedValue(undefined),
       resetScene: vi.fn().mockResolvedValue(undefined),
+      finishScene: vi.fn().mockResolvedValue(undefined),
       addCreatureStacks: vi.fn().mockResolvedValue([]),
     };
     characterService = {
@@ -408,11 +414,17 @@ describe('DmControlComponent', () => {
     battle.sortedCombatants.set([goblin]);
     component.selectedStatusTargetId.set(goblin.id);
     component.selectStatusEffect('poisoned');
+    component.statusDamage.set(3);
+    component.statusDuration.set(2);
 
     component.applyStatusEffect();
 
     await vi.waitFor(() =>
-      expect(battle.addStatusEffect).toHaveBeenCalledWith(goblin.id, 'poisoned'),
+      expect(battle.addStatusEffect).toHaveBeenCalledWith(goblin.id, 'poisoned', {
+        damagePerTrigger: 3,
+        durationTriggers: 2,
+        trigger: 'turn-start',
+      }),
     );
     component.removeStatusEffect(goblin.id, 'effect-fire');
     await vi.waitFor(() =>
@@ -438,6 +450,27 @@ describe('DmControlComponent', () => {
 
     await vi.waitFor(() => expect(battle.rollInitiative).toHaveBeenCalledOnce());
     await vi.waitFor(() => expect(component.showInitiativeRolls()).toBe(false));
+  });
+
+  it('records death saves and revives incapacitated combatants', async () => {
+    component.recordDeathSave('player_Aria', 'success');
+    component.reviveCombatant('player_Aria');
+
+    await vi.waitFor(() =>
+      expect(battle.recordDeathSave).toHaveBeenCalledWith('player_Aria', 'success'),
+    );
+    await vi.waitFor(() => expect(battle.revive).toHaveBeenCalledWith('player_Aria', 1));
+  });
+
+  it('finishes a scene only after confirmation and returns to the scene workspace', async () => {
+    vi.stubGlobal('confirm', vi.fn().mockReturnValue(true));
+    component.activePanel.set('battle');
+
+    component.finishScene('preserve');
+
+    await vi.waitFor(() => expect(battle.finishScene).toHaveBeenCalledWith('preserve'));
+    await vi.waitFor(() => expect(component.activePanel()).toBe('scenes'));
+    expect(component.transitioningScene()).toBe(false);
   });
 
   it('resets the battle only after user confirmation', async () => {

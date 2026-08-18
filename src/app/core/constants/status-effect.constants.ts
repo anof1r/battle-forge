@@ -11,12 +11,21 @@ export const STATUS_EFFECT_TYPE = {
 
 export type StatusEffectType = (typeof STATUS_EFFECT_TYPE)[keyof typeof STATUS_EFFECT_TYPE];
 
+export const STATUS_EFFECT_TRIGGER = {
+  TURN_START: 'turn-start',
+  TURN_END: 'turn-end',
+} as const;
+
+export type StatusEffectTrigger =
+  (typeof STATUS_EFFECT_TRIGGER)[keyof typeof STATUS_EFFECT_TRIGGER];
+
 export interface StatusEffectDefinition {
   type: StatusEffectType;
   label: string;
   icon: string;
   description: string;
   beneficial: boolean;
+  damageCapable: boolean;
 }
 
 export const STATUS_EFFECT_DEFINITIONS: readonly StatusEffectDefinition[] = [
@@ -26,6 +35,7 @@ export const STATUS_EFFECT_DEFINITIONS: readonly StatusEffectDefinition[] = [
     icon: '☠️',
     description: 'Яд ослабляет существо.',
     beneficial: false,
+    damageCapable: true,
   },
   {
     type: STATUS_EFFECT_TYPE.BURNING,
@@ -33,6 +43,7 @@ export const STATUS_EFFECT_DEFINITIONS: readonly StatusEffectDefinition[] = [
     icon: '🔥',
     description: 'Существо охвачено пламенем.',
     beneficial: false,
+    damageCapable: true,
   },
   {
     type: STATUS_EFFECT_TYPE.FROZEN,
@@ -40,6 +51,7 @@ export const STATUS_EFFECT_DEFINITIONS: readonly StatusEffectDefinition[] = [
     icon: '❄️',
     description: 'Лёд сковывает движения.',
     beneficial: false,
+    damageCapable: false,
   },
   {
     type: STATUS_EFFECT_TYPE.FRIGHTENED,
@@ -47,6 +59,7 @@ export const STATUS_EFFECT_DEFINITIONS: readonly StatusEffectDefinition[] = [
     icon: '👁️',
     description: 'Существо охвачено ужасом.',
     beneficial: false,
+    damageCapable: false,
   },
   {
     type: STATUS_EFFECT_TYPE.BLEEDING,
@@ -54,6 +67,7 @@ export const STATUS_EFFECT_DEFINITIONS: readonly StatusEffectDefinition[] = [
     icon: '🩸',
     description: 'Открытая рана продолжает кровоточить.',
     beneficial: false,
+    damageCapable: true,
   },
   {
     type: STATUS_EFFECT_TYPE.STUNNED,
@@ -61,6 +75,7 @@ export const STATUS_EFFECT_DEFINITIONS: readonly StatusEffectDefinition[] = [
     icon: '💫',
     description: 'Существо дезориентировано.',
     beneficial: false,
+    damageCapable: false,
   },
   {
     type: STATUS_EFFECT_TYPE.RESTRAINED,
@@ -68,6 +83,7 @@ export const STATUS_EFFECT_DEFINITIONS: readonly StatusEffectDefinition[] = [
     icon: '⛓️',
     description: 'Движения существа ограничены.',
     beneficial: false,
+    damageCapable: false,
   },
   {
     type: STATUS_EFFECT_TYPE.BLESSED,
@@ -75,6 +91,7 @@ export const STATUS_EFFECT_DEFINITIONS: readonly StatusEffectDefinition[] = [
     icon: '✨',
     description: 'Существо окружено благотворной магией.',
     beneficial: true,
+    damageCapable: false,
   },
 ] as const;
 
@@ -86,6 +103,7 @@ export function getStatusEffectDefinition(type: StatusEffectType): StatusEffectD
       icon: '❔',
       description: 'Эффект из более новой или пользовательской версии данных.',
       beneficial: false,
+      damageCapable: false,
     }
   );
 }

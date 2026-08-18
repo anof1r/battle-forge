@@ -373,6 +373,16 @@
     background: rgba(201, 168, 76, 0.05);
   }
 
+  &--downed {
+    border-color: rgba(214, 137, 54, 0.65);
+    background: rgba(116, 64, 22, 0.16);
+  }
+
+  &--dead {
+    border-color: rgba(122, 55, 55, 0.55);
+    opacity: 0.72;
+  }
+
   &__info {
     display: flex;
     flex-wrap: wrap;
@@ -402,6 +412,35 @@
     color: #c9a84c;
     font-weight: 700;
     font-size: 0.8rem;
+  }
+
+  &__life,
+  &__death-saves {
+    padding: 0.12rem 0.42rem;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+  }
+
+  &__life--alive {
+    color: #72c98a;
+  }
+
+  &__life--downed {
+    color: #e6a85b;
+  }
+
+  &__life--stable {
+    color: #79b9d1;
+  }
+
+  &__life--dead {
+    color: #dd6f67;
+  }
+
+  &__death-saves {
+    color: #d8c78d;
   }
 
   &__actions {
@@ -584,6 +623,17 @@
   color: #928875;
 }
 
+.dm-effect-rules {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--bf-space-2);
+
+  small {
+    color: #746b5b;
+    font-size: 0.65rem;
+  }
+}
+
 .dm-effect-error {
   color: #ef887c;
 }
@@ -736,6 +786,10 @@
 
   .dm-effect-picker {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dm-effect-rules {
+    grid-template-columns: 1fr;
   }
 
   .dm-active-effects__combatant {

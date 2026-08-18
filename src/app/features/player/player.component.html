@@ -59,6 +59,16 @@
         </button>
       </div>
 
+      @if (playerCombatant(); as self) {
+        @if (self.status !== COMBATANT_STATUS.ALIVE) {
+          <bf-combatant-life-state
+            class="player__life-state"
+            [status]="self.status"
+            [deathSaves]="self.deathSaves"
+          ></bf-combatant-life-state>
+        }
+      }
+
       @if (playerActiveEffects().length > 0) {
         <bf-status-effect-list
           [effects]="playerActiveEffects()"

@@ -14,6 +14,12 @@
           {{ definition(effect.type).icon }}
         </span>
         {{ definition(effect.type).label }}
+        @if (effect.damagePerTrigger) {
+          <span class="effect-chip__meta">−{{ effect.damagePerTrigger }} HP</span>
+        }
+        @if (effect.remainingTriggers) {
+          <span class="effect-chip__meta">×{{ effect.remainingTriggers }}</span>
+        }
       </span>
     }
   </div>

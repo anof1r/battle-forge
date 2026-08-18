@@ -827,6 +827,10 @@
   color: #b0a090;
 }
 
+.player__life-state {
+  margin-bottom: var(--bf-space-4);
+}
+
 .player__turn-order-title {
   margin-bottom: var(--bf-space-3);
   color: var(--bf-gold-bright);

@@ -379,6 +379,28 @@ describe('PlayerComponent', () => {
     expect(fixture.nativeElement.querySelector('bf-status-effect-list')).not.toBeNull();
   });
 
+  it('shows the logged-in player knockout and death save progress', () => {
+    component.character.set(character({ currentHp: 0 }));
+    component.isLoggedIn.set(true);
+    battle.sortedCombatants.set([
+      {
+        ...ally,
+        currentHp: 0,
+        status: COMBATANT_STATUS.DOWNED,
+        deathSaves: { successes: 1, failures: 2 },
+      },
+    ]);
+
+    fixture.detectChanges();
+
+    const lifeState = fixture.nativeElement.querySelector(
+      'bf-combatant-life-state',
+    ) as HTMLElement;
+    expect(lifeState).toHaveTextContent('Без сознания');
+    expect(lifeState).toHaveTextContent('✓ 1/3');
+    expect(lifeState).toHaveTextContent('✕ 2/3');
+  });
+
   it('keeps attack input intact and logs when damage persistence fails', async () => {
     const error = new Error('write failed');
     battle.aliveEnemies.set([enemy]);

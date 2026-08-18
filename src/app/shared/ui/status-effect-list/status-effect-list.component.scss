@@ -58,6 +58,13 @@
     animation: status-icon-pulse 2.2s ease-in-out infinite;
   }
 
+  &__meta {
+    padding-left: 0.25rem;
+    border-left: 1px solid currentColor;
+    font-size: 0.6rem;
+    opacity: 0.82;
+  }
+
   &--poisoned {
     background: linear-gradient(180deg, #263c1d, #172612);
     color: #a6e46e;

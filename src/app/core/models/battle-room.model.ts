@@ -10,3 +10,5 @@ export interface BattleRoom {
   initiativeOrder: string[];
   lastUpdated: number;
 }
+
+export type SceneTransitionMode = 'preserve' | 'long-rest';

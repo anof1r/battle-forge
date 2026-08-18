@@ -103,6 +103,9 @@ describe('DisplayComponent', () => {
       name: 'Aria',
       type: COMBATANT_TYPE.PLAYER,
       playerName: 'Aria',
+      currentHp: 0,
+      status: COMBATANT_STATUS.DOWNED,
+      deathSaves: { successes: 1, failures: 1 },
       activeEffects: [{ id: 'fear', type: 'frightened', appliedAt: 1 }],
     };
     status.set(BATTLE_STATUS.BATTLE);
@@ -120,5 +123,8 @@ describe('DisplayComponent', () => {
     );
     expect(fixture.nativeElement.querySelector('.arena__party-effects')).toHaveTextContent('Aria');
     expect(fixture.nativeElement.querySelector('.arena__party-effects')).toHaveTextContent('Страх');
+    expect(fixture.nativeElement.querySelector('.arena__party-effects')).toHaveTextContent(
+      'Без сознания',
+    );
   });
 });

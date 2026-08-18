@@ -1,0 +1,35 @@
+:host {
+  display: block;
+}
+
+.life-state {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--bf-space-2);
+  padding: var(--bf-space-2) var(--bf-space-3);
+  border: 1px solid currentColor;
+  border-radius: var(--bf-radius-md);
+  background: rgba(28, 18, 12, 0.88);
+  color: #d8c78d;
+  font-size: 0.76rem;
+
+  &--downed {
+    color: #efac58;
+    box-shadow: inset 0 0 18px rgba(173, 79, 24, 0.22);
+  }
+
+  &--stable {
+    color: #8dcde2;
+    box-shadow: inset 0 0 18px rgba(50, 126, 156, 0.2);
+  }
+
+  &--dead {
+    color: #e17a72;
+    background: rgba(30, 10, 10, 0.9);
+  }
+}
+
+.life-state__saves {
+  font-variant-numeric: tabular-nums;
+}

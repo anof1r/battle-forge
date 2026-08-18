@@ -91,6 +91,22 @@ export class CharacterService {
     await this.saveCharacter({ ...player, spells });
   }
 
+  async completeLongRest(playerName: string, maxHp: number): Promise<void> {
+    const player = await this.loadCharacter(playerName);
+    if (!player) return;
+
+    const spells = (player.spells || []).map((spell) => {
+      if (spell.isCantrip) return spell;
+      const maxUses = Math.max(1, spell.maxUses ?? 1);
+      return { ...spell, maxUses, usesRemaining: maxUses };
+    });
+    await this.saveCharacter({
+      ...player,
+      currentHp: Math.max(0, maxHp),
+      spells,
+    });
+  }
+
   async removePlayerSpell(playerName: string, spellId: string): Promise<void> {
     const player = await this.loadCharacter(playerName);
     if (!player) return;

@@ -229,4 +229,27 @@ describe('CharacterService', () => {
       }),
     );
   });
+
+  it('restores HP and leveled spell uses during a long rest', async () => {
+    const leveled = createSpell({
+      id: 'shield',
+      level: 1,
+      isCantrip: false,
+      maxUses: 3,
+      usesRemaining: 0,
+    });
+    vi.spyOn(service, 'loadCharacter').mockResolvedValue(
+      createCharacter({ currentHp: 2, spells: [leveled] }),
+    );
+    const save = vi.spyOn(service, 'saveCharacter').mockResolvedValue(undefined);
+
+    await service.completeLongRest('Aria', 30);
+
+    expect(save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currentHp: 30,
+        spells: [expect.objectContaining({ id: 'shield', usesRemaining: 3 })],
+      }),
+    );
+  });
 });

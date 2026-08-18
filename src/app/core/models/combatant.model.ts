@@ -1,11 +1,25 @@
 import { CombatantStatus, CombatantType } from '../constants/combatant.constants';
-import { StatusEffectType } from '../constants/status-effect.constants';
+import { StatusEffectTrigger, StatusEffectType } from '../constants/status-effect.constants';
 import { EnemyAbility, EnemyAction } from './enemy.model';
 
 export interface ActiveStatusEffect {
   id: string;
   type: StatusEffectType;
   appliedAt: number;
+  damagePerTrigger?: number;
+  trigger?: StatusEffectTrigger;
+  remainingTriggers?: number;
+}
+
+export interface StatusEffectOptions {
+  damagePerTrigger?: number;
+  trigger?: StatusEffectTrigger;
+  durationTriggers?: number;
+}
+
+export interface DeathSaves {
+  successes: number;
+  failures: number;
 }
 
 export interface Combatant {
@@ -26,6 +40,7 @@ export interface Combatant {
   resistances?: string[];
   statuses?: string[];
   activeEffects?: ActiveStatusEffect[];
+  deathSaves?: DeathSaves;
   lastUpdated?: number;
 }
 

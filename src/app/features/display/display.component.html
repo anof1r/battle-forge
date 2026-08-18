@@ -47,14 +47,22 @@
       </div>
     </header>
 
-    @if (affectedPlayers().length > 0) {
+    @if (partyAlerts().length > 0) {
       <section class="arena__party-effects" aria-label="Эффекты игроков">
-        @for (player of affectedPlayers(); track player.id) {
+        @for (player of partyAlerts(); track player.id) {
           <div class="party-effect-row">
             <strong>{{ player.name }}</strong>
-            <bf-status-effect-list
-              [effects]="player.activeEffects ?? []"
-            ></bf-status-effect-list>
+            @if (player.status !== COMBATANT_STATUS.ALIVE) {
+              <bf-combatant-life-state
+                [status]="player.status"
+                [deathSaves]="player.deathSaves"
+              ></bf-combatant-life-state>
+            }
+            @if ((player.activeEffects?.length ?? 0) > 0) {
+              <bf-status-effect-list
+                [effects]="player.activeEffects ?? []"
+              ></bf-status-effect-list>
+            }
           </div>
         }
       </section>
