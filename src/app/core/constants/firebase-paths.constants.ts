@@ -7,6 +7,7 @@ export const FIREBASE_ROOT = {
   ITEM_TEMPLATES: 'dm-library/items',
   SPELL_TEMPLATES: 'dm-library/spells',
   ENEMY_ACTION_TEMPLATES: 'dm-library/enemy-actions',
+  MAIN_STORY_SECTIONS: 'dm-library/stories/main/sections',
 } as const;
 
 export const MAIN_ROOM_ID = 'main-room';
@@ -37,4 +38,8 @@ export function spellTemplatePath(templateId: string): string {
 
 export function enemyActionTemplatePath(templateId: string): string {
   return `${FIREBASE_ROOT.ENEMY_ACTION_TEMPLATES}/${templateId}`;
+}
+
+export function mainStorySectionPath(sectionId: string): string {
+  return `${FIREBASE_ROOT.MAIN_STORY_SECTIONS}/${sectionId}`;
 }

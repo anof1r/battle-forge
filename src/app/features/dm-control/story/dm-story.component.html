@@ -1,19 +1,13 @@
 <section class="story-editor" aria-labelledby="story-editor-title">
   <header class="story-editor__header">
     <div>
-      <p class="story-editor__eyebrow">Локальная презентация</p>
+      <p class="story-editor__eyebrow">Локальная презентация и суфлёр</p>
       <h2 id="story-editor-title">🎭 История</h2>
-      <p>Загрузите изображения в нужном порядке.</p>
+      <p>
+        Изображения остаются на этом устройстве, а сюжетные заметки сохраняются в Firebase.
+      </p>
     </div>
-    <label class="story-editor__upload">
-      <span>＋ Добавить изображения</span>
-      <input type="file" accept="image/*" multiple (change)="onFilesSelected($event)" />
-    </label>
   </header>
-
-  @if (uploadMessage(); as message) {
-    <p class="story-editor__message" role="status">{{ message }}</p>
-  }
 
   <div class="story-editor__controls" aria-label="Управление показом истории">
     <button
@@ -54,66 +48,180 @@
     </button>
   </div>
 
-  @if (story.slides().length === 0) {
-    <div class="story-editor__empty">
-      <span aria-hidden="true">🖼️</span>
-      <strong>Слайды ещё не загружены</strong>
-      <p>Подойдут JPG, PNG, WebP и другие форматы изображений, которые открывает браузер.</p>
-    </div>
-  } @else {
-    <div class="story-editor__grid" aria-label="Слайды истории">
-      @for (slide of story.slides(); track slide.id; let index = $index) {
-        <article
-          class="story-slide"
-          [class.story-slide--active]="story.activeSlideId() === slide.id"
-          [class.story-slide--dragging]="draggedSlideId() === slide.id"
-          draggable="true"
-          tabindex="0"
-          role="button"
-          [attr.aria-label]="'Выбрать слайд ' + (index + 1) + ': ' + slide.name"
-          (click)="story.selectSlide(slide.id)"
-          (keydown.enter)="story.selectSlide(slide.id)"
-          (dragstart)="onDragStart(slide.id, $event)"
-          (dragover)="onDragOver($event)"
-          (drop)="onDrop(slide.id, $event)"
-          (dragend)="stopDragging()"
-        >
-          <div class="story-slide__preview">
-            <img [src]="slide.objectUrl" [alt]="slide.name" />
-            <span class="story-slide__number">{{ index + 1 }}</span>
-            @if (story.activeSlideId() === slide.id) {
-              <span class="story-slide__live">На экране</span>
-            }
-          </div>
-          <p class="story-slide__name" [attr.title]="slide.name">{{ slide.name }}</p>
-          <div class="story-slide__actions">
-            <button
-              type="button"
-              [disabled]="$first"
-              aria-label="Переместить слайд раньше"
-              (click)="moveSlide(slide.id, -1, $event)"
-            >
-              ←
-            </button>
-            <button
-              type="button"
-              [disabled]="$last"
-              aria-label="Переместить слайд позже"
-              (click)="moveSlide(slide.id, 1, $event)"
-            >
-              →
-            </button>
-            <button
-              type="button"
-              class="story-slide__remove"
-              aria-label="Удалить слайд"
-              (click)="removeSlide(slide.id, $event)"
-            >
-              ✕
-            </button>
-          </div>
-        </article>
+  <details class="story-deck" open>
+    <summary class="story-deck__summary">
+      <span>🖼 Изображения и порядок</span>
+      <small>{{ story.slides().length }} шт.</small>
+    </summary>
+
+    <div class="story-deck__body">
+      <div class="story-deck__toolbar">
+        <p>Имя файла связывает картинку с сюжетом: <code>1.png</code> → ключ <code>1</code>.</p>
+        <label class="story-editor__upload">
+          <span>＋ Добавить изображения</span>
+          <input type="file" accept="image/*" multiple (change)="onFilesSelected($event)" />
+        </label>
+      </div>
+
+      @if (uploadMessage(); as message) {
+        <p class="story-editor__message" role="status">{{ message }}</p>
       }
+
+      @if (story.slides().length === 0) {
+        <div class="story-editor__empty">
+          <span aria-hidden="true">🖼️</span>
+          <strong>Слайды ещё не загружены</strong>
+          <p>Подойдут JPG, PNG, WebP и другие форматы изображений, которые открывает браузер.</p>
+        </div>
+      } @else {
+        <div class="story-editor__grid" aria-label="Слайды истории">
+          @for (slide of story.slides(); track slide.id; let index = $index) {
+            <article
+              class="story-slide"
+              [class.story-slide--active]="story.activeSlideId() === slide.id"
+              [class.story-slide--dragging]="draggedSlideId() === slide.id"
+              draggable="true"
+              tabindex="0"
+              role="button"
+              [attr.aria-label]="'Выбрать слайд ' + (index + 1) + ': ' + slide.name"
+              (click)="story.selectSlide(slide.id)"
+              (keydown.enter)="story.selectSlide(slide.id)"
+              (dragstart)="onDragStart(slide.id, $event)"
+              (dragover)="onDragOver($event)"
+              (drop)="onDrop(slide.id, $event)"
+              (dragend)="stopDragging()"
+            >
+              <div class="story-slide__preview">
+                <img [src]="slide.objectUrl" [alt]="slide.name" />
+                <span class="story-slide__number">{{ index + 1 }}</span>
+                @if (story.activeSlideId() === slide.id) {
+                  <span class="story-slide__live">На экране</span>
+                }
+              </div>
+              <div class="story-slide__identity">
+                <p class="story-slide__name" [attr.title]="slide.name">{{ slide.name }}</p>
+                <small>Сюжет: {{ storySectionIdFromFileName(slide.name) }}</small>
+              </div>
+              <div class="story-slide__actions">
+                <button
+                  type="button"
+                  [disabled]="$first"
+                  aria-label="Переместить слайд раньше"
+                  (click)="moveSlide(slide.id, -1, $event)"
+                >
+                  ←
+                </button>
+                <button
+                  type="button"
+                  [disabled]="$last"
+                  aria-label="Переместить слайд позже"
+                  (click)="moveSlide(slide.id, 1, $event)"
+                >
+                  →
+                </button>
+                <button
+                  type="button"
+                  class="story-slide__remove"
+                  aria-label="Удалить слайд"
+                  (click)="removeSlide(slide.id, $event)"
+                >
+                  ✕
+                </button>
+              </div>
+            </article>
+          }
+        </div>
+      }
+    </div>
+  </details>
+
+  @if (story.activeSlide(); as slide) {
+    <section class="story-script" aria-labelledby="story-script-title">
+      <header class="story-script__header">
+        <div>
+          <p class="story-script__eyebrow">Сюжет для выбранной картинки</p>
+          <h3 id="story-script-title">📜 {{ slide.name }}</h3>
+        </div>
+        <div class="story-script__header-actions">
+          <span class="story-script__key">Ключ Firebase: {{ activeSectionId() }}</span>
+          @if (!scriptEditing()) {
+            <button
+              type="button"
+              class="story-editor__button"
+              (click)="startScriptEditing()"
+            >
+              ✎ Редактировать
+            </button>
+          }
+        </div>
+      </header>
+
+      @if (hasDuplicateSectionId()) {
+        <p class="story-script__warning" role="alert">
+          У нескольких картинок одинаковое имя без расширения. Они будут использовать один сюжетный текст.
+        </p>
+      }
+
+      <div
+        class="story-script__workspace"
+        [class.story-script__workspace--reading]="!scriptEditing()"
+      >
+        @if (scriptEditing()) {
+          <label class="story-script__editor">
+            <span>Сценарий и подсказки для DM</span>
+            <textarea
+              rows="18"
+              placeholder="# Сцена в таверне&#10;&#10;Опишите обстановку...&#10;&#10;> — Что вам здесь нужно?&#10;&#10;**Проверка Внимательности СЛ 12**"
+              [value]="scriptDraft()"
+              (input)="onScriptInput($event)"
+            ></textarea>
+            <small>
+              Markdown: <code># заголовок</code>, <code>**жирный**</code>, <code>*курсив*</code>,
+              <code>&gt; реплика</code>, <code>- список</code>.
+            </small>
+          </label>
+        }
+
+        <article class="story-script__preview" aria-label="Предпросмотр сюжетного текста">
+          <span class="story-script__preview-label">Предпросмотр</span>
+          @if (scriptDraft().trim()) {
+            <div class="story-script__markdown" [innerHTML]="scriptPreview()"></div>
+          } @else {
+            <p class="story-script__empty-preview">Для этой картинки сюжет пока не написан.</p>
+          }
+        </article>
+      </div>
+
+      <footer class="story-script__actions">
+        @if (scriptEditing()) {
+          <button
+            type="button"
+            class="story-editor__button"
+            [disabled]="scriptSaving() || !scriptIsDirty()"
+            (click)="saveScript()"
+          >
+            {{ scriptSaving() ? 'Сохраняем…' : '💾 Сохранить сюжет' }}
+          </button>
+          <button
+            type="button"
+            class="story-editor__button"
+            [disabled]="scriptSaving()"
+            (click)="resetScriptDraft()"
+          >
+            Отменить изменения
+          </button>
+        }
+        @if (scriptMessage(); as message) {
+          <span class="story-script__success" role="status">{{ message }}</span>
+        }
+        @if (scriptError(); as error) {
+          <span class="story-script__error" role="alert">{{ error }}</span>
+        }
+      </footer>
+    </section>
+  } @else {
+    <div class="story-script story-script--empty">
+      Загрузите и выберите картинку — здесь появится её сюжетный текст.
     </div>
   }
 </section>

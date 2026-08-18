@@ -12,3 +12,4 @@ export * from './spell-template.model';
 export * from './enemy-action-template.model';
 export * from './open5e.model';
 export * from './story-presentation.model';
+export * from './story-script.model';

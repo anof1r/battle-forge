@@ -3,3 +3,4 @@ export * from './character-normalizer.util';
 export * from './initiative.util';
 export * from './json-parser.util';
 export * from './spell-slot-progression.util';
+export * from './story-script.util';
