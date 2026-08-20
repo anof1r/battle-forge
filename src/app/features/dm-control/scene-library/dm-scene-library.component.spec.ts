@@ -69,6 +69,13 @@ describe('DmSceneLibraryComponent', () => {
     lastUpdated: 100,
   };
 
+  const wolf: CreatureTemplate = {
+    ...goblin,
+    id: 'creature-wolf',
+    name: 'Wolf',
+    subtype: 'beast',
+  };
+
   beforeEach(() => {
     library = {
       creatures: signal([goblin]),
@@ -155,6 +162,30 @@ describe('DmSceneLibraryComponent', () => {
         }),
       ),
     );
+  });
+
+  it('updates an existing scene after adding a newly available creature', async () => {
+    component.editScene(forest);
+    library.creatures.set([goblin, wolf]);
+    component.selectedTemplateId.set(wolf.id);
+    component.selectedQuantity.set(2);
+    component.addSceneEntry();
+
+    component.saveScene();
+
+    await vi.waitFor(() =>
+      expect(library.saveScene).toHaveBeenCalledWith({
+        id: forest.id,
+        name: forest.name,
+        description: forest.description,
+        entries: [
+          { templateId: goblin.id, quantity: 3 },
+          { templateId: wolf.id, quantity: 2 },
+        ],
+      }),
+    );
+    await vi.waitFor(() => expect(component.savingScene()).toBe(false));
+    expect(component.feedback()).toContain('обновлён');
   });
 
   it('renders saved scenes and launches all resolved creature stacks', async () => {

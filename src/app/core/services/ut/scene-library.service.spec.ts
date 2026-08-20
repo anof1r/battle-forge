@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { FIREBASE_ROOT } from '../../constants/firebase-paths.constants';
-import { CreatureTemplate, ScenePreset } from '../../models';
+import { CreatureTemplate, EnemyAction, ScenePreset, ScenePresetEntry } from '../../models';
 import { FirebaseService } from '../firebase.service';
 import { SceneLibraryService } from '../scene-library.service';
 
@@ -154,6 +154,64 @@ describe('SceneLibraryService', () => {
         createdAt: 100,
         lastUpdated: 500,
         entries: [{ templateId: goblin.id, quantity: 1 }],
+      }),
+    );
+  });
+
+  it('removes malformed legacy values before updating a scene or creature', async () => {
+    const goblin = creature();
+    const wolf = creature({ id: 'creature-wolf', name: 'Wolf' });
+    const forest = scene();
+    setup({ [goblin.id]: goblin, [wolf.id]: wolf }, { [forest.id]: forest });
+
+    await service.saveScene({
+      id: forest.id,
+      name: forest.name,
+      description: forest.description,
+      entries: [
+        { templateId: goblin.id, quantity: 2 },
+        null,
+        { templateId: undefined, quantity: 1 },
+        { templateId: wolf.id, quantity: 1 },
+      ] as unknown as ScenePresetEntry[],
+    });
+
+    expect(firebase.set).toHaveBeenLastCalledWith(
+      `dm-library/scenes/${forest.id}`,
+      expect.objectContaining({
+        entries: [
+          { templateId: goblin.id, quantity: 2 },
+          { templateId: wolf.id, quantity: 1 },
+        ],
+      }),
+    );
+
+    await service.saveCreature({
+      ...goblin,
+      actions: [
+        {
+          name: ' Bite ',
+          description: undefined,
+          toHit: undefined,
+          damage: '1d4',
+          damageType: undefined,
+          fullText: undefined,
+        } as unknown as EnemyAction,
+      ],
+    });
+
+    expect(firebase.set).toHaveBeenLastCalledWith(
+      `dm-library/creatures/${goblin.id}`,
+      expect.objectContaining({
+        actions: [
+          {
+            name: 'Bite',
+            description: '',
+            toHit: '',
+            damage: '1d4',
+            damageType: '',
+          },
+        ],
       }),
     );
   });

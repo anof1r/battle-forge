@@ -3,9 +3,12 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import {
   CreatureTemplate,
   CreatureTemplateDraft,
+  EnemyAbility,
+  EnemyAction,
   SceneCreatureStack,
   ScenePreset,
   ScenePresetDraft,
+  ScenePresetEntry,
 } from '../models';
 import {
   FIREBASE_ROOT,
@@ -44,9 +47,18 @@ export class SceneLibraryService {
     const now = Date.now();
     const id = draft.id || `creature_${crypto.randomUUID()}`;
     const existing = this.creatureRecords()?.[id];
+    const source = draft.source ?? existing?.source;
     const creature: CreatureTemplate = {
-      ...draft,
       id,
+      name: draft.name.trim() || 'Существо без имени',
+      subtype: draft.subtype.trim(),
+      maxHp: this.positiveInteger(draft.maxHp),
+      ac: this.positiveInteger(draft.ac),
+      actions: this.normalizeActions(draft.actions),
+      abilities: this.normalizeAbilities(draft.abilities),
+      resistances: this.normalizeStringList(draft.resistances),
+      statuses: this.normalizeStringList(draft.statuses),
+      ...(source ? { source } : {}),
       createdAt: existing?.createdAt ?? now,
       lastUpdated: now,
     };
@@ -67,12 +79,10 @@ export class SceneLibraryService {
     const id = draft.id || `scene_${crypto.randomUUID()}`;
     const existing = this.sceneRecords()?.[id];
     const scene: ScenePreset = {
-      ...draft,
-      entries: draft.entries.map((entry) => {
-        const quantity = Number.isFinite(entry.quantity) ? Math.floor(entry.quantity) : 1;
-        return { templateId: entry.templateId, quantity: Math.max(1, quantity) };
-      }),
       id,
+      name: draft.name.trim() || 'Сцена без названия',
+      description: draft.description.trim(),
+      entries: this.normalizeSceneEntries(draft.entries),
       createdAt: existing?.createdAt ?? now,
       lastUpdated: now,
     };
@@ -99,12 +109,12 @@ export class SceneLibraryService {
       id: creature.id ?? id,
       name: creature.name ?? 'Существо без имени',
       subtype: creature.subtype ?? '',
-      maxHp: creature.maxHp ?? 1,
-      ac: creature.ac ?? 1,
-      actions: Array.isArray(creature.actions) ? creature.actions : [],
-      abilities: Array.isArray(creature.abilities) ? creature.abilities : [],
-      resistances: Array.isArray(creature.resistances) ? creature.resistances : [],
-      statuses: Array.isArray(creature.statuses) ? creature.statuses : [],
+      maxHp: this.positiveInteger(creature.maxHp),
+      ac: this.positiveInteger(creature.ac),
+      actions: this.normalizeActions(creature.actions),
+      abilities: this.normalizeAbilities(creature.abilities),
+      resistances: this.normalizeStringList(creature.resistances),
+      statuses: this.normalizeStringList(creature.statuses),
       ...(creature.source ? { source: creature.source } : {}),
       createdAt: creature.createdAt ?? creature.lastUpdated ?? 0,
       lastUpdated: creature.lastUpdated ?? 0,
@@ -116,9 +126,76 @@ export class SceneLibraryService {
       id: scene.id ?? id,
       name: scene.name ?? 'Сцена без названия',
       description: scene.description ?? '',
-      entries: Array.isArray(scene.entries) ? scene.entries : [],
+      entries: this.normalizeSceneEntries(scene.entries),
       createdAt: scene.createdAt ?? scene.lastUpdated ?? 0,
       lastUpdated: scene.lastUpdated ?? 0,
     };
+  }
+
+  private normalizeSceneEntries(entries: unknown): ScenePresetEntry[] {
+    const candidates = Array.isArray(entries)
+      ? entries
+      : entries && typeof entries === 'object'
+        ? Object.values(entries)
+        : [];
+    const quantities = new Map<string, number>();
+
+    for (const candidate of candidates) {
+      if (!candidate || typeof candidate !== 'object') continue;
+      const entry = candidate as Partial<ScenePresetEntry>;
+      const templateId = typeof entry.templateId === 'string' ? entry.templateId.trim() : '';
+      if (!templateId) continue;
+      quantities.set(
+        templateId,
+        (quantities.get(templateId) ?? 0) + this.positiveInteger(entry.quantity),
+      );
+    }
+
+    return Array.from(quantities, ([templateId, quantity]) => ({ templateId, quantity }));
+  }
+
+  private normalizeActions(actions: unknown): EnemyAction[] {
+    if (!Array.isArray(actions)) return [];
+    return actions.flatMap((candidate) => {
+      if (!candidate || typeof candidate !== 'object') return [];
+      const action = candidate as Partial<EnemyAction>;
+      const name = typeof action.name === 'string' ? action.name.trim() : '';
+      if (!name) return [];
+      const fullText = typeof action.fullText === 'string' ? action.fullText.trim() : '';
+      return [{
+        name,
+        description: typeof action.description === 'string' ? action.description.trim() : '',
+        toHit: typeof action.toHit === 'string' ? action.toHit.trim() : '',
+        damage: typeof action.damage === 'string' ? action.damage.trim() : '',
+        damageType: typeof action.damageType === 'string' ? action.damageType.trim() : '',
+        ...(fullText ? { fullText } : {}),
+      }];
+    });
+  }
+
+  private normalizeAbilities(abilities: unknown): EnemyAbility[] {
+    if (!Array.isArray(abilities)) return [];
+    return abilities.flatMap((candidate) => {
+      if (!candidate || typeof candidate !== 'object') return [];
+      const ability = candidate as Partial<EnemyAbility>;
+      const name = typeof ability.name === 'string' ? ability.name.trim() : '';
+      const description = typeof ability.description === 'string'
+        ? ability.description.trim()
+        : '';
+      return name && description ? [{ name, description }] : [];
+    });
+  }
+
+  private normalizeStringList(values: unknown): string[] {
+    return Array.isArray(values)
+      ? values.filter((value): value is string => typeof value === 'string')
+          .map((value) => value.trim())
+          .filter(Boolean)
+      : [];
+  }
+
+  private positiveInteger(value: unknown): number {
+    const number = typeof value === 'number' ? value : Number(value);
+    return Number.isFinite(number) && number > 0 ? Math.floor(number) : 1;
   }
 }

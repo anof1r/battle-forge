@@ -891,27 +891,27 @@
 .bestiary-card__abilities {
   display: grid;
   gap: var(--bf-space-2);
-  margin-top: var(--bf-space-3);
-  padding-top: var(--bf-space-3);
-  border-top: 1px dashed rgba(201, 168, 76, 0.28);
+}
 
-  h4 {
-    margin: 0;
-    color: #c9a84c;
-    font-family: var(--bf-font-display);
-    font-size: 0.8rem;
-    text-transform: uppercase;
-  }
+.bestiary-card__abilities-wrapper {
+  background: rgba(255, 252, 244, 0.96);
+  border-color: #c9b58f;
 }
 
 .bestiary-card__ability {
-  color: #b8aa8d;
-  font-size: 0.75rem;
-  line-height: 1.4;
+  padding: var(--bf-space-2) 0;
+  border-bottom: 1px dotted #d4c5a0;
+  color: #2a1f14;
+  font-size: 0.85rem;
+  line-height: 1.5;
+
+  &:last-child {
+    border-bottom: 0;
+  }
 
   strong {
     margin-right: 0.3rem;
-    color: #e2d09c;
+    color: #5a3a2a;
   }
 }
 

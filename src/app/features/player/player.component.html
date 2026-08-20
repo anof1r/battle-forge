@@ -284,16 +284,21 @@
                               Использования: ∞
                             } @else if (hasSharedSpellSlots()) {
                               @if (getAvailableSlotLevels(spell).length > 0) {
-                                <label>
-                                  Ячейка
-                                  <select
-                                    [value]="getSelectedSlotLevel(spell)"
-                                    (change)="setSpellSlotLevel(spell.id, $event)"
-                                  >
-                                    @for (level of getAvailableSlotLevels(spell); track level) {
-                                      <option [value]="level">{{ level }} уровень</option>
-                                    }
-                                  </select>
+                                <label class="player__slot-selector">
+                                  <span class="player__slot-selector-label">Ячейка заклинания</span>
+                                  <span class="player__slot-selector-control">
+                                    <select
+                                      class="player__slot-select"
+                                      [attr.aria-label]="'Уровень ячейки для заклинания ' + spell.name"
+                                      [value]="getSelectedSlotLevel(spell)"
+                                      (change)="setSpellSlotLevel(spell.id, $event)"
+                                    >
+                                      @for (level of getAvailableSlotLevels(spell); track level) {
+                                        <option [value]="level">{{ level }} уровень</option>
+                                      }
+                                    </select>
+                                    <span class="player__slot-select-chevron" aria-hidden="true"></span>
+                                  </span>
                                 </label>
                               } @else {
                                 Нет доступных ячеек
@@ -544,5 +549,45 @@
         </button>
       </div>
     </div>
+  </div>
+}
+
+@if (spellUseConfirmation(); as confirmation) {
+  <div class="modal-overlay modal-overlay--spell" (click)="closeSpellUseConfirmation()">
+    <section
+      class="modal-content spell-confirmation"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="spell-confirmation-title"
+      aria-describedby="spell-confirmation-result"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="spell-confirmation__sigil" aria-hidden="true">✦</div>
+      <p class="spell-confirmation__eyebrow">Заклинание применено</p>
+      <h3 id="spell-confirmation-title" class="modal-title spell-confirmation__title">
+        {{ confirmation.spellName }}
+      </h3>
+
+      <div id="spell-confirmation-result" class="spell-confirmation__result">
+        @if (confirmation.slotLevel !== null) {
+          <span>Потрачена ячейка</span>
+          <strong>{{ confirmation.slotLevel }} уровень</strong>
+        } @else if (confirmation.isCantrip) {
+          <span>Использован заговор</span>
+          <strong>Ячейка не расходуется</strong>
+        } @else {
+          <span>Использование отмечено</span>
+          <strong>Списан заряд заклинания</strong>
+        }
+      </div>
+
+      <button
+        class="modal-btn modal-btn--confirm spell-confirmation__close"
+        type="button"
+        (click)="closeSpellUseConfirmation()"
+      >
+        Продолжить
+      </button>
+    </section>
   </div>
 }

@@ -103,6 +103,9 @@ describe('DisplayComponent', () => {
     expect(fixture.nativeElement.querySelector('.bestiary-card__abilities')).toHaveTextContent(
       'Nimble Escape',
     );
+    expect(fixture.nativeElement.querySelector('.bestiary-card__abilities-wrapper')).toHaveTextContent(
+      'Способности',
+    );
   });
 
   it('renders immersive enemy effects and a compact player effect roster', () => {

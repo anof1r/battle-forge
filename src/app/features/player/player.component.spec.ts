@@ -537,6 +537,16 @@ describe('PlayerComponent', () => {
       expect(characterService.usePlayerSpell).toHaveBeenCalledWith('Aria', shield.id, undefined),
     );
     await vi.waitFor(() => expect(component.usingSpellId()).toBeNull());
+    expect(component.spellUseConfirmation()).toEqual({
+      spellName: 'Shield',
+      isCantrip: false,
+      slotLevel: null,
+    });
+
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.spell-confirmation')).toHaveTextContent(
+      'Списан заряд заклинания',
+    );
   });
 
   it('collapses spell descriptions and highlights dice notation inside the text', () => {
@@ -587,19 +597,34 @@ describe('PlayerComponent', () => {
       ),
     );
     expect(component.spellUseError()).not.toBeNull();
+    expect(component.spellUseConfirmation()).toBeNull();
   });
 
-  it('uses an available shared slot at or above the spell level', async () => {
+  it('uses the selected shared slot and confirms its level in a modal', async () => {
     const shield = spell();
     component.character.set(character({
       spells: [shield],
       spellSlots: [
-        { level: 1, current: 0, max: 2 },
+        { level: 1, current: 1, max: 2 },
         { level: 2, current: 1, max: 1, recovery: 'short-rest' },
       ],
     }));
+    component.isLoggedIn.set(true);
 
-    expect(component.getAvailableSlotLevels(shield)).toEqual([2]);
+    fixture.detectChanges();
+
+    const slotSelect = fixture.nativeElement.querySelector<HTMLSelectElement>(
+      '.player__slot-select',
+    );
+    expect(slotSelect).not.toBeNull();
+    expect(slotSelect?.options).toHaveLength(2);
+    if (slotSelect) {
+      slotSelect.value = '2';
+      slotSelect.dispatchEvent(new Event('change'));
+    }
+
+    expect(component.getAvailableSlotLevels(shield)).toEqual([1, 2]);
+    expect(component.getSelectedSlotLevel(shield)).toBe(2);
     expect(component.canUseSpell(shield)).toBe(true);
     component.useSpell(shield);
 
@@ -608,6 +633,53 @@ describe('PlayerComponent', () => {
       shield.id,
       2,
     ));
+    await vi.waitFor(() => expect(component.spellUseConfirmation()).toEqual({
+      spellName: 'Shield',
+      isCantrip: false,
+      slotLevel: 2,
+    }));
+
+    fixture.detectChanges();
+    const confirmation = fixture.nativeElement.querySelector<HTMLElement>('.spell-confirmation');
+    expect(confirmation).toHaveTextContent('Shield');
+    expect(confirmation).toHaveTextContent('Потрачена ячейка');
+    expect(confirmation).toHaveTextContent('2 уровень');
+
+    confirmation?.querySelector<HTMLButtonElement>('.spell-confirmation__close')?.click();
+    expect(component.spellUseConfirmation()).toBeNull();
+  });
+
+  it('confirms that a cantrip does not spend a spell slot', async () => {
+    const cantrip = spell({
+      id: 'minor-illusion',
+      name: 'Мелкие фокусы',
+      level: 0,
+      isCantrip: true,
+      maxUses: undefined,
+      usesRemaining: undefined,
+    });
+    component.character.set(character({
+      spells: [cantrip],
+      spellSlots: [{ level: 1, current: 2, max: 2 }],
+    }));
+
+    component.useSpell(cantrip);
+
+    await vi.waitFor(() => expect(characterService.usePlayerSpell).toHaveBeenCalledWith(
+      'Aria',
+      cantrip.id,
+      undefined,
+    ));
+    await vi.waitFor(() => expect(component.spellUseConfirmation()).toEqual({
+      spellName: 'Мелкие фокусы',
+      isCantrip: true,
+      slotLevel: null,
+    }));
+
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.spell-confirmation')).toHaveTextContent(
+      'Ячейка не расходуется',
+    );
   });
 
   it('lets the player spend a configured class resource', async () => {

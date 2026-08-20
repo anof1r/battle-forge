@@ -34,6 +34,12 @@ interface SpellDescriptionPart {
   isDice: boolean;
 }
 
+interface SpellUseConfirmation {
+  spellName: string;
+  isCantrip: boolean;
+  slotLevel: number | null;
+}
+
 const DICE_NOTATION_PATTERN = /(\d+\s*[dдк]\s*\d+(?:\s*[+\-−]\s*\d+)?)/giu;
 const EXACT_DICE_NOTATION_PATTERN = /^\d+\s*[dдк]\s*\d+(?:\s*[+\-−]\s*\d+)?$/iu;
 
@@ -80,6 +86,7 @@ export class PlayerComponent implements OnDestroy {
   readonly usingSpellId = signal<string | null>(null);
   readonly spellUseError = signal<string | null>(null);
   readonly selectedSpellSlots = signal<Record<string, number>>({});
+  readonly spellUseConfirmation = signal<SpellUseConfirmation | null>(null);
   readonly usingResourceId = signal<string | null>(null);
   readonly resourceUseError = signal<string | null>(null);
 
@@ -236,6 +243,7 @@ export class PlayerComponent implements OnDestroy {
     this.usingSpellId.set(null);
     this.spellUseError.set(null);
     this.selectedSpellSlots.set({});
+    this.spellUseConfirmation.set(null);
     this.usingResourceId.set(null);
     this.resourceUseError.set(null);
   }
@@ -313,24 +321,35 @@ export class PlayerComponent implements OnDestroy {
     const character = this.character();
     if (!character || !this.canUseSpell(spell) || this.usingSpellId() !== null) return;
 
+    const usesSharedSlot = !spell.isCantrip && this.hasSharedSpellSlots();
+    const selectedSlotLevel = usesSharedSlot ? this.getSelectedSlotLevel(spell) : undefined;
+
     this.usingSpellId.set(spell.id);
     this.spellUseError.set(null);
+    this.spellUseConfirmation.set(null);
     this.characterService
-      .usePlayerSpell(
-        character.name,
-        spell.id,
-        this.hasSharedSpellSlots() ? this.getSelectedSlotLevel(spell) : undefined,
-      )
+      .usePlayerSpell(character.name, spell.id, selectedSlotLevel)
       .then((success) => {
         if (!success) {
           this.spellUseError.set('Заклинание сейчас нельзя использовать. Обновите персонажа.');
+          return;
         }
+
+        this.spellUseConfirmation.set({
+          spellName: spell.name,
+          isCantrip: spell.isCantrip,
+          slotLevel: selectedSlotLevel ?? null,
+        });
       })
       .catch((error: unknown) => {
         this.logger.error('PlayerComponent.useSpell', error);
         this.spellUseError.set('Не удалось отметить использование заклинания. Попробуйте ещё раз.');
       })
       .finally(() => this.usingSpellId.set(null));
+  }
+
+  closeSpellUseConfirmation(): void {
+    this.spellUseConfirmation.set(null);
   }
 
   useResource(resourceId: string): void {

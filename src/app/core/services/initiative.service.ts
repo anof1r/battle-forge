@@ -3,7 +3,6 @@ import { FirebaseService } from './firebase.service';
 import { Combatant } from '../models/combatant.model';
 import { sortByInitiativeDesc, withTimestamp } from '../utils';
 
-/** Encapsulates initiative ordering/rolling so `BattleService` doesn't own that logic directly. */
 @Injectable({ providedIn: 'root' })
 export class InitiativeService {
   private readonly firebaseService = inject(FirebaseService);
