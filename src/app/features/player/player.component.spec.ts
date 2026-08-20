@@ -699,6 +699,7 @@ describe('PlayerComponent', () => {
     await vi.waitFor(() => expect(component.usingResourceId()).toBeNull());
     expect(component.resourceUseConfirmation()).toEqual({
       resourceName: 'Ярость',
+      isUnlimited: false,
       remaining: 1,
       max: 2,
     });
@@ -711,6 +712,45 @@ describe('PlayerComponent', () => {
 
     component.closeResourceUseConfirmation();
     expect(component.resourceUseConfirmation()).toBeNull();
+  });
+
+  it('renders and uses an unlimited resource without disabling it at zero', async () => {
+    component.character.set(character({
+      resources: [{
+        id: 'sneak-attack',
+        name: 'Скрытая атака',
+        description: 'Один раз за ход при выполнении условий.',
+        isUnlimited: true,
+        current: 0,
+        max: 0,
+        recovery: 'manual',
+      }],
+    }));
+    component.isLoggedIn.set(true);
+    fixture.detectChanges();
+
+    const card = fixture.nativeElement.querySelector('.player__resource-card--unlimited');
+    expect(card).toHaveTextContent('∞');
+    expect(card.querySelector('summary')).toHaveTextContent('Описание ресурса');
+    expect(card.querySelector('button')).not.toBeDisabled();
+
+    component.useResource('sneak-attack');
+
+    await vi.waitFor(() => expect(characterService.useResource).toHaveBeenCalledWith(
+      'Aria',
+      'sneak-attack',
+    ));
+    await vi.waitFor(() => expect(component.resourceUseConfirmation()).toEqual({
+      resourceName: 'Скрытая атака',
+      isUnlimited: true,
+      remaining: 0,
+      max: 0,
+    }));
+
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.resource-confirmation')).toHaveTextContent(
+      '∞ Бесконечно',
+    );
   });
 
   it('does not show a resource confirmation when spending fails', async () => {

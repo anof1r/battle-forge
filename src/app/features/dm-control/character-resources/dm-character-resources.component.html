@@ -71,16 +71,20 @@
               >
                 <span class="resource-manager__resource-title">
                   <strong>⚡ {{ resource.name }}</strong>
-                  <b>{{ resource.current }} / {{ resource.max }}</b>
+                  <b>{{ resource.isUnlimited ? '∞' : resource.current + ' / ' + resource.max }}</b>
                 </span>
                 @if (resource.description) {
                   <span class="resource-manager__resource-description">{{ resource.description }}</span>
                 }
                 <span class="resource-manager__resource-recovery">
-                  @switch (resource.recovery) {
-                    @case ('short-rest') { Короткий отдых }
-                    @case ('long-rest') { Долгий отдых }
-                    @default { Только вручную }
+                  @if (resource.isUnlimited) {
+                    Не расходуется
+                  } @else {
+                    @switch (resource.recovery) {
+                      @case ('short-rest') { Короткий отдых }
+                      @case ('long-rest') { Долгий отдых }
+                      @default { Только вручную }
+                    }
                   }
                   · нажмите для редактирования
                 </span>
@@ -116,20 +120,36 @@
               placeholder="Что даёт ресурс и когда его можно использовать"
             ></textarea>
           </label>
-          <label><span>Максимум</span><input type="number" min="0" [value]="resourceMax()" (input)="setNumber('resourceMax', $event)" /></label>
-          <label><span>Осталось</span><input type="number" min="0" [max]="resourceMax()" [value]="resourceCurrent()" (input)="setNumber('resourceCurrent', $event)" /></label>
-          <label>
-            <span>Восстановление</span>
-            <select [value]="resourceRecovery()" (change)="setRecovery($event)">
-              <option value="short-rest">Короткий отдых</option>
-              <option value="long-rest">Долгий отдых</option>
-              <option value="manual">Только вручную</option>
-            </select>
+          <label class="resource-manager__unlimited">
+            <input
+              type="checkbox"
+              [checked]="resourceUnlimited()"
+              (change)="setResourceUnlimited($event)"
+            />
+            <span class="resource-manager__unlimited-icon" aria-hidden="true">∞</span>
+            <span class="resource-manager__unlimited-copy">
+              <strong>Бесконечно</strong>
+              <small>Ресурс можно применять без списания зарядов</small>
+            </span>
           </label>
+          @if (!resourceUnlimited()) {
+            <label><span>Максимум</span><input type="number" min="0" [value]="resourceMax()" (input)="setNumber('resourceMax', $event)" /></label>
+            <label><span>Осталось</span><input type="number" min="0" [max]="resourceMax()" [value]="resourceCurrent()" (input)="setNumber('resourceCurrent', $event)" /></label>
+            <label>
+              <span>Восстановление</span>
+              <select [value]="resourceRecovery()" (change)="setRecovery($event)">
+                <option value="short-rest">Короткий отдых</option>
+                <option value="long-rest">Долгий отдых</option>
+                <option value="manual">Только вручную</option>
+              </select>
+            </label>
+          }
           <div class="resource-manager__form-actions">
-            <button type="button" class="secondary" [disabled]="resourceMax() <= 0" (click)="fillResourceToMax()">
-              Заполнить до максимума
-            </button>
+            @if (!resourceUnlimited()) {
+              <button type="button" class="secondary" [disabled]="resourceMax() <= 0" (click)="fillResourceToMax()">
+                Заполнить до максимума
+              </button>
+            }
             <button type="button" [disabled]="saving() || !resourceName().trim()" (click)="saveResource()">
               {{ resourceId() ? 'Сохранить изменения' : 'Добавить ресурс' }}
             </button>

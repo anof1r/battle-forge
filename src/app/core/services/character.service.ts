@@ -146,15 +146,17 @@ export class CharacterService {
     const player = await this.loadCharacter(playerName);
     if (!player) return;
     const resources = normalizeCharacterResources(player.resources);
-    const max = Math.max(0, Math.floor(resource.max));
+    const isUnlimited = resource.isUnlimited === true;
+    const max = isUnlimited ? 0 : Math.max(0, Math.floor(resource.max));
     const description = resource.description?.trim() ?? '';
     const normalized: CharacterResource = {
       id: resource.id || `resource_${crypto.randomUUID()}`,
       name: resource.name.trim(),
       ...(description ? { description } : {}),
+      ...(isUnlimited ? { isUnlimited: true } : {}),
       max,
-      current: Math.max(0, Math.min(max, Math.floor(resource.current))),
-      recovery: resource.recovery,
+      current: isUnlimited ? 0 : Math.max(0, Math.min(max, Math.floor(resource.current))),
+      recovery: isUnlimited ? 'manual' : resource.recovery,
     };
     if (!normalized.name) return;
     const index = resources.findIndex((candidate) => candidate.id === normalized.id);
@@ -179,7 +181,9 @@ export class CharacterService {
     const resources = normalizeCharacterResources(player.resources);
     const resource = resources.find((candidate) => candidate.id === resourceId);
     const spent = Math.max(1, Math.floor(amount));
-    if (!resource || resource.current < spent) return false;
+    if (!resource) return false;
+    if (resource.isUnlimited) return true;
+    if (resource.current < spent) return false;
     await this.saveCharacter({
       ...player,
       resources: resources.map((candidate) =>

@@ -103,12 +103,40 @@ describe('DmCharacterResourcesComponent', () => {
       id: '',
       name: 'Ярость',
       description: 'Преимущество к проверкам Силы.',
+      isUnlimited: false,
       current: 1,
       max: 2,
       recovery: 'long-rest',
     }));
     await vi.waitFor(() => expect(component.resourceName()).toBe(''));
     expect(component.resourceDescription()).toBe('');
+    expect(component.resourceUnlimited()).toBe(false);
+  });
+
+  it('configures an unlimited resource without charge or recovery fields', async () => {
+    component.selectPlayer({ target: { value: 'player_Aria' } } as unknown as Event);
+    await vi.waitFor(() => expect(component.character()).toEqual(aria));
+    component.resourceName.set('Скрытая атака');
+    component.resourceCurrent.set(4);
+    component.resourceMax.set(4);
+
+    component.setResourceUnlimited({ target: { checked: true } } as unknown as Event);
+
+    expect(component.resourceUnlimited()).toBe(true);
+    expect(component.resourceCurrent()).toBe(0);
+    expect(component.resourceMax()).toBe(0);
+    expect(component.resourceRecovery()).toBe('manual');
+    component.saveResource();
+
+    await vi.waitFor(() => expect(characters.upsertResource).toHaveBeenCalledWith('Aria', {
+      id: '',
+      name: 'Скрытая атака',
+      description: '',
+      isUnlimited: true,
+      current: 0,
+      max: 0,
+      recovery: 'manual',
+    }));
   });
 
   it('edits, fills and deletes a manual resource', async () => {
@@ -120,6 +148,7 @@ describe('DmCharacterResourcesComponent', () => {
 
     expect(component.resourceName()).toBe(resource.name);
     expect(component.resourceDescription()).toBe('Возвращает ячейку.');
+    expect(component.resourceUnlimited()).toBe(false);
     component.resourceMax.set(4);
     component.fillResourceToMax();
     expect(component.resourceCurrent()).toBe(4);

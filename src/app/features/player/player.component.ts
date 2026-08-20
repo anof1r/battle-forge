@@ -42,6 +42,7 @@ interface SpellUseConfirmation {
 
 interface ResourceUseConfirmation {
   resourceName: string;
+  isUnlimited: boolean;
   remaining: number;
   max: number;
 }
@@ -358,7 +359,12 @@ export class PlayerComponent implements OnDestroy {
   useResource(resourceId: string): void {
     const character = this.character();
     const resource = this.characterResources().find((candidate) => candidate.id === resourceId);
-    if (!character || !resource || resource.current <= 0 || this.usingResourceId()) return;
+    if (
+      !character ||
+      !resource ||
+      (!resource.isUnlimited && resource.current <= 0) ||
+      this.usingResourceId()
+    ) return;
     this.usingResourceId.set(resourceId);
     this.resourceUseError.set(null);
     this.resourceUseConfirmation.set(null);
@@ -371,7 +377,8 @@ export class PlayerComponent implements OnDestroy {
         }
         this.resourceUseConfirmation.set({
           resourceName: resource.name,
-          remaining: Math.max(0, resource.current - 1),
+          isUnlimited: resource.isUnlimited === true,
+          remaining: resource.isUnlimited ? 0 : Math.max(0, resource.current - 1),
           max: resource.max,
         });
       })

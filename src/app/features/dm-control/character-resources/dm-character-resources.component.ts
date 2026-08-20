@@ -38,6 +38,7 @@ export class DmCharacterResourcesComponent {
   readonly resourceId = signal<string | null>(null);
   readonly resourceName = signal('');
   readonly resourceDescription = signal('');
+  readonly resourceUnlimited = signal(false);
   readonly resourceCurrent = signal(0);
   readonly resourceMax = signal(0);
   readonly resourceRecovery = signal<ResourceRecovery>('long-rest');
@@ -87,6 +88,7 @@ export class DmCharacterResourcesComponent {
     this.resourceId.set(resource.id);
     this.resourceName.set(resource.name);
     this.resourceDescription.set(resource.description ?? '');
+    this.resourceUnlimited.set(resource.isUnlimited === true);
     this.resourceCurrent.set(resource.current);
     this.resourceMax.set(resource.max);
     this.resourceRecovery.set(resource.recovery);
@@ -104,6 +106,7 @@ export class DmCharacterResourcesComponent {
         id: this.resourceId() ?? '',
         name,
         description: this.resourceDescription().trim(),
+        isUnlimited: this.resourceUnlimited(),
         current: this.resourceCurrent(),
         max: this.resourceMax(),
         recovery: this.resourceRecovery(),
@@ -143,6 +146,7 @@ export class DmCharacterResourcesComponent {
     this.resourceId.set(null);
     this.resourceName.set('');
     this.resourceDescription.set('');
+    this.resourceUnlimited.set(false);
     this.resourceCurrent.set(0);
     this.resourceMax.set(0);
     this.resourceRecovery.set('long-rest');
@@ -159,6 +163,16 @@ export class DmCharacterResourcesComponent {
 
   setResourceDescription(event: Event): void {
     this.resourceDescription.set((event.target as HTMLTextAreaElement).value);
+  }
+
+  setResourceUnlimited(event: Event): void {
+    const isUnlimited = (event.target as HTMLInputElement).checked;
+    this.resourceUnlimited.set(isUnlimited);
+    if (isUnlimited) {
+      this.resourceCurrent.set(0);
+      this.resourceMax.set(0);
+      this.resourceRecovery.set('manual');
+    }
   }
 
   setRecovery(event: Event): void {

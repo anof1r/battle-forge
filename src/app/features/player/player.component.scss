@@ -379,6 +379,13 @@
   .player__inventory-btn {
     justify-self: end;
   }
+
+  &--unlimited {
+    border-color: rgba(230, 178, 61, 0.58);
+    background:
+      radial-gradient(circle at 100% 0%, rgba(241, 196, 15, 0.1), transparent 42%),
+      rgba(0, 0, 0, 0.24);
+  }
 }
 
 .player__resource-header {
@@ -392,7 +399,7 @@
     overflow-wrap: anywhere;
   }
 
-  span {
+  .player__resource-count {
     flex: none;
     color: #fff0b1;
     font-family: var(--bf-font-display);
@@ -400,22 +407,17 @@
   }
 }
 
-.player__resource-description {
-  border-top: 1px dashed #4a3a2a;
-  color: #b8aa91;
-  font-size: 0.75rem;
-
-  summary {
-    padding-top: var(--bf-space-2);
-    color: #d8c384;
-    cursor: pointer;
-  }
-
-  p {
-    margin: var(--bf-space-2) 0 0;
-    line-height: 1.5;
-    white-space: pre-line;
-  }
+.player__resource-count--unlimited {
+  display: grid;
+  place-items: center;
+  min-width: 2rem;
+  min-height: 2rem;
+  border: 1px solid rgba(241, 196, 15, 0.55);
+  border-radius: 50%;
+  background: rgba(241, 196, 15, 0.1);
+  color: #ffe16a !important;
+  font-size: 1.2rem;
+  box-shadow: 0 0 12px rgba(241, 196, 15, 0.12);
 }
 
 .player__inventory-effect {

@@ -6,6 +6,7 @@ import {
   SpellSlotPool,
 } from '../models/character.model';
 import { formatWeaponDamageFormula } from './weapon-formula.util';
+import { getAutomaticSpellSlots } from './spell-slot-progression.util';
 
 const RECOVERY_TYPES: readonly ResourceRecovery[] = ['short-rest', 'long-rest', 'manual'];
 
@@ -48,16 +49,20 @@ export function normalizeCharacterResources(value: unknown): CharacterResource[]
     const idValue = typeof candidate.id === 'string' ? candidate.id.trim() : '';
     const id = idValue && !ids.has(idValue) ? idValue : `resource_legacy_${result.length}`;
     ids.add(id);
-    const max = finiteInteger(candidate.max, 0);
-    const recovery = RECOVERY_TYPES.includes(candidate.recovery as ResourceRecovery)
+    const isUnlimited = candidate.isUnlimited === true;
+    const max = isUnlimited ? 0 : finiteInteger(candidate.max, 0);
+    const recovery = isUnlimited
+      ? ('manual' as const)
+      : RECOVERY_TYPES.includes(candidate.recovery as ResourceRecovery)
       ? (candidate.recovery as ResourceRecovery)
       : 'manual';
     result.push({
       id,
       name,
       ...(description ? { description } : {}),
+      ...(isUnlimited ? { isUnlimited: true } : {}),
       max,
-      current: Math.min(max, finiteInteger(candidate.current, max)),
+      current: isUnlimited ? 0 : Math.min(max, finiteInteger(candidate.current, max)),
       recovery,
     });
   }
@@ -84,6 +89,9 @@ export function normalizeCharacterWeapons(value: unknown): CharacterWeapon[] {
 
 export function normalizeCharacter(character: ParsedCharacter): ParsedCharacter {
   const maxHp = Math.max(1, finiteInteger(character.maxHp, 10, 1));
+  const spellSlots = character.spellSlots === undefined
+    ? getAutomaticSpellSlots(character.class, character.level)
+    : normalizeSpellSlots(character.spellSlots);
   return {
     ...character,
     level: Math.max(1, finiteInteger(character.level, 1, 1)),
@@ -95,7 +103,7 @@ export function normalizeCharacter(character: ParsedCharacter): ParsedCharacter 
     resistances: Array.isArray(character.resistances) ? character.resistances : [],
     inventory: Array.isArray(character.inventory) ? character.inventory : [],
     spells: Array.isArray(character.spells) ? character.spells : [],
-    spellSlots: normalizeSpellSlots(character.spellSlots),
+    spellSlots,
     resources: normalizeCharacterResources(character.resources),
   };
 }

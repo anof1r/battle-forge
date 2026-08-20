@@ -15,6 +15,64 @@
 .resource-manager__form--resource h4 { grid-column: 1 / -1; margin: 0; color: #f0cf68; font-family: var(--bf-font-display); }
 .resource-manager__field--name { grid-column: span 2; }
 .resource-manager__field--description { grid-column: span 2; grid-row: span 2; }
+.resource-manager .resource-manager__unlimited {
+  position: relative;
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--bf-space-3);
+  min-height: 4rem;
+  padding: var(--bf-space-2) var(--bf-space-3);
+  border: 1px solid #71572d;
+  border-radius: var(--bf-radius-sm);
+  background: linear-gradient(135deg, rgba(77, 56, 19, 0.42), rgba(11, 8, 4, 0.74));
+  cursor: pointer;
+
+  input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    opacity: 0;
+  }
+
+  input:focus-visible + .resource-manager__unlimited-icon {
+    outline: 2px solid #f1c40f;
+    outline-offset: 3px;
+  }
+
+  input:checked + .resource-manager__unlimited-icon {
+    border-color: #f1c40f;
+    background: linear-gradient(180deg, #755b18, #38280b);
+    color: #fff4c7;
+    box-shadow: 0 0 0 3px rgba(241, 196, 15, 0.14);
+  }
+}
+
+.resource-manager__unlimited-icon {
+  display: grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border: 1px solid #80672d;
+  border-radius: 50%;
+  background: #100d09;
+  color: #cbb76c;
+  font-family: var(--bf-font-display);
+  font-size: 1.45rem;
+  transition: border-color var(--bf-duration) var(--bf-ease), background var(--bf-duration) var(--bf-ease);
+}
+
+.resource-manager__unlimited-copy {
+  display: grid;
+  gap: 0.2rem;
+
+  strong { color: #f3d97e; font-family: var(--bf-font-display); font-size: 0.85rem; }
+  small { color: #a99d86; font-size: 0.68rem; line-height: 1.35; }
+}
 .resource-manager__form-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--bf-space-2); padding-top: var(--bf-space-1); }
 .success { color: #86dca9; }.error { color: #ef978e; }.secondary { background: transparent !important; }
 @media (max-width: 950px) {

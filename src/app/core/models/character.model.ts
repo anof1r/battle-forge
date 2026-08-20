@@ -28,6 +28,7 @@ export interface CharacterResource {
   id: string;
   name: string;
   description?: string;
+  isUnlimited?: boolean;
   current: number;
   max: number;
   recovery: ResourceRecovery;

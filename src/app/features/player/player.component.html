@@ -204,23 +204,31 @@
                   <h2 class="player__panel-title">⚡ Ресурсы</h2>
                   <div class="player__resource-grid">
                     @for (resource of char.resources ?? []; track resource.id) {
-                      <div class="player__resource-card">
+                      <div
+                        class="player__resource-card"
+                        [class.player__resource-card--unlimited]="resource.isUnlimited"
+                      >
                         <div class="player__resource-header">
                           <strong>⚡ {{ resource.name }}</strong>
-                          <span>{{ resource.current }} / {{ resource.max }}</span>
+                          <span
+                            class="player__resource-count"
+                            [class.player__resource-count--unlimited]="resource.isUnlimited"
+                          >
+                            {{ resource.isUnlimited ? '∞' : resource.current + ' / ' + resource.max }}
+                          </span>
                         </div>
                         @if (resource.description) {
-                          <details class="player__resource-description">
-                            <summary>Описание</summary>
-                            <p>{{ resource.description }}</p>
+                          <details class="player__spell-details">
+                            <summary>Описание ресурса</summary>
+                            <p class="player__spell-description">{{ resource.description }}</p>
                           </details>
                         }
                         <button
                           class="player__inventory-btn"
-                          [disabled]="resource.current <= 0 || usingResourceId() !== null"
+                          [disabled]="(!resource.isUnlimited && resource.current <= 0) || usingResourceId() !== null"
                           (click)="useResource(resource.id)"
                         >
-                          {{ usingResourceId() === resource.id ? 'Списываем…' : 'Использовать' }}
+                          {{ usingResourceId() === resource.id ? 'Применяем…' : 'Использовать' }}
                         </button>
                       </div>
                     }
@@ -576,8 +584,13 @@
       </h3>
 
       <div id="resource-confirmation-result" class="spell-confirmation__result">
-        <span>Осталось зарядов</span>
-        <strong>{{ confirmation.remaining }} / {{ confirmation.max }}</strong>
+        @if (confirmation.isUnlimited) {
+          <span>Ресурс не расходуется</span>
+          <strong>∞ Бесконечно</strong>
+        } @else {
+          <span>Осталось зарядов</span>
+          <strong>{{ confirmation.remaining }} / {{ confirmation.max }}</strong>
+        }
       </div>
 
       <button

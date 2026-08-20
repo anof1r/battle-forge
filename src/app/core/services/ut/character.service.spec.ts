@@ -3,6 +3,7 @@ import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ParsedCharacter } from '../../models/character.model';
 import { SpellData } from '../../models/combatant.model';
+import { normalizeCharacter } from '../../utils';
 import { CharacterService } from '../character.service';
 import { FirebaseService } from '../firebase.service';
 
@@ -30,15 +31,8 @@ describe('CharacterService', () => {
     ...overrides,
   });
 
-  const normalizedCharacter = (character: ParsedCharacter): ParsedCharacter => ({
-    ...character,
-    temporaryHp: character.temporaryHp ?? 0,
-    resistances: character.resistances ?? [],
-    inventory: character.inventory ?? [],
-    spells: character.spells ?? [],
-    spellSlots: character.spellSlots ?? [],
-    resources: character.resources ?? [],
-  });
+  const normalizedCharacter = (character: ParsedCharacter): ParsedCharacter =>
+    normalizeCharacter(character);
 
   const createSpell = (overrides: Partial<SpellData> = {}): SpellData => ({
     id: 'spell-1',
@@ -90,6 +84,29 @@ describe('CharacterService', () => {
     await expect(service.loadCharacter('Missing')).resolves.toBeNull();
   });
 
+  it('backfills class spell slots only for legacy records where the field is absent', async () => {
+    const legacyWizard = createCharacter({ level: 3 });
+    const explicitlyEmptyWizard = createCharacter({ spellSlots: [] });
+    const fighter = createCharacter({ class: 'Воин', level: 3 });
+    firebase.get
+      .mockResolvedValueOnce(legacyWizard)
+      .mockResolvedValueOnce(explicitlyEmptyWizard)
+      .mockResolvedValueOnce(fighter);
+
+    await expect(service.loadCharacter('Legacy Wizard')).resolves.toEqual(expect.objectContaining({
+      spellSlots: [
+        { level: 1, current: 4, max: 4 },
+        { level: 2, current: 2, max: 2 },
+      ],
+    }));
+    await expect(service.loadCharacter('Manual Wizard')).resolves.toEqual(expect.objectContaining({
+      spellSlots: [],
+    }));
+    await expect(service.loadCharacter('Fighter')).resolves.toEqual(expect.objectContaining({
+      spellSlots: [],
+    }));
+  });
+
   it('normalizes malformed optional Firebase fields without rejecting the character', async () => {
     firebase.get.mockResolvedValue({
       ...createCharacter(),
@@ -104,6 +121,7 @@ describe('CharacterService', () => {
       ],
       resources: [
         { id: 'rage', name: 'Ярость', description: '  Бонусный урон  ', current: 10, max: 2, recovery: 'unknown' },
+        { id: 'sneak', name: 'Скрытая атака', isUnlimited: true, current: 99, max: 99, recovery: 'short-rest' },
         { id: 'broken' },
       ],
     });
@@ -114,7 +132,10 @@ describe('CharacterService', () => {
       weapons: [],
       spells: [],
       spellSlots: [{ level: 1, current: 4, max: 4 }],
-      resources: [{ id: 'rage', name: 'Ярость', description: 'Бонусный урон', current: 2, max: 2, recovery: 'manual' }],
+      resources: [
+        { id: 'rage', name: 'Ярость', description: 'Бонусный урон', current: 2, max: 2, recovery: 'manual' },
+        { id: 'sneak', name: 'Скрытая атака', isUnlimited: true, current: 0, max: 0, recovery: 'manual' },
+      ],
     }));
   });
 
@@ -350,6 +371,29 @@ describe('CharacterService', () => {
     }));
   });
 
+  it('uses an automatically backfilled class slot for a spell added to a legacy caster', async () => {
+    const spell = createSpell({
+      id: 'magic-missile',
+      name: 'Волшебная стрела',
+      level: 1,
+      isCantrip: false,
+    });
+    firebase.get.mockResolvedValue(createCharacter({ level: 3, spells: [spell] }));
+
+    await expect(service.usePlayerSpell('Aria', spell.id, 1)).resolves.toBe(true);
+
+    expect(firebase.set).toHaveBeenCalledWith(
+      'players/Aria',
+      expect.objectContaining({
+        spells: [spell],
+        spellSlots: [
+          { level: 1, current: 3, max: 4 },
+          { level: 2, current: 2, max: 2 },
+        ],
+      }),
+    );
+  });
+
   it('saves resource descriptions and removes a selected manual resource', async () => {
     const character = createCharacter({
       resources: [
@@ -388,6 +432,24 @@ describe('CharacterService', () => {
     expect(save).toHaveBeenLastCalledWith(expect.objectContaining({
       resources: [expect.objectContaining({ id: 'ki' })],
     }));
+  });
+
+  it('uses an unlimited resource without decrementing or writing the character', async () => {
+    vi.spyOn(service, 'loadCharacter').mockResolvedValue(createCharacter({
+      resources: [{
+        id: 'sneak-attack',
+        name: 'Скрытая атака',
+        isUnlimited: true,
+        current: 0,
+        max: 0,
+        recovery: 'manual',
+      }],
+    }));
+    const save = vi.spyOn(service, 'saveCharacter').mockResolvedValue(undefined);
+
+    await expect(service.useResource('Aria', 'sneak-attack')).resolves.toBe(true);
+
+    expect(save).not.toHaveBeenCalled();
   });
 
   it('restores only matching resources on a short rest', async () => {
