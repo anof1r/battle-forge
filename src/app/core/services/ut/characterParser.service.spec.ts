@@ -57,9 +57,8 @@ describe('CharacterParserService', () => {
       weapons: [
         {
           name: 'Dagger',
-          damage: '1d4+3',
+          damage: '1d4+3 + ЛОВ',
           damageType: 'piercing',
-          ability: 'dex',
         },
       ],
     });
@@ -116,7 +115,48 @@ describe('CharacterParserService', () => {
     });
   });
 
-  it('imports only valid tracked resources and safely ignores unknown LSS shapes', () => {
+  it('moves the weapon ability into a Russian damage formula', () => {
+    const parsed = service.parseCharacter({
+      data: {
+        weaponsList: [
+          { name: { value: 'Кокалка' }, dmgType: { value: 'Дробящий' } },
+          { name: { value: 'Кинжал' }, ability: '[DEX]' },
+          { name: { value: 'Боевой молот' }, dmg: { value: '1d8 + STR' } },
+        ],
+      },
+    });
+
+    expect(parsed.weapons).toEqual([
+      { name: 'Кокалка', damage: '1d4 + СИЛ', damageType: 'Дробящий' },
+      { name: 'Кинжал', damage: '1d4 + ЛОВ', damageType: 'дробящий' },
+      { name: 'Боевой молот', damage: '1d8 + СИЛ', damageType: 'дробящий' },
+    ]);
+  });
+
+  it('ignores opaque top-level LSS spell ids and does not create spell charge resources', () => {
+    const parsed = service.parseCharacter({
+      data: {
+        resources: {
+          'resource:spell-fixed:opaque-id': {
+            id: 'resource:spell-fixed:opaque-id',
+            name: 'Пылающие руки [Burning Hands]',
+            current: 1,
+            max: 1,
+            isLongRest: true,
+          },
+        },
+      },
+      spells: {
+        granted: [{ id: 'opaque-id', source: 'srd-2024:sage' }],
+      },
+    });
+
+    expect(parsed.spells).toBeUndefined();
+    expect(parsed.resources).toEqual([]);
+    expect(JSON.stringify(parsed)).not.toContain('librarySpellId');
+  });
+
+  it('leaves all LSS counters untracked while keeping their notes as abilities', () => {
     const data = {
       resources: {
         ki: { name: 'Ци', current: { value: 2 }, max: { value: 5 }, recovery: 'short rest' },
@@ -126,10 +166,14 @@ describe('CharacterParserService', () => {
       },
     } as unknown as LssCharacterData;
 
-    expect(service.parseCharacter({ data }).resources).toEqual([
-      { id: 'resource_lss_0', name: 'Ци', current: 2, max: 5, recovery: 'short-rest' },
-      { id: 'resource_lss_1', name: 'Ярость', current: 3, max: 3, recovery: 'long-rest' },
-    ]);
+    const parsed = service.parseCharacter({ data });
+
+    expect(parsed.resources).toEqual([]);
+    expect(parsed.abilities).toContainEqual({
+      name: 'Текстовая заметка',
+      description: 'Не является счётчиком',
+      source: 'resource',
+    });
   });
 
   it('creates 2024 spell slots automatically for full and half casters', () => {
@@ -219,6 +263,58 @@ describe('CharacterParserService', () => {
       { name: 'Darkvision', description: 'See in darkness' },
       { name: 'Alert', description: 'Cannot be surprised', source: 'feat' },
     ]);
+  });
+
+  it('uses formula labels instead of formulas for LSS ability names', () => {
+    const formulaSpoiler = (label: string, formula: string, description: string) => ({
+      type: 'spoiler',
+      content: [
+        {
+          type: 'spoilerSummary',
+          content: [{ type: 'formula', attrs: { formula, label } }],
+        },
+        {
+          type: 'spoilerContent',
+          content: [{ type: 'paragraph', content: [{ type: 'text', text: description }] }],
+        },
+      ],
+    });
+    const data: LssCharacterData = {
+      text: {
+        traits: {
+          value: {
+            data: {
+              content: [
+                formulaSpoiler(
+                  'Боевые искусства',
+                  '1d(((floor(([LVL]+1)/6))*2)+4)',
+                  'Используйте кость боевых искусств.',
+                ),
+                formulaSpoiler(
+                  'Скрытая атака',
+                  '(ceil([LVL]/2))d6',
+                  'Нанесите дополнительный урон.',
+                ),
+              ],
+            },
+          },
+        },
+      },
+    };
+
+    const parsed = service.parseCharacter({ data });
+
+    expect(parsed.abilities).toEqual([
+      {
+        name: 'Боевые искусства',
+        description: 'Используйте кость боевых искусств.',
+      },
+      {
+        name: 'Скрытая атака',
+        description: 'Нанесите дополнительный урон.',
+      },
+    ]);
+    expect(parsed.abilities.map((ability) => ability.name).join(' ')).not.toContain('[LVL]');
   });
 
   it('logs malformed string data and falls back to the top-level payload', () => {

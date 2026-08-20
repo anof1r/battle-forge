@@ -1,9 +1,11 @@
 import {
   CharacterResource,
+  CharacterWeapon,
   ParsedCharacter,
   ResourceRecovery,
   SpellSlotPool,
 } from '../models/character.model';
+import { formatWeaponDamageFormula } from './weapon-formula.util';
 
 const RECOVERY_TYPES: readonly ResourceRecovery[] = ['short-rest', 'long-rest', 'manual'];
 
@@ -40,6 +42,9 @@ export function normalizeCharacterResources(value: unknown): CharacterResource[]
     const candidate = raw as Partial<CharacterResource>;
     const name = typeof candidate.name === 'string' ? candidate.name.trim() : '';
     if (!name) continue;
+    const description = typeof candidate.description === 'string'
+      ? candidate.description.trim()
+      : '';
     const idValue = typeof candidate.id === 'string' ? candidate.id.trim() : '';
     const id = idValue && !ids.has(idValue) ? idValue : `resource_legacy_${result.length}`;
     ids.add(id);
@@ -50,12 +55,31 @@ export function normalizeCharacterResources(value: unknown): CharacterResource[]
     result.push({
       id,
       name,
+      ...(description ? { description } : {}),
       max,
       current: Math.min(max, finiteInteger(candidate.current, max)),
       recovery,
     });
   }
   return result;
+}
+
+export function normalizeCharacterWeapons(value: unknown): CharacterWeapon[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((raw) => {
+    if (!raw || typeof raw !== 'object') return [];
+    const candidate = raw as Record<string, unknown>;
+    const name = typeof candidate['name'] === 'string' ? candidate['name'].trim() : '';
+    if (!name) return [];
+    const damageType = typeof candidate['damageType'] === 'string'
+      ? candidate['damageType'].trim()
+      : '';
+    return [{
+      name,
+      damage: formatWeaponDamageFormula(candidate['damage'], candidate['ability'] ?? 'str'),
+      damageType: damageType || 'дробящий',
+    }];
+  });
 }
 
 export function normalizeCharacter(character: ParsedCharacter): ParsedCharacter {
@@ -66,7 +90,7 @@ export function normalizeCharacter(character: ParsedCharacter): ParsedCharacter 
     maxHp,
     currentHp: Math.min(maxHp, finiteInteger(character.currentHp, maxHp)),
     temporaryHp: finiteInteger(character.temporaryHp, 0),
-    weapons: Array.isArray(character.weapons) ? character.weapons : [],
+    weapons: normalizeCharacterWeapons(character.weapons),
     abilities: Array.isArray(character.abilities) ? character.abilities : [],
     resistances: Array.isArray(character.resistances) ? character.resistances : [],
     inventory: Array.isArray(character.inventory) ? character.inventory : [],

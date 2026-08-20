@@ -150,7 +150,6 @@
                         <span class="player__weapon-name">{{ weapon.name }}</span>
                         <span class="player__weapon-damage">{{ weapon.damage }}</span>
                         <span class="player__weapon-type">{{ weapon.damageType }}</span>
-                        <span class="player__weapon-ability">{{ getStatLabel(weapon.ability) }}</span>
                       </li>
                     }
                   </ul>
@@ -206,8 +205,16 @@
                   <div class="player__resource-grid">
                     @for (resource of char.resources ?? []; track resource.id) {
                       <div class="player__resource-card">
-                        <strong>{{ resource.name }}</strong>
-                        <span>{{ resource.current }} / {{ resource.max }}</span>
+                        <div class="player__resource-header">
+                          <strong>⚡ {{ resource.name }}</strong>
+                          <span>{{ resource.current }} / {{ resource.max }}</span>
+                        </div>
+                        @if (resource.description) {
+                          <details class="player__resource-description">
+                            <summary>Описание</summary>
+                            <p>{{ resource.description }}</p>
+                          </details>
+                        }
                         <button
                           class="player__inventory-btn"
                           [disabled]="resource.current <= 0 || usingResourceId() !== null"
@@ -549,6 +556,38 @@
         </button>
       </div>
     </div>
+  </div>
+}
+
+@if (resourceUseConfirmation(); as confirmation) {
+  <div class="modal-overlay modal-overlay--spell" (click)="closeResourceUseConfirmation()">
+    <section
+      class="modal-content spell-confirmation resource-confirmation"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="resource-confirmation-title"
+      aria-describedby="resource-confirmation-result"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="spell-confirmation__sigil resource-confirmation__sigil" aria-hidden="true">⚡</div>
+      <p class="spell-confirmation__eyebrow">Ресурс использован</p>
+      <h3 id="resource-confirmation-title" class="modal-title spell-confirmation__title">
+        {{ confirmation.resourceName }}
+      </h3>
+
+      <div id="resource-confirmation-result" class="spell-confirmation__result">
+        <span>Осталось зарядов</span>
+        <strong>{{ confirmation.remaining }} / {{ confirmation.max }}</strong>
+      </div>
+
+      <button
+        class="modal-btn modal-btn--confirm spell-confirmation__close"
+        type="button"
+        (click)="closeResourceUseConfirmation()"
+      >
+        Продолжить
+      </button>
+    </section>
   </div>
 }
 

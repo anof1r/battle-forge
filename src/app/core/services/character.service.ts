@@ -147,9 +147,11 @@ export class CharacterService {
     if (!player) return;
     const resources = normalizeCharacterResources(player.resources);
     const max = Math.max(0, Math.floor(resource.max));
+    const description = resource.description?.trim() ?? '';
     const normalized: CharacterResource = {
       id: resource.id || `resource_${crypto.randomUUID()}`,
       name: resource.name.trim(),
+      ...(description ? { description } : {}),
       max,
       current: Math.max(0, Math.min(max, Math.floor(resource.current))),
       recovery: resource.recovery,
@@ -160,6 +162,15 @@ export class CharacterService {
       ? [...resources, normalized]
       : resources.map((candidate) => (candidate.id === normalized.id ? normalized : candidate));
     await this.saveCharacter({ ...player, resources: next });
+  }
+
+  async removeResource(playerName: string, resourceId: string): Promise<void> {
+    const player = await this.loadCharacter(playerName);
+    if (!player) return;
+    const resources = normalizeCharacterResources(player.resources).filter(
+      (resource) => resource.id !== resourceId,
+    );
+    await this.saveCharacter({ ...player, resources });
   }
 
   async useResource(playerName: string, resourceId: string, amount = 1): Promise<boolean> {

@@ -47,20 +47,77 @@
       </section>
 
       <section>
-        <h3>Классовые ресурсы</h3>
-        <div class="resource-manager__chips">
-          @for (resource of char.resources ?? []; track resource.id) {
-            <button type="button" (click)="editResource(resource)">
-              {{ resource.name }} · {{ resource.current }}/{{ resource.max }}
-            </button>
-          } @empty {
-            <span>Пока нет ресурсов. Добавьте ярость, кости превосходства или другой счётчик.</span>
+        <div class="resource-manager__section-heading">
+          <div>
+            <h3>Ресурсы героя</h3>
+            <p class="resource-manager__hint">Добавьте только нужные герою счётчики: ярость, ци, кости превосходства и другие.</p>
+          </div>
+          @if (resourceId()) {
+            <button type="button" class="secondary" (click)="resetResourceEditor()">+ Новый ресурс</button>
           }
         </div>
+
+        <div class="resource-manager__resources">
+          @for (resource of char.resources ?? []; track resource.id) {
+            <article
+              class="resource-manager__resource"
+              [class.resource-manager__resource--editing]="resourceId() === resource.id"
+            >
+              <button
+                type="button"
+                class="resource-manager__resource-main"
+                [attr.aria-label]="'Редактировать ресурс ' + resource.name"
+                (click)="editResource(resource)"
+              >
+                <span class="resource-manager__resource-title">
+                  <strong>⚡ {{ resource.name }}</strong>
+                  <b>{{ resource.current }} / {{ resource.max }}</b>
+                </span>
+                @if (resource.description) {
+                  <span class="resource-manager__resource-description">{{ resource.description }}</span>
+                }
+                <span class="resource-manager__resource-recovery">
+                  @switch (resource.recovery) {
+                    @case ('short-rest') { Короткий отдых }
+                    @case ('long-rest') { Долгий отдых }
+                    @default { Только вручную }
+                  }
+                  · нажмите для редактирования
+                </span>
+              </button>
+              <button
+                type="button"
+                class="resource-manager__delete"
+                [disabled]="saving()"
+                [attr.aria-label]="'Удалить ресурс ' + resource.name"
+                title="Удалить ресурс"
+                (click)="deleteResource(resource)"
+              >
+                Удалить
+              </button>
+            </article>
+          } @empty {
+            <p class="resource-manager__empty">Пока нет ресурсов. Создайте первый счётчик ниже.</p>
+          }
+        </div>
+
         <div class="resource-manager__form resource-manager__form--resource">
-          <label><span>Название</span><input type="text" [value]="resourceName()" (input)="setResourceName($event)" placeholder="Ярость" /></label>
-          <label><span>Осталось</span><input type="number" min="0" [value]="resourceCurrent()" (input)="setNumber('resourceCurrent', $event)" /></label>
+          <h4>{{ resourceId() ? 'Редактирование ресурса' : 'Новый ресурс' }}</h4>
+          <label class="resource-manager__field--name">
+            <span>Название</span>
+            <input type="text" [value]="resourceName()" (input)="setResourceName($event)" placeholder="Например: Ярость" />
+          </label>
+          <label class="resource-manager__field--description">
+            <span>Описание</span>
+            <textarea
+              rows="3"
+              [value]="resourceDescription()"
+              (input)="setResourceDescription($event)"
+              placeholder="Что даёт ресурс и когда его можно использовать"
+            ></textarea>
+          </label>
           <label><span>Максимум</span><input type="number" min="0" [value]="resourceMax()" (input)="setNumber('resourceMax', $event)" /></label>
+          <label><span>Осталось</span><input type="number" min="0" [max]="resourceMax()" [value]="resourceCurrent()" (input)="setNumber('resourceCurrent', $event)" /></label>
           <label>
             <span>Восстановление</span>
             <select [value]="resourceRecovery()" (change)="setRecovery($event)">
@@ -69,12 +126,17 @@
               <option value="manual">Только вручную</option>
             </select>
           </label>
-          <button type="button" [disabled]="saving() || !resourceName().trim()" (click)="saveResource()">
-            {{ resourceId() ? 'Обновить ресурс' : 'Добавить ресурс' }}
-          </button>
-          @if (resourceId()) {
-            <button type="button" class="secondary" (click)="resetResourceEditor()">Отмена</button>
-          }
+          <div class="resource-manager__form-actions">
+            <button type="button" class="secondary" [disabled]="resourceMax() <= 0" (click)="fillResourceToMax()">
+              Заполнить до максимума
+            </button>
+            <button type="button" [disabled]="saving() || !resourceName().trim()" (click)="saveResource()">
+              {{ resourceId() ? 'Сохранить изменения' : 'Добавить ресурс' }}
+            </button>
+            @if (resourceId()) {
+              <button type="button" class="secondary" (click)="resetResourceEditor()">Отмена</button>
+            }
+          </div>
         </div>
       </section>
     }

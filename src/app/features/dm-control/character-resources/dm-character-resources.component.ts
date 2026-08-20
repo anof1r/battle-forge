@@ -37,6 +37,7 @@ export class DmCharacterResourcesComponent {
 
   readonly resourceId = signal<string | null>(null);
   readonly resourceName = signal('');
+  readonly resourceDescription = signal('');
   readonly resourceCurrent = signal(0);
   readonly resourceMax = signal(0);
   readonly resourceRecovery = signal<ResourceRecovery>('long-rest');
@@ -85,6 +86,7 @@ export class DmCharacterResourcesComponent {
   editResource(resource: CharacterResource): void {
     this.resourceId.set(resource.id);
     this.resourceName.set(resource.name);
+    this.resourceDescription.set(resource.description ?? '');
     this.resourceCurrent.set(resource.current);
     this.resourceMax.set(resource.max);
     this.resourceRecovery.set(resource.recovery);
@@ -101,6 +103,7 @@ export class DmCharacterResourcesComponent {
       .upsertResource(playerName, {
         id: this.resourceId() ?? '',
         name,
+        description: this.resourceDescription().trim(),
         current: this.resourceCurrent(),
         max: this.resourceMax(),
         recovery: this.resourceRecovery(),
@@ -114,9 +117,32 @@ export class DmCharacterResourcesComponent {
       .finally(() => this.saving.set(false));
   }
 
+  deleteResource(resource: CharacterResource): void {
+    const playerName = this.selectedPlayerName();
+    if (!playerName || this.saving()) return;
+    if (!window.confirm(`Удалить ресурс «${resource.name}» у героя?`)) return;
+
+    this.saving.set(true);
+    this.clearMessages();
+    this.characters
+      .removeResource(playerName, resource.id)
+      .then(() => this.reloadCharacter())
+      .then(() => {
+        if (this.resourceId() === resource.id) this.resetResourceEditor();
+        this.message.set('Ресурс удалён.');
+      })
+      .catch((error: unknown) => this.handleError('deleteResource', error))
+      .finally(() => this.saving.set(false));
+  }
+
+  fillResourceToMax(): void {
+    this.resourceCurrent.set(this.resourceMax());
+  }
+
   resetResourceEditor(): void {
     this.resourceId.set(null);
     this.resourceName.set('');
+    this.resourceDescription.set('');
     this.resourceCurrent.set(0);
     this.resourceMax.set(0);
     this.resourceRecovery.set('long-rest');
@@ -129,6 +155,10 @@ export class DmCharacterResourcesComponent {
 
   setResourceName(event: Event): void {
     this.resourceName.set((event.target as HTMLInputElement).value);
+  }
+
+  setResourceDescription(event: Event): void {
+    this.resourceDescription.set((event.target as HTMLTextAreaElement).value);
   }
 
   setRecovery(event: Event): void {

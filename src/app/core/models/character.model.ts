@@ -14,7 +14,6 @@ export interface CharacterWeapon {
   name: string;
   damage: string;
   damageType: string;
-  ability: string;
 }
 
 export interface CharacterAbility {
@@ -28,6 +27,7 @@ export type ResourceRecovery = 'short-rest' | 'long-rest' | 'manual';
 export interface CharacterResource {
   id: string;
   name: string;
+  description?: string;
   current: number;
   max: number;
   recovery: ResourceRecovery;
@@ -91,13 +91,16 @@ export interface LssVitalityBlock {
 
 export interface LssWeaponEntry {
   name?: LssValue<string>;
-  dmg?: LssValue<string>;
+  dmg?: LssValue<string | null>;
   dmgType?: LssValue<string>;
   ability?: string;
 }
 
 export interface LssResourceEntry {
+  id?: string;
   isDeleted?: boolean;
+  isShortRest?: boolean;
+  isLongRest?: boolean;
   name?: string;
   notes?: string;
   value?: number | LssValue<number>;
@@ -109,7 +112,10 @@ export interface LssResourceEntry {
 export interface LssTextNode {
   type: string;
   text?: string;
-  attrs?: { formula?: string };
+  attrs?: {
+    formula?: string;
+    label?: string;
+  };
   content?: LssTextNode[];
 }
 

@@ -1,7 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import {
   CharacterAbility,
-  CharacterResource,
   CharacterStats,
   CharacterWeapon,
   LssCharacterData,
@@ -10,7 +9,11 @@ import {
   ParsedCharacter,
 } from '../models/character.model';
 import { LoggerService } from './logger.service';
-import { getAutomaticSpellSlots, parseJsonWithTrailingCommaRecovery } from '../utils';
+import {
+  formatWeaponDamageFormula,
+  getAutomaticSpellSlots,
+  parseJsonWithTrailingCommaRecovery,
+} from '../utils';
 
 export type { ParsedCharacter } from '../models/character.model';
 
@@ -23,7 +26,6 @@ const UNKNOWN_CLASS_OR_RACE = 'Неизвестно';
 const DEFAULT_WEAPON_NAME = 'Оружие';
 const DEFAULT_DAMAGE = '1d4';
 const DEFAULT_DAMAGE_TYPE = 'дробящий';
-const DEFAULT_ABILITY_SCORE = 'dex';
 const DEFAULT_ABILITY_NAME = 'Способность';
 
 @Injectable({ providedIn: 'root' })
@@ -50,7 +52,6 @@ export class CharacterParserService {
 
     const weapons = this.parseWeapons(dataObj);
     const { abilities, resistances } = this.parseResourcesAndText(dataObj);
-    const resources = this.parseTrackedResources(dataObj);
 
     return {
       name,
@@ -67,7 +68,9 @@ export class CharacterParserService {
       resistances,
       abilities,
       spellSlots: getAutomaticSpellSlots(charClass, level),
-      resources,
+      // Счётчики классовых ресурсов настраивает DM вручную. Формат LSS для них
+      // нестабилен и может содержать заклинания, заметки и вычисляемые значения.
+      resources: [],
     };
   }
 
@@ -112,9 +115,8 @@ export class CharacterParserService {
     const weaponsList = dataObj.weaponsList ?? [];
     return weaponsList.map((w) => ({
       name: w.name?.value ?? DEFAULT_WEAPON_NAME,
-      damage: w.dmg?.value ?? DEFAULT_DAMAGE,
+      damage: formatWeaponDamageFormula(w.dmg?.value ?? DEFAULT_DAMAGE, w.ability ?? 'str'),
       damageType: w.dmgType?.value ?? DEFAULT_DAMAGE_TYPE,
-      ability: w.ability ?? DEFAULT_ABILITY_SCORE,
     }));
   }
 
@@ -158,35 +160,6 @@ export class CharacterParserService {
     return { abilities: uniqueAbilities, resistances };
   }
 
-  private parseTrackedResources(dataObj: LssCharacterData): CharacterResource[] {
-    const result: CharacterResource[] = [];
-    for (const resource of Object.values(dataObj.resources ?? {})) {
-      if (resource.isDeleted || !resource.name) continue;
-      const maximum = this.resourceNumber(resource.max);
-      if (maximum === null || maximum <= 0) continue;
-      const current = this.resourceNumber(resource.current ?? resource.value) ?? maximum;
-      const recoveryText = resource.recovery?.toLowerCase() ?? '';
-      const recovery = recoveryText.includes('short') || recoveryText.includes('корот')
-        ? ('short-rest' as const)
-        : recoveryText.includes('long') || recoveryText.includes('долг')
-          ? ('long-rest' as const)
-          : ('manual' as const);
-      result.push({
-        id: `resource_lss_${result.length}`,
-        name: resource.name,
-        max: Math.floor(maximum),
-        current: Math.max(0, Math.min(Math.floor(maximum), Math.floor(current))),
-        recovery,
-      });
-    }
-    return result;
-  }
-
-  private resourceNumber(value: number | { value?: number } | undefined): number | null {
-    const candidate = typeof value === 'number' ? value : value?.value;
-    return typeof candidate === 'number' && Number.isFinite(candidate) ? candidate : null;
-  }
-
   private extractTraits(content: LssTextNode[]): CharacterAbility[] {
     const result: CharacterAbility[] = [];
     if (!Array.isArray(content)) return result;
@@ -199,10 +172,14 @@ export class CharacterParserService {
 
       let name = DEFAULT_ABILITY_NAME;
       if (summary?.content) {
-        const textParts = summary.content
-          .map((c) => (c.type === 'text' ? (c.text ?? '') : (c.attrs?.formula ?? '')))
+        const textName = summary.content
+          .filter((node) => node.type === 'text')
+          .map((node) => node.text ?? '')
           .join(' ');
-        name = textParts.trim() || DEFAULT_ABILITY_NAME;
+        const formulaLabel = summary.content
+          .find((node) => node.type === 'formula' && node.attrs?.label?.trim())
+          ?.attrs?.label?.trim();
+        name = textName.trim() || formulaLabel || DEFAULT_ABILITY_NAME;
       }
 
       let description = '';

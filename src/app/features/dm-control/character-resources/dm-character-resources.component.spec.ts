@@ -15,6 +15,7 @@ describe('DmCharacterResourcesComponent', () => {
     loadCharacter: ReturnType<typeof vi.fn>;
     setSpellSlotPool: ReturnType<typeof vi.fn>;
     upsertResource: ReturnType<typeof vi.fn>;
+    removeResource: ReturnType<typeof vi.fn>;
   };
   let logger: { error: ReturnType<typeof vi.fn> };
 
@@ -43,7 +44,7 @@ describe('DmCharacterResourcesComponent', () => {
     weapons: [],
     abilities: [],
     spellSlots: [{ level: 1, current: 2, max: 4 }],
-    resources: [{ id: 'arcane', name: 'Магическое восстановление', current: 1, max: 1, recovery: 'long-rest' }],
+    resources: [{ id: 'arcane', name: 'Магическое восстановление', description: 'Возвращает ячейку.', current: 1, max: 1, recovery: 'long-rest' }],
   };
 
   beforeEach(() => {
@@ -51,6 +52,7 @@ describe('DmCharacterResourcesComponent', () => {
       loadCharacter: vi.fn().mockResolvedValue(aria),
       setSpellSlotPool: vi.fn().mockResolvedValue(undefined),
       upsertResource: vi.fn().mockResolvedValue(undefined),
+      removeResource: vi.fn().mockResolvedValue(undefined),
     };
     logger = { error: vi.fn() };
     TestBed.configureTestingModule({
@@ -91,6 +93,7 @@ describe('DmCharacterResourcesComponent', () => {
     await vi.waitFor(() => expect(component.saving()).toBe(false));
 
     component.resourceName.set('Ярость');
+    component.resourceDescription.set('Преимущество к проверкам Силы.');
     component.resourceCurrent.set(1);
     component.resourceMax.set(2);
     component.resourceRecovery.set('long-rest');
@@ -99,11 +102,34 @@ describe('DmCharacterResourcesComponent', () => {
     await vi.waitFor(() => expect(characters.upsertResource).toHaveBeenCalledWith('Aria', {
       id: '',
       name: 'Ярость',
+      description: 'Преимущество к проверкам Силы.',
       current: 1,
       max: 2,
       recovery: 'long-rest',
     }));
     await vi.waitFor(() => expect(component.resourceName()).toBe(''));
+    expect(component.resourceDescription()).toBe('');
+  });
+
+  it('edits, fills and deletes a manual resource', async () => {
+    component.selectPlayer({ target: { value: 'player_Aria' } } as unknown as Event);
+    await vi.waitFor(() => expect(component.character()).toEqual(aria));
+    const resource = aria.resources![0];
+
+    component.editResource(resource);
+
+    expect(component.resourceName()).toBe(resource.name);
+    expect(component.resourceDescription()).toBe('Возвращает ячейку.');
+    component.resourceMax.set(4);
+    component.fillResourceToMax();
+    expect(component.resourceCurrent()).toBe(4);
+
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    component.deleteResource(resource);
+
+    await vi.waitFor(() => expect(characters.removeResource).toHaveBeenCalledWith('Aria', 'arcane'));
+    await vi.waitFor(() => expect(component.saving()).toBe(false));
+    expect(component.resourceId()).toBeNull();
   });
 
   it('keeps resource form values when persistence fails', async () => {

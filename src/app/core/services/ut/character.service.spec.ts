@@ -103,7 +103,7 @@ describe('CharacterService', () => {
         null,
       ],
       resources: [
-        { id: 'rage', name: 'Ярость', current: 10, max: 2, recovery: 'unknown' },
+        { id: 'rage', name: 'Ярость', description: '  Бонусный урон  ', current: 10, max: 2, recovery: 'unknown' },
         { id: 'broken' },
       ],
     });
@@ -114,8 +114,26 @@ describe('CharacterService', () => {
       weapons: [],
       spells: [],
       spellSlots: [{ level: 1, current: 4, max: 4 }],
-      resources: [{ id: 'rage', name: 'Ярость', current: 2, max: 2, recovery: 'manual' }],
+      resources: [{ id: 'rage', name: 'Ярость', description: 'Бонусный урон', current: 2, max: 2, recovery: 'manual' }],
     }));
+  });
+
+  it('migrates legacy weapon abilities into Russian damage formulas', async () => {
+    firebase.get.mockResolvedValue({
+      ...createCharacter(),
+      weapons: [
+        { name: 'Dagger', damage: '1d4', damageType: 'piercing', ability: 'dex' },
+        { name: 'Warhammer', damage: '1d8 + STR', damageType: 'bludgeoning' },
+      ],
+    });
+
+    const loaded = await service.loadCharacter('Aria');
+
+    expect(loaded?.weapons).toEqual([
+      { name: 'Dagger', damage: '1d4 + ЛОВ', damageType: 'piercing' },
+      { name: 'Warhammer', damage: '1d8 + СИЛ', damageType: 'bludgeoning' },
+    ]);
+    expect(loaded?.weapons.some((weapon) => 'ability' in weapon)).toBe(false);
   });
 
   it('saves a character with a fresh timestamp without changing the input', async () => {
@@ -329,6 +347,46 @@ describe('CharacterService', () => {
         { level: 1, current: 0, max: 2 },
         { level: 2, current: 0, max: 1 },
       ],
+    }));
+  });
+
+  it('saves resource descriptions and removes a selected manual resource', async () => {
+    const character = createCharacter({
+      resources: [
+        { id: 'rage', name: 'Ярость', current: 2, max: 2, recovery: 'long-rest' },
+        { id: 'ki', name: 'Ци', current: 1, max: 3, recovery: 'short-rest' },
+      ],
+    });
+    vi.spyOn(service, 'loadCharacter').mockResolvedValue(character);
+    const save = vi.spyOn(service, 'saveCharacter').mockResolvedValue(undefined);
+
+    await service.upsertResource('Aria', {
+      id: 'rage',
+      name: ' Ярость ',
+      description: '  Даёт преимущество к проверке Силы. ',
+      current: 1,
+      max: 2,
+      recovery: 'long-rest',
+    });
+
+    expect(save).toHaveBeenLastCalledWith(expect.objectContaining({
+      resources: [
+        {
+          id: 'rage',
+          name: 'Ярость',
+          description: 'Даёт преимущество к проверке Силы.',
+          current: 1,
+          max: 2,
+          recovery: 'long-rest',
+        },
+        expect.objectContaining({ id: 'ki' }),
+      ],
+    }));
+
+    await service.removeResource('Aria', 'rage');
+
+    expect(save).toHaveBeenLastCalledWith(expect.objectContaining({
+      resources: [expect.objectContaining({ id: 'ki' })],
     }));
   });
 

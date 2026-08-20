@@ -40,6 +40,12 @@ interface SpellUseConfirmation {
   slotLevel: number | null;
 }
 
+interface ResourceUseConfirmation {
+  resourceName: string;
+  remaining: number;
+  max: number;
+}
+
 const DICE_NOTATION_PATTERN = /(\d+\s*[dдк]\s*\d+(?:\s*[+\-−]\s*\d+)?)/giu;
 const EXACT_DICE_NOTATION_PATTERN = /^\d+\s*[dдк]\s*\d+(?:\s*[+\-−]\s*\d+)?$/iu;
 
@@ -89,6 +95,7 @@ export class PlayerComponent implements OnDestroy {
   readonly spellUseConfirmation = signal<SpellUseConfirmation | null>(null);
   readonly usingResourceId = signal<string | null>(null);
   readonly resourceUseError = signal<string | null>(null);
+  readonly resourceUseConfirmation = signal<ResourceUseConfirmation | null>(null);
 
   // --- Состояние модального окна использования предмета ---
   readonly modalMode = signal<'use' | 'examine'>('use');
@@ -246,6 +253,7 @@ export class PlayerComponent implements OnDestroy {
     this.spellUseConfirmation.set(null);
     this.usingResourceId.set(null);
     this.resourceUseError.set(null);
+    this.resourceUseConfirmation.set(null);
   }
 
   switchTab(tab: 'character' | 'arena'): void {
@@ -266,11 +274,6 @@ export class PlayerComponent implements OnDestroy {
 
   toggleAbility(name: string): void {
     this.expandedAbility.set(this.expandedAbility() === name ? null : name);
-  }
-
-  getStatLabel(stat: string): string {
-    const normalized = stat.toLowerCase();
-    return CHARACTER_STATS.find((candidate) => candidate.key === normalized)?.label ?? stat;
   }
 
   getSpellMaxUses(spell: SpellData): number {
@@ -358,16 +361,29 @@ export class PlayerComponent implements OnDestroy {
     if (!character || !resource || resource.current <= 0 || this.usingResourceId()) return;
     this.usingResourceId.set(resourceId);
     this.resourceUseError.set(null);
+    this.resourceUseConfirmation.set(null);
     this.characterService
       .useResource(character.name, resourceId)
       .then((success) => {
-        if (!success) this.resourceUseError.set('Ресурс уже исчерпан или был изменён.');
+        if (!success) {
+          this.resourceUseError.set('Ресурс уже исчерпан или был изменён.');
+          return;
+        }
+        this.resourceUseConfirmation.set({
+          resourceName: resource.name,
+          remaining: Math.max(0, resource.current - 1),
+          max: resource.max,
+        });
       })
       .catch((error: unknown) => {
         this.logger.error('PlayerComponent.useResource', error);
         this.resourceUseError.set('Не удалось списать ресурс.');
       })
       .finally(() => this.usingResourceId.set(null));
+  }
+
+  closeResourceUseConfirmation(): void {
+    this.resourceUseConfirmation.set(null);
   }
 
   selectEnemy(enemyId: string): void {

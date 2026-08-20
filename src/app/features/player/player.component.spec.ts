@@ -70,7 +70,7 @@ describe('PlayerComponent', () => {
     currentHp: 24,
     ac: 13,
     speed: 30,
-    weapons: [{ name: 'Dagger', damage: '1d4', damageType: 'piercing', ability: 'dex' }],
+    weapons: [{ name: 'Dagger', damage: '1d4 + ЛОВ', damageType: 'piercing' }],
     inventory: [potion],
     abilities: [{ name: 'Darkvision', description: 'See in darkness' }],
     ...overrides,
@@ -345,7 +345,6 @@ describe('PlayerComponent', () => {
 
     fixture.detectChanges();
 
-    expect(component.getStatLabel('dex')).toBe('ЛОВ');
     expect(fixture.nativeElement).toHaveTextContent('Доп. удар');
     expect(fixture.nativeElement).toHaveTextContent('Ограничения на количество атак нет');
   });
@@ -684,12 +683,46 @@ describe('PlayerComponent', () => {
 
   it('lets the player spend a configured class resource', async () => {
     component.character.set(character({
-      resources: [{ id: 'rage', name: 'Ярость', current: 2, max: 2, recovery: 'long-rest' }],
+      resources: [{
+        id: 'rage',
+        name: 'Ярость',
+        description: 'Преимущество к проверкам Силы.',
+        current: 2,
+        max: 2,
+        recovery: 'long-rest',
+      }],
     }));
 
     component.useResource('rage');
 
     await vi.waitFor(() => expect(characterService.useResource).toHaveBeenCalledWith('Aria', 'rage'));
     await vi.waitFor(() => expect(component.usingResourceId()).toBeNull());
+    expect(component.resourceUseConfirmation()).toEqual({
+      resourceName: 'Ярость',
+      remaining: 1,
+      max: 2,
+    });
+
+    fixture.detectChanges();
+    const modal = fixture.nativeElement.querySelector('.resource-confirmation');
+    expect(modal).toHaveTextContent('⚡');
+    expect(modal).toHaveTextContent('Ресурс использован');
+    expect(modal).toHaveTextContent('1 / 2');
+
+    component.closeResourceUseConfirmation();
+    expect(component.resourceUseConfirmation()).toBeNull();
+  });
+
+  it('does not show a resource confirmation when spending fails', async () => {
+    characterService.useResource.mockResolvedValue(false);
+    component.character.set(character({
+      resources: [{ id: 'ki', name: 'Ци', current: 1, max: 2, recovery: 'short-rest' }],
+    }));
+
+    component.useResource('ki');
+
+    await vi.waitFor(() => expect(component.usingResourceId()).toBeNull());
+    expect(component.resourceUseConfirmation()).toBeNull();
+    expect(component.resourceUseError()).not.toBeNull();
   });
 });
