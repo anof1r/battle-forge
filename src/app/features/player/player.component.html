@@ -12,6 +12,15 @@
         <p class="player__subtitle">Войдите как игрок</p>
 
         <div class="player__login-form">
+          @if (lastLoginName(); as lastName) {
+            <button
+              type="button"
+              class="player__login-btn player__login-btn--remembered"
+              (click)="loginAsLastPlayer()"
+            >
+              Войти как {{ lastName }}
+            </button>
+          }
           <input
             class="player__login-input"
             type="text"
@@ -20,7 +29,7 @@
             (input)="onLoginInput($event)"
             (keyup.enter)="login()"
           />
-          <button class="player__login-btn" (click)="login()">Войти</button>
+          <button type="button" class="player__login-btn" (click)="login()">Войти</button>
         </div>
 
         @if (loginError()) {

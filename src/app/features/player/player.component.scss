@@ -1601,6 +1601,15 @@
   &:active {
     transform: scale(0.98);
   }
+
+  &--remembered {
+    border: 1px solid #a8873a;
+    background: rgba(201, 168, 76, 0.1);
+    box-shadow: none;
+    color: #e8d5a0;
+    font-size: 1rem;
+    overflow-wrap: anywhere;
+  }
 }
 
 .player__upload-section {

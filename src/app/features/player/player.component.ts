@@ -67,6 +67,7 @@ interface ResourceEffectConfirmation {
 
 const DICE_NOTATION_PATTERN = /(\d+\s*[dдк]\s*\d+(?:\s*[+\-−]\s*\d+)?)/giu;
 const EXACT_DICE_NOTATION_PATTERN = /^\d+\s*[dдк]\s*\d+(?:\s*[+\-−]\s*\d+)?$/iu;
+const LAST_PLAYER_NAME_STORAGE_KEY = 'battle-forge:last-player-name';
 
 @Component({
   selector: 'app-player',
@@ -89,6 +90,7 @@ export class PlayerComponent implements OnDestroy {
 
   // --- Состояние входа ---
   readonly loginName = signal('');
+  readonly lastLoginName = signal(this.loadLastLoginName());
   readonly loginError = signal<string | null>(null);
   readonly isLoggedIn = signal(false);
   readonly showUploadPrompt = signal(false);
@@ -203,6 +205,7 @@ export class PlayerComponent implements OnDestroy {
           this.isLoggedIn.set(true);
           this.loginError.set(null);
           this.showUploadPrompt.set(false);
+          this.rememberSuccessfulLogin(charData.name);
           this.subscribeToCharacterUpdates(name);
           this.joinBattle(charData);
         });
@@ -211,6 +214,13 @@ export class PlayerComponent implements OnDestroy {
         this.logger.error('PlayerComponent.login', error);
         this.loginError.set('Ошибка при входе. Попробуйте позже.');
       });
+  }
+
+  loginAsLastPlayer(): void {
+    const name = this.lastLoginName();
+    if (!name) return;
+    this.loginName.set(name);
+    this.login();
   }
 
   onFileSelected(event: Event): void {
@@ -238,12 +248,33 @@ export class PlayerComponent implements OnDestroy {
           this.showUploadPrompt.set(false);
           this.loginError.set(null);
           this.loginName.set(parsed.name);
+          this.rememberSuccessfulLogin(parsed.name);
           this.subscribeToCharacterUpdates(parsed.name);
           this.joinBattle(parsed);
         })
         .catch((error: unknown) => this.logger.error('PlayerComponent.onFileSelected', error));
     };
     reader.readAsText(file);
+  }
+
+  private loadLastLoginName(): string | null {
+    try {
+      return globalThis.localStorage?.getItem(LAST_PLAYER_NAME_STORAGE_KEY)?.trim() || null;
+    } catch (error) {
+      this.logger.error('PlayerComponent.loadLastLoginName', error);
+      return null;
+    }
+  }
+
+  private rememberSuccessfulLogin(name: string): void {
+    const normalizedName = name.trim();
+    if (!normalizedName) return;
+    this.lastLoginName.set(normalizedName);
+    try {
+      globalThis.localStorage?.setItem(LAST_PLAYER_NAME_STORAGE_KEY, normalizedName);
+    } catch (error) {
+      this.logger.error('PlayerComponent.rememberSuccessfulLogin', error);
+    }
   }
 
   private subscribeToCharacterUpdates(name: string): void {

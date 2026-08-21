@@ -105,6 +105,7 @@ describe('PlayerComponent', () => {
   };
 
   beforeEach(() => {
+    localStorage.clear();
     characterService = {
       characterExists: vi.fn(),
       loadCharacter: vi.fn(),
@@ -199,6 +200,7 @@ describe('PlayerComponent', () => {
     expect(characterService.subscribeToCharacter).toHaveBeenCalledWith('Aria');
     expect(battle.addPlayerToBattle).toHaveBeenCalledWith(initial, 0);
     expect(component.character()).toEqual(updated);
+    expect(localStorage.getItem('battle-forge:last-player-name')).toBe('Aria');
 
     component.selectedEnemyId.set(enemy.id);
     component.damageAmount.set(5);
@@ -210,6 +212,29 @@ describe('PlayerComponent', () => {
     expect(component.loginName()).toBe('');
     expect(component.selectedEnemyId()).toBeNull();
     expect(component.damageAmount()).toBe(0);
+
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.player__login-btn--remembered')).toHaveTextContent(
+      'Войти как Aria',
+    );
+  });
+
+  it('restores the last player and offers a one-tap login', async () => {
+    localStorage.setItem('battle-forge:last-player-name', 'Aria');
+    characterService.characterExists.mockResolvedValue(true);
+    characterService.loadCharacter.mockResolvedValue(character());
+    const rememberedFixture = TestBed.createComponent(PlayerComponent);
+    rememberedFixture.detectChanges();
+
+    const quickLogin = rememberedFixture.nativeElement.querySelector(
+      '.player__login-btn--remembered',
+    ) as HTMLButtonElement;
+    expect(quickLogin).toHaveTextContent('Войти как Aria');
+    quickLogin.click();
+
+    await vi.waitFor(() => expect(characterService.characterExists).toHaveBeenCalledWith('Aria'));
+    await vi.waitFor(() => expect(rememberedFixture.componentInstance.isLoggedIn()).toBe(true));
+    rememberedFixture.destroy();
   });
 
   it('reports login failures through the logger and a user-safe message', async () => {
@@ -223,6 +248,24 @@ describe('PlayerComponent', () => {
       expect(component.loginError()).toBe('Ошибка при входе. Попробуйте позже.'),
     );
     expect(logger.error).toHaveBeenCalledWith('PlayerComponent.login', error);
+  });
+
+  it('keeps login working when local storage is unavailable', async () => {
+    const storageError = new DOMException('Storage blocked', 'SecurityError');
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementationOnce(() => {
+      throw storageError;
+    });
+    characterService.characterExists.mockResolvedValue(true);
+    characterService.loadCharacter.mockResolvedValue(character());
+    component.loginName.set('Aria');
+
+    component.login();
+
+    await vi.waitFor(() => expect(component.isLoggedIn()).toBe(true));
+    expect(logger.error).toHaveBeenCalledWith(
+      'PlayerComponent.rememberSuccessfulLogin',
+      storageError,
+    );
   });
 
   it('parses, saves, and subscribes to a selected LSS JSON file', async () => {
@@ -248,6 +291,7 @@ describe('PlayerComponent', () => {
     expect(component.character()).toEqual(parsed);
     expect(component.isLoggedIn()).toBe(true);
     expect(component.loginName()).toBe('Aria');
+    expect(localStorage.getItem('battle-forge:last-player-name')).toBe('Aria');
     expect(characterService.subscribeToCharacter).toHaveBeenCalledWith('Aria');
     expect(battle.addPlayerToBattle).toHaveBeenCalledWith(parsed, 0);
   });
