@@ -89,3 +89,13 @@ select option:disabled {
 .text-shadow-gold {
   text-shadow: 0 2px 10px rgba(241, 196, 15, 0.35);
 }
+
+.bf-build-signature {
+  margin: 0;
+  color: var(--bf-text-muted);
+  font-family: var(--bf-font-body);
+  font-size: clamp(0.68rem, 1.5vw, 0.82rem);
+  font-style: italic;
+  letter-spacing: 0.08em;
+  opacity: 0.72;
+}

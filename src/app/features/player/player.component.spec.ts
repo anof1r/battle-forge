@@ -148,6 +148,14 @@ describe('PlayerComponent', () => {
     component = fixture.componentInstance;
   });
 
+  it('shows the alpha version signature on the login screen', () => {
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.bf-build-signature')).toHaveTextContent(
+      'ver 0.0.1 alpha by anof1r',
+    );
+  });
+
   it('rejects an empty login without calling the character service', () => {
     component.loginName.set('   ');
 
@@ -353,6 +361,16 @@ describe('PlayerComponent', () => {
 
     expect(fixture.nativeElement).toHaveTextContent('Доп. удар');
     expect(fixture.nativeElement).toHaveTextContent('Ограничения на количество атак нет');
+  });
+
+  it('keeps current and maximum HP in one dedicated vitality value', () => {
+    component.character.set(character({ currentHp: 120, maxHp: 120 }));
+    component.isLoggedIn.set(true);
+
+    fixture.detectChanges();
+
+    const hp = fixture.nativeElement.querySelector('.player__vitality-value--hp');
+    expect(hp).toHaveTextContent('120 / 120');
   });
 
   it('renders the arena safely before the first current turn is assigned', () => {

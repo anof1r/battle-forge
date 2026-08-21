@@ -68,6 +68,9 @@ describe('DisplayComponent', () => {
   it('renders the correct waiting message for each non-battle state', () => {
     const fixture = TestBed.createComponent(DisplayComponent);
     fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.bf-build-signature')).toHaveTextContent(
+      'ver 0.0.1 alpha by anof1r',
+    );
     expect(fixture.nativeElement).toHaveTextContent('Awaiting the Dungeon Master');
 
     status.set(BATTLE_STATUS.INITIATIVE);
