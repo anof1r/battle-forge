@@ -7,17 +7,19 @@
     @for (effect of effects(); track effect.id) {
       <span
         [class]="'effect-chip effect-chip--' + effect.type"
-        [attr.aria-label]="definition(effect.type).label"
+        [attr.aria-label]="effectLabel(effect)"
         [attr.title]="tooltip(effect)"
       >
         <span class="effect-chip__icon" aria-hidden="true">
-          {{ definition(effect.type).icon }}
+          {{ effectIcon(effect) }}
         </span>
-        {{ definition(effect.type).label }}
+        {{ effectLabel(effect) }}
         @if (effect.damagePerTrigger) {
           <span class="effect-chip__meta">−{{ effect.damagePerTrigger }} HP</span>
         }
-        @if (effect.remainingTriggers) {
+        @if (effect.durationLabel) {
+          <span class="effect-chip__meta">{{ effect.durationLabel }}</span>
+        } @else if (effect.remainingTriggers) {
           <span class="effect-chip__meta">×{{ effect.remainingTriggers }}</span>
         }
         @if (effect.concentrationSourceId) {

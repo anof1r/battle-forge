@@ -18,6 +18,7 @@ export const STATUS_EFFECT_TYPE = {
   INCAPACITATED: 'incapacitated',
   DEAFENED: 'deafened',
   PETRIFIED: 'petrified',
+  RESOURCE_ACTIVE: 'resource-active',
 } as const;
 
 export type StatusEffectType = (typeof STATUS_EFFECT_TYPE)[keyof typeof STATUS_EFFECT_TYPE];
@@ -190,6 +191,14 @@ export const STATUS_EFFECT_DEFINITIONS: readonly StatusEffectDefinition[] = [
     icon: '🗿',
     description: 'Существо и всё его немагическое снаряжение превращены в твёрдое вещество.',
     beneficial: false,
+    damageCapable: false,
+  },
+  {
+    type: STATUS_EFFECT_TYPE.RESOURCE_ACTIVE,
+    label: 'Активный ресурс',
+    icon: '⚡',
+    description: 'Активная способность или классовый ресурс персонажа.',
+    beneficial: true,
     damageCapable: false,
   },
 ] as const;

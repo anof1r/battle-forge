@@ -105,6 +105,12 @@
     color: #ffe79a;
     box-shadow: 0 0 12px rgba(255, 218, 101, 0.35);
   }
+
+  &--resource-active {
+    background: linear-gradient(180deg, #6a4319, #2c1a0b);
+    color: #ffd373;
+    box-shadow: 0 0 14px rgba(255, 157, 49, 0.28);
+  }
 }
 
 @keyframes status-icon-pulse {

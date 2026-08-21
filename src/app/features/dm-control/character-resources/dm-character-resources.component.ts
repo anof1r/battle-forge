@@ -2,7 +2,9 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import {
   CharacterResource,
   ParsedCharacter,
+  ResourceEffectDuration,
   ResourceRecovery,
+  ResourceSpendMode,
 } from '../../../core/models/character.model';
 import { BattleService } from '../../../core/services/battle.service';
 import { CharacterService } from '../../../core/services/character.service';
@@ -37,11 +39,28 @@ export class DmCharacterResourcesComponent {
 
   readonly resourceId = signal<string | null>(null);
   readonly resourceName = signal('');
+  readonly resourceIcon = signal('⚡');
   readonly resourceDescription = signal('');
   readonly resourceUnlimited = signal(false);
   readonly resourceCurrent = signal(0);
   readonly resourceMax = signal(0);
   readonly resourceRecovery = signal<ResourceRecovery>('long-rest');
+  readonly resourceSpendMode = signal<ResourceSpendMode>('fixed');
+  readonly resourceSpendAmount = signal(1);
+  readonly resourceShortRestRestore = signal(0);
+  readonly resourceLinkedSpellId = signal('');
+  readonly resourceActivatesEffect = signal(false);
+  readonly resourceEffectDuration = signal<ResourceEffectDuration>('manual');
+  readonly resourceEffectRounds = signal(1);
+
+  readonly resourcePresets = [
+    { id: 'rage', label: '🔥 Ярость' },
+    { id: 'lay-on-hands', label: '✋ Наложение рук' },
+    { id: 'channel-divinity', label: '✨ Божественный канал' },
+    { id: 'focus-points', label: '☯️ Очки фокуса' },
+    { id: 'heroic-inspiration', label: '⭐ Вдохновение героя' },
+    { id: 'free-spell', label: '🔮 Бесплатное заклинание' },
+  ] as const;
 
   selectPlayer(event: Event): void {
     const playerId = (event.target as HTMLSelectElement).value;
@@ -87,11 +106,19 @@ export class DmCharacterResourcesComponent {
   editResource(resource: CharacterResource): void {
     this.resourceId.set(resource.id);
     this.resourceName.set(resource.name);
+    this.resourceIcon.set(resource.icon ?? resource.activeEffect?.icon ?? '⚡');
     this.resourceDescription.set(resource.description ?? '');
     this.resourceUnlimited.set(resource.isUnlimited === true);
     this.resourceCurrent.set(resource.current);
     this.resourceMax.set(resource.max);
     this.resourceRecovery.set(resource.recovery);
+    this.resourceSpendMode.set(resource.spendMode ?? 'fixed');
+    this.resourceSpendAmount.set(resource.spendAmount ?? 1);
+    this.resourceShortRestRestore.set(resource.shortRestRestore ?? 0);
+    this.resourceLinkedSpellId.set(resource.linkedSpellId ?? '');
+    this.resourceActivatesEffect.set(resource.activeEffect !== undefined);
+    this.resourceEffectDuration.set(resource.activeEffect?.duration ?? 'manual');
+    this.resourceEffectRounds.set(resource.activeEffect?.rounds ?? 1);
     this.clearMessages();
   }
 
@@ -105,11 +132,37 @@ export class DmCharacterResourcesComponent {
       .upsertResource(playerName, {
         id: this.resourceId() ?? '',
         name,
+        icon: this.resourceIcon().trim() || '⚡',
         description: this.resourceDescription().trim(),
         isUnlimited: this.resourceUnlimited(),
         current: this.resourceCurrent(),
         max: this.resourceMax(),
         recovery: this.resourceRecovery(),
+        ...(!this.resourceUnlimited() && this.resourceSpendMode() === 'variable'
+          ? { spendMode: 'variable' as const }
+          : {}),
+        ...(!this.resourceUnlimited() && this.resourceSpendAmount() !== 1
+          ? { spendAmount: this.resourceSpendAmount() }
+          : {}),
+        ...(!this.resourceUnlimited() && this.resourceShortRestRestore() > 0
+          ? { shortRestRestore: this.resourceShortRestRestore() }
+          : {}),
+        ...(this.resourceLinkedSpellId()
+          ? { linkedSpellId: this.resourceLinkedSpellId() }
+          : {}),
+        ...(this.resourceActivatesEffect()
+          ? {
+              activeEffect: {
+                duration: this.resourceEffectDuration(),
+                ...(this.resourceIcon().trim()
+                  ? { icon: this.resourceIcon().trim() }
+                  : {}),
+                ...(this.resourceEffectDuration() === 'rounds'
+                  ? { rounds: this.resourceEffectRounds() }
+                  : {}),
+              },
+            }
+          : {}),
       })
       .then(() => this.reloadCharacter())
       .then(() => {
@@ -145,20 +198,50 @@ export class DmCharacterResourcesComponent {
   resetResourceEditor(): void {
     this.resourceId.set(null);
     this.resourceName.set('');
+    this.resourceIcon.set('⚡');
     this.resourceDescription.set('');
     this.resourceUnlimited.set(false);
     this.resourceCurrent.set(0);
     this.resourceMax.set(0);
     this.resourceRecovery.set('long-rest');
+    this.resourceSpendMode.set('fixed');
+    this.resourceSpendAmount.set(1);
+    this.resourceShortRestRestore.set(0);
+    this.resourceLinkedSpellId.set('');
+    this.resourceActivatesEffect.set(false);
+    this.resourceEffectDuration.set('manual');
+    this.resourceEffectRounds.set(1);
   }
 
-  setNumber(target: 'slotLevel' | 'slotCurrent' | 'slotMax' | 'resourceCurrent' | 'resourceMax', event: Event): void {
+  setNumber(
+    target:
+      | 'slotLevel'
+      | 'slotCurrent'
+      | 'slotMax'
+      | 'resourceCurrent'
+      | 'resourceMax'
+      | 'resourceSpendAmount'
+      | 'resourceShortRestRestore'
+      | 'resourceEffectRounds',
+    event: Event,
+  ): void {
     const value = Math.max(0, Math.floor(Number((event.target as HTMLInputElement).value) || 0));
-    this[target].set(target === 'slotLevel' ? Math.min(9, Math.max(1, value)) : value);
+    const minimumOne = target === 'slotLevel' || target === 'resourceSpendAmount' || target === 'resourceEffectRounds';
+    this[target].set(
+      target === 'slotLevel'
+        ? Math.min(9, Math.max(1, value))
+        : minimumOne
+          ? Math.max(1, value)
+          : value,
+    );
   }
 
   setResourceName(event: Event): void {
     this.resourceName.set((event.target as HTMLInputElement).value);
+  }
+
+  setResourceIcon(event: Event): void {
+    this.resourceIcon.set((event.target as HTMLInputElement).value);
   }
 
   setResourceDescription(event: Event): void {
@@ -180,6 +263,95 @@ export class DmCharacterResourcesComponent {
     this.resourceRecovery.set(
       value === 'short-rest' || value === 'long-rest' ? value : 'manual',
     );
+  }
+
+  setSpendMode(event: Event): void {
+    this.resourceSpendMode.set(
+      (event.target as HTMLSelectElement).value === 'variable' ? 'variable' : 'fixed',
+    );
+  }
+
+  setLinkedSpell(event: Event): void {
+    this.resourceLinkedSpellId.set((event.target as HTMLSelectElement).value);
+  }
+
+  setActivatesEffect(event: Event): void {
+    this.resourceActivatesEffect.set((event.target as HTMLInputElement).checked);
+  }
+
+  setEffectDuration(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value;
+    this.resourceEffectDuration.set(
+      value === 'until-next-turn-end' || value === 'rounds' ? value : 'manual',
+    );
+  }
+
+  applyResourcePreset(presetId: string): void {
+    const level = this.character()?.level ?? 1;
+    this.resetResourceEditor();
+    switch (presetId) {
+      case 'rage':
+        this.resourceName.set('Ярость');
+        this.resourceIcon.set('🔥');
+        this.resourceDescription.set(
+          'Сопротивление дробящему, колющему и рубящему урону; +2 к урону атакой через СИЛ; преимущество на проверки и спасброски СИЛ. Нельзя колдовать и поддерживать концентрацию.',
+        );
+        this.resourceCurrent.set(
+          level >= 17 ? 6 : level >= 12 ? 5 : level >= 6 ? 4 : level >= 3 ? 3 : 2,
+        );
+        this.resourceMax.set(this.resourceCurrent());
+        this.resourceRecovery.set('long-rest');
+        this.resourceShortRestRestore.set(1);
+        this.resourceActivatesEffect.set(true);
+        this.resourceEffectDuration.set('until-next-turn-end');
+        break;
+      case 'lay-on-hands':
+        this.resourceName.set('Наложение рук');
+        this.resourceIcon.set('✋');
+        this.resourceDescription.set(
+          'Потратьте выбранное количество очков и восстановите столько же HP. За 5 очков можно снять состояние «Отравлен», не восстанавливая HP.',
+        );
+        this.resourceCurrent.set(level * 5);
+        this.resourceMax.set(level * 5);
+        this.resourceSpendMode.set('variable');
+        this.resourceRecovery.set('long-rest');
+        break;
+      case 'channel-divinity':
+        this.resourceName.set('Божественный канал');
+        this.resourceIcon.set('✨');
+        this.resourceDescription.set('Выберите доступный классу или подклассу эффект Божественного канала.');
+        this.resourceCurrent.set(level >= 11 ? 3 : 2);
+        this.resourceMax.set(this.resourceCurrent());
+        this.resourceRecovery.set('long-rest');
+        this.resourceShortRestRestore.set(1);
+        break;
+      case 'focus-points':
+        this.resourceName.set('Очки фокуса');
+        this.resourceIcon.set('☯️');
+        this.resourceDescription.set('Расходуются на способности монаха.');
+        this.resourceCurrent.set(level);
+        this.resourceMax.set(level);
+        this.resourceSpendMode.set('variable');
+        this.resourceRecovery.set('short-rest');
+        break;
+      case 'heroic-inspiration':
+        this.resourceName.set('Вдохновение героя');
+        this.resourceIcon.set('⭐');
+        this.resourceDescription.set('Можно потратить, чтобы перебросить любую кость сразу после броска.');
+        this.resourceCurrent.set(1);
+        this.resourceMax.set(1);
+        this.resourceRecovery.set('long-rest');
+        break;
+      case 'free-spell':
+        this.resourceName.set('Бесплатное применение заклинания');
+        this.resourceIcon.set('🔮');
+        this.resourceDescription.set('Одно применение связанного заклинания без траты ячейки.');
+        this.resourceCurrent.set(1);
+        this.resourceMax.set(1);
+        this.resourceRecovery.set('long-rest');
+        break;
+    }
+    this.clearMessages();
   }
 
   setSlotRecovery(event: Event): void {

@@ -146,18 +146,11 @@ export class CharacterService {
     const player = await this.loadCharacter(playerName);
     if (!player) return;
     const resources = normalizeCharacterResources(player.resources);
-    const isUnlimited = resource.isUnlimited === true;
-    const max = isUnlimited ? 0 : Math.max(0, Math.floor(resource.max));
-    const description = resource.description?.trim() ?? '';
-    const normalized: CharacterResource = {
+    const normalized = normalizeCharacterResources([{
+      ...resource,
       id: resource.id || `resource_${crypto.randomUUID()}`,
-      name: resource.name.trim(),
-      ...(description ? { description } : {}),
-      ...(isUnlimited ? { isUnlimited: true } : {}),
-      max,
-      current: isUnlimited ? 0 : Math.max(0, Math.min(max, Math.floor(resource.current))),
-      recovery: isUnlimited ? 'manual' : resource.recovery,
-    };
+    }])[0];
+    if (!normalized) return;
     if (!normalized.name) return;
     const index = resources.findIndex((candidate) => candidate.id === normalized.id);
     const next = index < 0
@@ -198,11 +191,17 @@ export class CharacterService {
   async restoreResources(playerName: string, rest: Exclude<ResourceRecovery, 'manual'>): Promise<void> {
     const player = await this.loadCharacter(playerName);
     if (!player) return;
-    const resources = normalizeCharacterResources(player.resources).map((resource) =>
-      resource.recovery === rest || (rest === 'long-rest' && resource.recovery === 'short-rest')
+    const resources = normalizeCharacterResources(player.resources).map((resource) => {
+      if (rest === 'short-rest' && (resource.shortRestRestore ?? 0) > 0) {
+        return {
+          ...resource,
+          current: Math.min(resource.max, resource.current + resource.shortRestRestore!),
+        };
+      }
+      return resource.recovery === rest || (rest === 'long-rest' && resource.recovery === 'short-rest')
         ? { ...resource, current: resource.max }
-        : resource,
-    );
+        : resource;
+    });
     await this.saveCharacter({ ...player, resources });
   }
 
@@ -215,9 +214,14 @@ export class CharacterService {
         slot.recovery === 'short-rest' ? { ...slot, current: slot.max } : slot,
       ),
       resources: normalizeCharacterResources(player.resources).map((resource) =>
-        resource.recovery === 'short-rest'
-          ? { ...resource, current: resource.max }
-          : resource,
+        (resource.shortRestRestore ?? 0) > 0
+          ? {
+              ...resource,
+              current: Math.min(resource.max, resource.current + resource.shortRestRestore!),
+            }
+          : resource.recovery === 'short-rest'
+            ? { ...resource, current: resource.max }
+            : resource,
       ),
     });
   }

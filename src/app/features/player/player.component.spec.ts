@@ -37,6 +37,9 @@ describe('PlayerComponent', () => {
     currentRound: ReturnType<typeof signal<number>>;
     addPlayerToBattle: ReturnType<typeof vi.fn>;
     takeDamage: ReturnType<typeof vi.fn>;
+    addStatusEffect: ReturnType<typeof vi.fn>;
+    removeStatusEffect: ReturnType<typeof vi.fn>;
+    refreshStatusEffect: ReturnType<typeof vi.fn>;
   };
 
   const potion: InventoryItem = {
@@ -125,6 +128,9 @@ describe('PlayerComponent', () => {
       currentRound: signal(1),
       addPlayerToBattle: vi.fn().mockResolvedValue(undefined),
       takeDamage: vi.fn().mockResolvedValue(undefined),
+      addStatusEffect: vi.fn().mockResolvedValue(true),
+      removeStatusEffect: vi.fn().mockResolvedValue(true),
+      refreshStatusEffect: vi.fn().mockResolvedValue(true),
     };
 
     TestBed.configureTestingModule({
@@ -686,6 +692,7 @@ describe('PlayerComponent', () => {
       resources: [{
         id: 'rage',
         name: 'Ярость',
+        icon: '🔥',
         description: 'Преимущество к проверкам Силы.',
         current: 2,
         max: 2,
@@ -695,18 +702,21 @@ describe('PlayerComponent', () => {
 
     component.useResource('rage');
 
-    await vi.waitFor(() => expect(characterService.useResource).toHaveBeenCalledWith('Aria', 'rage'));
+    await vi.waitFor(() => expect(characterService.useResource).toHaveBeenCalledWith('Aria', 'rage', 1));
     await vi.waitFor(() => expect(component.usingResourceId()).toBeNull());
     expect(component.resourceUseConfirmation()).toEqual({
       resourceName: 'Ярость',
+      icon: '🔥',
       isUnlimited: false,
       remaining: 1,
       max: 2,
+      spent: 1,
+      activated: false,
     });
 
     fixture.detectChanges();
     const modal = fixture.nativeElement.querySelector('.resource-confirmation');
-    expect(modal).toHaveTextContent('⚡');
+    expect(modal).toHaveTextContent('🔥');
     expect(modal).toHaveTextContent('Ресурс использован');
     expect(modal).toHaveTextContent('1 / 2');
 
@@ -739,18 +749,175 @@ describe('PlayerComponent', () => {
     await vi.waitFor(() => expect(characterService.useResource).toHaveBeenCalledWith(
       'Aria',
       'sneak-attack',
+      1,
     ));
     await vi.waitFor(() => expect(component.resourceUseConfirmation()).toEqual({
       resourceName: 'Скрытая атака',
+      icon: '⚡',
       isUnlimited: true,
       remaining: 0,
       max: 0,
+      spent: 0,
+      activated: false,
     }));
 
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.resource-confirmation')).toHaveTextContent(
       '∞ Бесконечно',
     );
+  });
+
+  it('asks how many points to spend from a variable resource', async () => {
+    component.character.set(character({
+      resources: [{
+        id: 'lay-on-hands',
+        name: 'Наложение рук',
+        icon: '✋',
+        spendMode: 'variable',
+        current: 5,
+        max: 5,
+        recovery: 'long-rest',
+      }],
+    }));
+
+    component.useResource('lay-on-hands');
+
+    expect(component.selectedResourceForUse()?.id).toBe('lay-on-hands');
+    expect(characterService.useResource).not.toHaveBeenCalled();
+    component.setResourceUseAmount({ target: { value: '4' } } as unknown as Event);
+    component.confirmResourceUse();
+
+    await vi.waitFor(() => expect(characterService.useResource).toHaveBeenCalledWith(
+      'Aria',
+      'lay-on-hands',
+      4,
+    ));
+    await vi.waitFor(() => expect(component.resourceUseConfirmation()).toEqual({
+      resourceName: 'Наложение рук',
+      icon: '✋',
+      isUnlimited: false,
+      remaining: 1,
+      max: 5,
+      spent: 4,
+      activated: false,
+    }));
+  });
+
+  it('activates, extends and ends a linked resource effect', async () => {
+    battle.sortedCombatants.set([ally]);
+    battle.currentCombatant.set(ally);
+    component.character.set(character({
+      resources: [{
+        id: 'rage',
+        name: 'Ярость',
+        description: 'Сопротивление физическому урону.',
+        current: 2,
+        max: 2,
+        recovery: 'long-rest',
+        shortRestRestore: 1,
+        activeEffect: { icon: '🔥', duration: 'until-next-turn-end' },
+      }],
+    }));
+
+    component.useResource('rage');
+
+    await vi.waitFor(() => expect(battle.addStatusEffect).toHaveBeenCalledWith(
+      ally.id,
+      'resource-active',
+      expect.objectContaining({
+        resourceId: 'rage',
+        customLabel: 'Ярость',
+        customIcon: '🔥',
+        trigger: 'turn-end',
+        durationTriggers: 2,
+        durationLabel: 'до конца следующего хода',
+      }),
+    ));
+    expect(component.resourceUseConfirmation()?.activated).toBe(true);
+
+    battle.sortedCombatants.set([{
+      ...ally,
+      activeEffects: [{
+        id: 'effect-rage',
+        type: 'resource-active',
+        appliedAt: 1,
+        resourceId: 'rage',
+        remainingTriggers: 1,
+      }],
+    }]);
+    component.extendResourceEffect('rage');
+
+    await vi.waitFor(() => expect(battle.refreshStatusEffect).toHaveBeenCalledWith(
+      ally.id,
+      'effect-rage',
+      2,
+      'до конца следующего хода',
+    ));
+    await vi.waitFor(() => expect(component.resourceEffectConfirmation()).toEqual({
+      resourceName: 'Ярость',
+      durationLabel: 'до конца следующего хода',
+      icon: '🔥',
+    }));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.resource-extension-confirmation')).toHaveTextContent(
+      'Ресурс продлён',
+    );
+
+    component.closeResourceEffectConfirmation();
+    component.endResourceEffect('rage');
+    expect(battle.removeStatusEffect).toHaveBeenCalledWith(ally.id, 'effect-rage');
+  });
+
+  it('visually disables a depleted finite resource', () => {
+    component.character.set(character({
+      resources: [{
+        id: 'rage',
+        name: 'Ярость',
+        current: 0,
+        max: 2,
+        recovery: 'long-rest',
+      }],
+    }));
+    component.isLoggedIn.set(true);
+
+    fixture.detectChanges();
+
+    const card = fixture.nativeElement.querySelector('.player__resource-card--depleted');
+    expect(card).toHaveTextContent('Ресурс исчерпан');
+    expect(card.querySelector('button')).toBeDisabled();
+    expect(card.querySelector('button')).toHaveTextContent('Исчерпан');
+  });
+
+  it('casts a linked spell without spending a spell slot', async () => {
+    const healingWord = spell({ id: 'healing-word', name: 'Исцеляющее слово' });
+    const freeCast = {
+      id: 'free-healing-word',
+      name: 'Бесплатное применение',
+      linkedSpellId: healingWord.id,
+      current: 1,
+      max: 1,
+      recovery: 'long-rest' as const,
+    };
+    component.character.set(character({
+      spells: [healingWord],
+      spellSlots: [{ level: 1, current: 2, max: 2 }],
+      resources: [freeCast],
+    }));
+
+    component.useSpellWithResource(healingWord, freeCast);
+
+    await vi.waitFor(() => expect(characterService.useResource).toHaveBeenCalledWith(
+      'Aria',
+      freeCast.id,
+      1,
+    ));
+    expect(characterService.usePlayerSpell).not.toHaveBeenCalled();
+    expect(component.spellUseConfirmation()).toEqual({
+      spellName: 'Исцеляющее слово',
+      isCantrip: false,
+      slotLevel: null,
+      resourceName: 'Бесплатное применение',
+    });
   });
 
   it('does not show a resource confirmation when spending fails', async () => {

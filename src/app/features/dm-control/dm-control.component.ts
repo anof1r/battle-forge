@@ -71,7 +71,9 @@ export class DmControlComponent {
   readonly selectedCombatantIds = signal<string[]>([]);
 
   // --- Панель статус-эффектов ---
-  readonly STATUS_EFFECT_DEFINITIONS = STATUS_EFFECT_DEFINITIONS;
+  readonly STATUS_EFFECT_DEFINITIONS = STATUS_EFFECT_DEFINITIONS.filter(
+    (effect) => effect.type !== STATUS_EFFECT_TYPE.RESOURCE_ACTIVE,
+  );
   readonly selectedStatusTargetId = signal<string | null>(null);
   readonly selectedStatusEffect = signal<StatusEffectType>(STATUS_EFFECT_TYPE.POISONED);
   readonly applyingStatus = signal(false);

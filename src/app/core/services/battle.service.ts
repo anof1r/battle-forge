@@ -29,6 +29,7 @@ import {
 import { BATTLE_ACTION_TYPE } from '../constants/battle-action.constants';
 import {
   getStatusEffectDefinition,
+  STATUS_EFFECT_TYPE,
   STATUS_EFFECT_TRIGGER,
   StatusEffectTrigger,
   StatusEffectType,
@@ -624,7 +625,13 @@ export class BattleService {
     const combatant = this.combatants()[combatantId];
     if (!combatant || combatant.status === COMBATANT_STATUS.DEAD) return false;
     const currentEffects = combatant.activeEffects ?? [];
-    if (currentEffects.some((effect) => effect.type === type)) return false;
+    if (
+      currentEffects.some((effect) =>
+        type === STATUS_EFFECT_TYPE.RESOURCE_ACTIVE
+          ? effect.type === type && effect.resourceId === options.resourceId
+          : effect.type === type,
+      )
+    ) return false;
 
     const definition = getStatusEffectDefinition(type);
     const damagePerTrigger = Math.max(0, Math.floor(options.damagePerTrigger ?? 0));
@@ -646,6 +653,10 @@ export class BattleService {
       ...(options.saveAbility?.trim() ? { saveAbility: options.saveAbility.trim() } : {}),
       ...((options.saveDc ?? 0) > 0 ? { saveDc: Math.floor(options.saveDc!) } : {}),
       ...(options.notes?.trim() ? { notes: options.notes.trim() } : {}),
+      ...(options.resourceId?.trim() ? { resourceId: options.resourceId.trim() } : {}),
+      ...(options.customLabel?.trim() ? { customLabel: options.customLabel.trim() } : {}),
+      ...(options.customIcon?.trim() ? { customIcon: options.customIcon.trim() } : {}),
+      ...(options.durationLabel?.trim() ? { durationLabel: options.durationLabel.trim() } : {}),
     };
     const before: Record<string, Combatant> = {};
     const updates: Record<string, unknown> = {};
@@ -674,7 +685,7 @@ export class BattleService {
       type: BATTLE_ACTION_TYPE.STATUS_CHANGE,
       targetId: combatantId,
       value: 0,
-      description: `${combatant.name}: ${definition.label}`,
+      description: `${combatant.name}: ${effect.customLabel ?? definition.label}`,
       undoState: { combatants: before },
     });
     updates['lastUpdated'] = Date.now();
@@ -710,11 +721,51 @@ export class BattleService {
       type: BATTLE_ACTION_TYPE.STATUS_CHANGE,
       targetId: combatantId,
       value: 0,
-      description: `${combatant.name}: снят ${definition.label}`,
+      description: `${combatant.name}: снят ${removed.customLabel ?? definition.label}`,
       undoState: { combatants: before },
     });
     updates['lastUpdated'] = Date.now();
     await this.firebaseService.update(this.roomPath, updates);
+    return true;
+  }
+
+  async refreshStatusEffect(
+    combatantId: string,
+    effectId: string,
+    durationTriggers: number,
+    durationLabel?: string,
+  ): Promise<boolean> {
+    const combatant = this.combatants()[combatantId];
+    if (!combatant) return false;
+    const currentEffects = combatant.activeEffects ?? [];
+    const effect = currentEffects.find((candidate) => candidate.id === effectId);
+    if (!effect) return false;
+
+    const remainingTriggers = Math.max(1, Math.floor(durationTriggers));
+    const activeEffects = currentEffects.map((candidate) =>
+      candidate.id === effectId
+        ? {
+            ...candidate,
+            trigger: candidate.trigger ?? STATUS_EFFECT_TRIGGER.TURN_END,
+            remainingTriggers,
+            ...(durationLabel?.trim() ? { durationLabel: durationLabel.trim() } : {}),
+          }
+        : candidate,
+    );
+    const label = effect.customLabel ?? getStatusEffectDefinition(effect.type).label;
+    const history = this.recordAction({
+      type: BATTLE_ACTION_TYPE.STATUS_CHANGE,
+      targetId: combatantId,
+      value: 0,
+      description: `${combatant.name}: продлён ${label}`,
+      undoState: { combatants: { [combatantId]: combatant } },
+    });
+    await this.firebaseService.update(this.roomPath, {
+      [`combatants/${combatantId}/activeEffects`]: activeEffects,
+      [`combatants/${combatantId}/lastUpdated`]: Date.now(),
+      history,
+      lastUpdated: Date.now(),
+    });
     return true;
   }
 

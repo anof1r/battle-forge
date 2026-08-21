@@ -407,10 +407,14 @@ describe('CharacterService', () => {
     await service.upsertResource('Aria', {
       id: 'rage',
       name: ' Ярость ',
+      icon: ' 🔥 ',
       description: '  Даёт преимущество к проверке Силы. ',
       current: 1,
       max: 2,
       recovery: 'long-rest',
+      shortRestRestore: 1,
+      linkedSpellId: ' spell-rage ',
+      activeEffect: { icon: ' 🔥 ', duration: 'until-next-turn-end' },
     });
 
     expect(save).toHaveBeenLastCalledWith(expect.objectContaining({
@@ -418,10 +422,14 @@ describe('CharacterService', () => {
         {
           id: 'rage',
           name: 'Ярость',
+          icon: '🔥',
           description: 'Даёт преимущество к проверке Силы.',
           current: 1,
           max: 2,
           recovery: 'long-rest',
+          shortRestRestore: 1,
+          linkedSpellId: 'spell-rage',
+          activeEffect: { icon: '🔥', duration: 'until-next-turn-end' },
         },
         expect.objectContaining({ id: 'ki' }),
       ],
@@ -459,7 +467,7 @@ describe('CharacterService', () => {
         { level: 2, current: 0, max: 1 },
       ],
       resources: [
-        { id: 'rage', name: 'Ярость', current: 0, max: 2, recovery: 'long-rest' },
+        { id: 'rage', name: 'Ярость', current: 0, max: 2, recovery: 'long-rest', shortRestRestore: 1 },
         { id: 'ki', name: 'Ци', current: 0, max: 3, recovery: 'short-rest' },
         { id: 'manual', name: 'Особый заряд', current: 0, max: 1, recovery: 'manual' },
       ],
@@ -474,7 +482,7 @@ describe('CharacterService', () => {
         { level: 2, current: 0, max: 1 },
       ],
       resources: [
-        expect.objectContaining({ id: 'rage', current: 0 }),
+        expect.objectContaining({ id: 'rage', current: 1, shortRestRestore: 1 }),
         expect.objectContaining({ id: 'ki', current: 3 }),
         expect.objectContaining({ id: 'manual', current: 0 }),
       ],

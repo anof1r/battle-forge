@@ -102,6 +102,7 @@ describe('DmCharacterResourcesComponent', () => {
     await vi.waitFor(() => expect(characters.upsertResource).toHaveBeenCalledWith('Aria', {
       id: '',
       name: 'Ярость',
+      icon: '⚡',
       description: 'Преимущество к проверкам Силы.',
       isUnlimited: false,
       current: 1,
@@ -131,12 +132,41 @@ describe('DmCharacterResourcesComponent', () => {
     await vi.waitFor(() => expect(characters.upsertResource).toHaveBeenCalledWith('Aria', {
       id: '',
       name: 'Скрытая атака',
+      icon: '⚡',
       description: '',
       isUnlimited: true,
       current: 0,
       max: 0,
       recovery: 'manual',
     }));
+  });
+
+  it('fills the rage preset with partial rest recovery and an active effect', async () => {
+    component.selectPlayer({ target: { value: 'player_Aria' } } as unknown as Event);
+    await vi.waitFor(() => expect(component.character()).toEqual(aria));
+
+    component.applyResourcePreset('rage');
+
+    expect(component.resourceName()).toBe('Ярость');
+    expect(component.resourceIcon()).toBe('🔥');
+    expect(component.resourceMax()).toBe(3);
+    expect(component.resourceShortRestRestore()).toBe(1);
+    expect(component.resourceActivatesEffect()).toBe(true);
+    expect(component.resourceEffectDuration()).toBe('until-next-turn-end');
+    component.saveResource();
+
+    await vi.waitFor(() => expect(characters.upsertResource).toHaveBeenCalledWith(
+      'Aria',
+      expect.objectContaining({
+        name: 'Ярость',
+        icon: '🔥',
+        current: 3,
+        max: 3,
+        recovery: 'long-rest',
+        shortRestRestore: 1,
+        activeEffect: { icon: '🔥', duration: 'until-next-turn-end' },
+      }),
+    ));
   });
 
   it('edits, fills and deletes a manual resource', async () => {

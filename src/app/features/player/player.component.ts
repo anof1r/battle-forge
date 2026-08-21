@@ -12,13 +12,21 @@ import { InventoryService } from '../../core/services/inventory.service';
 import { LoggerService } from '../../core/services/logger.service';
 import { Subscription } from 'rxjs';
 import { CharacterParserService } from '../../core/services/characterParser.service';
-import { LssCharacterSheet, ParsedCharacter } from '../../core/models/character.model';
+import {
+  CharacterResource,
+  LssCharacterSheet,
+  ParsedCharacter,
+} from '../../core/models/character.model';
 import { InventoryItem } from '../../core/models/inventory-item.model';
-import { Combatant, SpellData } from '../../core/models/combatant.model';
+import { ActiveStatusEffect, Combatant, SpellData } from '../../core/models/combatant.model';
 import { COMBATANT_STATUS, COMBATANT_TYPE } from '../../core/constants/combatant.constants';
 import { StatusEffectListComponent } from '../../shared/ui/status-effect-list/status-effect-list.component';
 import { CombatantLifeStateComponent } from '../../shared/ui/combatant-life-state/combatant-life-state.component';
 import { parseJsonWithTrailingCommaRecovery } from '../../core/utils';
+import {
+  STATUS_EFFECT_TRIGGER,
+  STATUS_EFFECT_TYPE,
+} from '../../core/constants/status-effect.constants';
 
 const CHARACTER_STATS = [
   { key: 'str', label: 'СИЛ', title: 'Сила' },
@@ -38,13 +46,23 @@ interface SpellUseConfirmation {
   spellName: string;
   isCantrip: boolean;
   slotLevel: number | null;
+  resourceName?: string;
 }
 
 interface ResourceUseConfirmation {
   resourceName: string;
+  icon: string;
   isUnlimited: boolean;
   remaining: number;
   max: number;
+  spent: number;
+  activated: boolean;
+}
+
+interface ResourceEffectConfirmation {
+  resourceName: string;
+  durationLabel: string;
+  icon: string;
 }
 
 const DICE_NOTATION_PATTERN = /(\d+\s*[dдк]\s*\d+(?:\s*[+\-−]\s*\d+)?)/giu;
@@ -97,6 +115,10 @@ export class PlayerComponent implements OnDestroy {
   readonly usingResourceId = signal<string | null>(null);
   readonly resourceUseError = signal<string | null>(null);
   readonly resourceUseConfirmation = signal<ResourceUseConfirmation | null>(null);
+  readonly resourceEffectConfirmation = signal<ResourceEffectConfirmation | null>(null);
+  readonly updatingResourceEffectId = signal<string | null>(null);
+  readonly selectedResourceForUse = signal<CharacterResource | null>(null);
+  readonly resourceUseAmount = signal(1);
 
   // --- Состояние модального окна использования предмета ---
   readonly modalMode = signal<'use' | 'examine'>('use');
@@ -255,6 +277,10 @@ export class PlayerComponent implements OnDestroy {
     this.usingResourceId.set(null);
     this.resourceUseError.set(null);
     this.resourceUseConfirmation.set(null);
+    this.resourceEffectConfirmation.set(null);
+    this.updatingResourceEffectId.set(null);
+    this.selectedResourceForUse.set(null);
+    this.resourceUseAmount.set(1);
   }
 
   switchTab(tab: 'character' | 'arena'): void {
@@ -321,6 +347,14 @@ export class PlayerComponent implements OnDestroy {
       : this.getSpellUsesRemaining(spell) > 0;
   }
 
+  linkedSpellResources(spell: SpellData): CharacterResource[] {
+    return this.characterResources().filter(
+      (resource) =>
+        resource.linkedSpellId === spell.id &&
+        (resource.isUnlimited || resource.current >= (resource.spendAmount ?? 1)),
+    );
+  }
+
   useSpell(spell: SpellData): void {
     const character = this.character();
     if (!character || !this.canUseSpell(spell) || this.usingSpellId() !== null) return;
@@ -356,7 +390,41 @@ export class PlayerComponent implements OnDestroy {
     this.spellUseConfirmation.set(null);
   }
 
-  useResource(resourceId: string): void {
+  useSpellWithResource(spell: SpellData, resource: CharacterResource): void {
+    const character = this.character();
+    const amount = Math.max(1, resource.spendAmount ?? 1);
+    if (
+      !character ||
+      !spell.isPrepared ||
+      (!resource.isUnlimited && resource.current < amount) ||
+      this.usingSpellId() !== null
+    ) return;
+
+    this.usingSpellId.set(spell.id);
+    this.spellUseError.set(null);
+    this.spellUseConfirmation.set(null);
+    this.characterService
+      .useResource(character.name, resource.id, amount)
+      .then((success) => {
+        if (!success) {
+          this.spellUseError.set('Бесплатное применение уже израсходовано.');
+          return;
+        }
+        this.spellUseConfirmation.set({
+          spellName: spell.name,
+          isCantrip: false,
+          slotLevel: null,
+          resourceName: resource.name,
+        });
+      })
+      .catch((error: unknown) => {
+        this.logger.error('PlayerComponent.useSpellWithResource', error);
+        this.spellUseError.set('Не удалось отметить бесплатное применение заклинания.');
+      })
+      .finally(() => this.usingSpellId.set(null));
+  }
+
+  useResource(resourceId: string, requestedAmount?: number): void {
     const character = this.character();
     const resource = this.characterResources().find((candidate) => candidate.id === resourceId);
     if (
@@ -365,21 +433,109 @@ export class PlayerComponent implements OnDestroy {
       (!resource.isUnlimited && resource.current <= 0) ||
       this.usingResourceId()
     ) return;
-    this.usingResourceId.set(resourceId);
+    if (this.activeResourceEffect(resource.id)) return;
+
+    if (resource.spendMode === 'variable' && requestedAmount === undefined) {
+      this.selectedResourceForUse.set(resource);
+      this.resourceUseAmount.set(1);
+      this.resourceUseError.set(null);
+      return;
+    }
+    const amount = resource.isUnlimited
+      ? 1
+      : Math.max(1, Math.min(resource.current, requestedAmount ?? resource.spendAmount ?? 1));
+    this.performResourceUse(character.name, resource, amount);
+  }
+
+  confirmResourceUse(): void {
+    const resource = this.selectedResourceForUse();
+    if (!resource) return;
+    const amount = this.resourceUseAmount();
+    this.closeResourceUseDialog();
+    this.useResource(resource.id, amount);
+  }
+
+  closeResourceUseDialog(): void {
+    this.selectedResourceForUse.set(null);
+    this.resourceUseAmount.set(1);
+  }
+
+  setResourceUseAmount(event: Event): void {
+    const resource = this.selectedResourceForUse();
+    const value = Math.floor(Number((event.target as HTMLInputElement).value) || 1);
+    this.resourceUseAmount.set(Math.max(1, Math.min(resource?.current ?? 1, value)));
+  }
+
+  activeResourceEffect(resourceId: string): ActiveStatusEffect | null {
+    return this.playerActiveEffects().find((effect) => effect.resourceId === resourceId) ?? null;
+  }
+
+  extendResourceEffect(resourceId: string): void {
+    const combatant = this.playerCombatant();
+    const resource = this.characterResources().find((candidate) => candidate.id === resourceId);
+    const effect = this.activeResourceEffect(resourceId);
+    if (!combatant || !resource?.activeEffect || !effect || this.updatingResourceEffectId()) return;
+    const duration = this.resourceEffectDuration(resource);
+    if (!duration) return;
+    this.updatingResourceEffectId.set(resourceId);
+    this.resourceEffectConfirmation.set(null);
+    this.battleService
+      .refreshStatusEffect(combatant.id, effect.id, duration.triggers, duration.label)
+      .then((success) => {
+        if (!success) {
+          this.resourceUseError.set('Не удалось продлить активный ресурс.');
+          return;
+        }
+        this.resourceEffectConfirmation.set({
+          resourceName: resource.name,
+          durationLabel: duration.label,
+          icon: resource.icon ?? resource.activeEffect?.icon ?? '⚡',
+        });
+      })
+      .catch((error: unknown) => {
+        this.logger.error('PlayerComponent.extendResourceEffect', error);
+        this.resourceUseError.set('Не удалось продлить активный ресурс.');
+      })
+      .finally(() => this.updatingResourceEffectId.set(null));
+  }
+
+  closeResourceEffectConfirmation(): void {
+    this.resourceEffectConfirmation.set(null);
+  }
+
+  endResourceEffect(resourceId: string): void {
+    const combatant = this.playerCombatant();
+    const effect = this.activeResourceEffect(resourceId);
+    if (!combatant || !effect) return;
+    this.battleService
+      .removeStatusEffect(combatant.id, effect.id)
+      .catch((error: unknown) => this.logger.error('PlayerComponent.endResourceEffect', error));
+  }
+
+  private performResourceUse(
+    playerName: string,
+    resource: CharacterResource,
+    amount: number,
+  ): void {
+    this.usingResourceId.set(resource.id);
     this.resourceUseError.set(null);
     this.resourceUseConfirmation.set(null);
     this.characterService
-      .useResource(character.name, resourceId)
-      .then((success) => {
+      .useResource(playerName, resource.id, amount)
+      .then(async (success) => {
         if (!success) {
           this.resourceUseError.set('Ресурс уже исчерпан или был изменён.');
           return;
         }
+        const activated = await this.activateResourceEffect(resource);
         this.resourceUseConfirmation.set({
           resourceName: resource.name,
+          icon: resource.icon ?? resource.activeEffect?.icon ?? '⚡',
           isUnlimited: resource.isUnlimited === true,
-          remaining: resource.isUnlimited ? 0 : Math.max(0, resource.current - 1),
+          remaining: resource.isUnlimited ? 0 : Math.max(0, resource.current - amount),
           max: resource.max,
+          spent: resource.isUnlimited ? 0 : amount,
+          activated,
         });
       })
       .catch((error: unknown) => {
@@ -387,6 +543,41 @@ export class PlayerComponent implements OnDestroy {
         this.resourceUseError.set('Не удалось списать ресурс.');
       })
       .finally(() => this.usingResourceId.set(null));
+  }
+
+  private async activateResourceEffect(resource: CharacterResource): Promise<boolean> {
+    const combatant = this.playerCombatant();
+    if (!combatant || !resource.activeEffect) return false;
+    const duration = this.resourceEffectDuration(resource);
+    return this.battleService.addStatusEffect(combatant.id, STATUS_EFFECT_TYPE.RESOURCE_ACTIVE, {
+      resourceId: resource.id,
+      customLabel: resource.name,
+      customIcon: resource.icon ?? resource.activeEffect.icon,
+      source: resource.name,
+      notes: resource.description,
+      ...(duration
+        ? {
+            trigger: STATUS_EFFECT_TRIGGER.TURN_END,
+            durationTriggers: duration.triggers,
+            durationLabel: duration.label,
+          }
+        : {}),
+    });
+  }
+
+  private resourceEffectDuration(
+    resource: CharacterResource,
+  ): { triggers: number; label: string } | null {
+    const effect = resource.activeEffect;
+    if (!effect || effect.duration === 'manual') return null;
+    const ownTurnIsActive = this.currentCombatant()?.id === this.playerCombatant()?.id;
+    const rounds = effect.duration === 'rounds' ? Math.max(1, effect.rounds ?? 1) : 1;
+    return {
+      triggers: rounds + (ownTurnIsActive ? 1 : 0),
+      label: effect.duration === 'until-next-turn-end'
+        ? 'до конца следующего хода'
+        : `${rounds} раунд${rounds === 1 ? '' : rounds < 5 ? 'а' : 'ов'}`,
+    };
   }
 
   closeResourceUseConfirmation(): void {

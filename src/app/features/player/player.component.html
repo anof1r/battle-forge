@@ -207,9 +207,15 @@
                       <div
                         class="player__resource-card"
                         [class.player__resource-card--unlimited]="resource.isUnlimited"
+                        [class.player__resource-card--active]="activeResourceEffect(resource.id)"
+                        [class.player__resource-card--depleted]="
+                          !resource.isUnlimited &&
+                          resource.current <= 0 &&
+                          !activeResourceEffect(resource.id)
+                        "
                       >
                         <div class="player__resource-header">
-                          <strong>⚡ {{ resource.name }}</strong>
+                          <strong>{{ resource.icon || resource.activeEffect?.icon || '⚡' }} {{ resource.name }}</strong>
                           <span
                             class="player__resource-count"
                             [class.player__resource-count--unlimited]="resource.isUnlimited"
@@ -223,13 +229,51 @@
                             <p class="player__spell-description">{{ resource.description }}</p>
                           </details>
                         }
-                        <button
-                          class="player__inventory-btn"
-                          [disabled]="(!resource.isUnlimited && resource.current <= 0) || usingResourceId() !== null"
-                          (click)="useResource(resource.id)"
-                        >
-                          {{ usingResourceId() === resource.id ? 'Применяем…' : 'Использовать' }}
-                        </button>
+                        @if (activeResourceEffect(resource.id); as activeEffect) {
+                          <div class="player__resource-active">
+                            <span>{{ resource.icon || resource.activeEffect?.icon || '⚡' }} Эффект активен</span>
+                            <div class="player__resource-active-actions">
+                              @if (resource.activeEffect?.duration !== 'manual') {
+                                <button
+                                  type="button"
+                                  class="player__inventory-btn"
+                                  [disabled]="updatingResourceEffectId() !== null"
+                                  (click)="extendResourceEffect(resource.id)"
+                                >
+                                  {{ updatingResourceEffectId() === resource.id ? 'Продлеваем…' : 'Продлить' }}
+                                </button>
+                              }
+                              <button
+                                type="button"
+                                class="player__inventory-btn player__inventory-btn--info"
+                                [disabled]="updatingResourceEffectId() !== null"
+                                (click)="endResourceEffect(resource.id)"
+                              >
+                                Завершить
+                              </button>
+                            </div>
+                          </div>
+                        } @else {
+                          @if (!resource.isUnlimited && resource.current <= 0) {
+                            <div class="player__resource-depleted" role="status">
+                              <span aria-hidden="true">◇</span>
+                              Ресурс исчерпан
+                            </div>
+                          }
+                          <button
+                            class="player__inventory-btn"
+                            [disabled]="(!resource.isUnlimited && resource.current <= 0) || usingResourceId() !== null"
+                            (click)="useResource(resource.id)"
+                          >
+                            {{
+                              usingResourceId() === resource.id
+                                ? 'Применяем…'
+                                : !resource.isUnlimited && resource.current <= 0
+                                  ? 'Исчерпан'
+                                  : 'Использовать'
+                            }}
+                          </button>
+                        }
                       </div>
                     }
                   </div>
@@ -330,6 +374,20 @@
                             {{ usingSpellId() === spell.id ? 'Используется…' : 'Использовать' }}
                           </button>
                         </div>
+                        @if (linkedSpellResources(spell).length > 0) {
+                          <div class="player__spell-free-casts">
+                            @for (resource of linkedSpellResources(spell); track resource.id) {
+                              <button
+                                type="button"
+                                class="player__inventory-btn player__inventory-btn--info"
+                                [disabled]="usingSpellId() !== null"
+                                (click)="useSpellWithResource(spell, resource)"
+                              >
+                                Без ячейки · {{ resource.current }}/{{ resource.max }}
+                              </button>
+                            }
+                          </div>
+                        }
                       </div>
                     }
                   </div>
@@ -577,7 +635,9 @@
       aria-describedby="resource-confirmation-result"
       (click)="$event.stopPropagation()"
     >
-      <div class="spell-confirmation__sigil resource-confirmation__sigil" aria-hidden="true">⚡</div>
+      <div class="spell-confirmation__sigil resource-confirmation__sigil" aria-hidden="true">
+        {{ confirmation.icon }}
+      </div>
       <p class="spell-confirmation__eyebrow">Ресурс использован</p>
       <h3 id="resource-confirmation-title" class="modal-title spell-confirmation__title">
         {{ confirmation.resourceName }}
@@ -588,8 +648,12 @@
           <span>Ресурс не расходуется</span>
           <strong>∞ Бесконечно</strong>
         } @else {
-          <span>Осталось зарядов</span>
+          <span>Потрачено {{ confirmation.spent }} · осталось</span>
           <strong>{{ confirmation.remaining }} / {{ confirmation.max }}</strong>
+        }
+        @if (confirmation.activated) {
+          <span>Эффект активирован</span>
+          <strong>Отображается в текущих эффектах</strong>
         }
       </div>
 
@@ -597,6 +661,75 @@
         class="modal-btn modal-btn--confirm spell-confirmation__close"
         type="button"
         (click)="closeResourceUseConfirmation()"
+      >
+        Продолжить
+      </button>
+    </section>
+  </div>
+}
+
+@if (selectedResourceForUse(); as resource) {
+  <div class="modal-overlay modal-overlay--spell" (click)="closeResourceUseDialog()">
+    <section
+      class="modal-content resource-spend-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="resource-spend-title"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="spell-confirmation__sigil resource-confirmation__sigil" aria-hidden="true">
+        {{ resource.icon || resource.activeEffect?.icon || '⚡' }}
+      </div>
+      <p class="spell-confirmation__eyebrow">Использование ресурса</p>
+      <h3 id="resource-spend-title" class="modal-title">{{ resource.name }}</h3>
+      <label class="resource-spend-modal__amount">
+        <span>Сколько потратить?</span>
+        <input
+          type="number"
+          min="1"
+          [max]="resource.current"
+          [value]="resourceUseAmount()"
+          (input)="setResourceUseAmount($event)"
+        />
+        <small>Доступно: {{ resource.current }} / {{ resource.max }}</small>
+      </label>
+      <div class="modal-actions">
+        <button type="button" class="modal-btn modal-btn--confirm" (click)="confirmResourceUse()">
+          Потратить {{ resourceUseAmount() }}
+        </button>
+        <button type="button" class="modal-btn modal-btn--cancel" (click)="closeResourceUseDialog()">
+          Отмена
+        </button>
+      </div>
+    </section>
+  </div>
+}
+
+@if (resourceEffectConfirmation(); as confirmation) {
+  <div class="modal-overlay modal-overlay--spell" (click)="closeResourceEffectConfirmation()">
+    <section
+      class="modal-content spell-confirmation resource-confirmation resource-extension-confirmation"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="resource-extension-title"
+      aria-describedby="resource-extension-result"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="spell-confirmation__sigil resource-confirmation__sigil" aria-hidden="true">
+        {{ confirmation.icon }}
+      </div>
+      <p class="spell-confirmation__eyebrow">Ресурс продлён</p>
+      <h3 id="resource-extension-title" class="modal-title spell-confirmation__title">
+        {{ confirmation.resourceName }}
+      </h3>
+      <div id="resource-extension-result" class="spell-confirmation__result">
+        <span>Длительность обновлена</span>
+        <strong>{{ confirmation.durationLabel }}</strong>
+      </div>
+      <button
+        type="button"
+        class="modal-btn modal-btn--confirm spell-confirmation__close"
+        (click)="closeResourceEffectConfirmation()"
       >
         Продолжить
       </button>
@@ -627,6 +760,9 @@
         } @else if (confirmation.isCantrip) {
           <span>Использован заговор</span>
           <strong>Ячейка не расходуется</strong>
+        } @else if (confirmation.resourceName) {
+          <span>Ячейка не потрачена</span>
+          <strong>{{ confirmation.resourceName }}</strong>
         } @else {
           <span>Использование отмечено</span>
           <strong>Списан заряд заклинания</strong>

@@ -14,6 +14,10 @@ export interface ActiveStatusEffect {
   saveAbility?: string;
   saveDc?: number;
   notes?: string;
+  resourceId?: string;
+  customLabel?: string;
+  customIcon?: string;
+  durationLabel?: string;
 }
 
 export interface StatusEffectOptions {
@@ -25,6 +29,10 @@ export interface StatusEffectOptions {
   saveAbility?: string;
   saveDc?: number;
   notes?: string;
+  resourceId?: string;
+  customLabel?: string;
+  customIcon?: string;
+  durationLabel?: string;
 }
 
 export interface DeathSaves {

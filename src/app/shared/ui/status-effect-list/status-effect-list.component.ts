@@ -15,9 +15,17 @@ export class StatusEffectListComponent {
 
   protected readonly definition = getStatusEffectDefinition;
 
+  protected effectLabel(effect: ActiveStatusEffect): string {
+    return effect.customLabel ?? this.definition(effect.type).label;
+  }
+
+  protected effectIcon(effect: ActiveStatusEffect): string {
+    return effect.customIcon ?? this.definition(effect.type).icon;
+  }
+
   protected tooltip(effect: ActiveStatusEffect): string {
     const details = [
-      this.definition(effect.type).description,
+      effect.customLabel ? `${effect.customLabel}.` : this.definition(effect.type).description,
       effect.source ? `Источник: ${effect.source}` : '',
       effect.concentrationSourceId ? 'Требует концентрации' : '',
       effect.saveAbility ? `Спасбросок: ${effect.saveAbility}, СЛ ${effect.saveDc ?? '—'}` : '',

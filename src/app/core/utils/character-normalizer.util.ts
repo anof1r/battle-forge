@@ -1,7 +1,9 @@
 import {
   CharacterResource,
+  CharacterResourceEffect,
   CharacterWeapon,
   ParsedCharacter,
+  ResourceEffectDuration,
   ResourceRecovery,
   SpellSlotPool,
 } from '../models/character.model';
@@ -9,6 +11,11 @@ import { formatWeaponDamageFormula } from './weapon-formula.util';
 import { getAutomaticSpellSlots } from './spell-slot-progression.util';
 
 const RECOVERY_TYPES: readonly ResourceRecovery[] = ['short-rest', 'long-rest', 'manual'];
+const EFFECT_DURATIONS: readonly ResourceEffectDuration[] = [
+  'manual',
+  'until-next-turn-end',
+  'rounds',
+];
 
 function finiteInteger(value: unknown, fallback: number, minimum = 0): number {
   const number = typeof value === 'number' ? value : Number(value);
@@ -46,11 +53,33 @@ export function normalizeCharacterResources(value: unknown): CharacterResource[]
     const description = typeof candidate.description === 'string'
       ? candidate.description.trim()
       : '';
+    const icon = typeof candidate.icon === 'string' ? candidate.icon.trim() : '';
     const idValue = typeof candidate.id === 'string' ? candidate.id.trim() : '';
     const id = idValue && !ids.has(idValue) ? idValue : `resource_legacy_${result.length}`;
     ids.add(id);
     const isUnlimited = candidate.isUnlimited === true;
     const max = isUnlimited ? 0 : finiteInteger(candidate.max, 0);
+    const spendMode = candidate.spendMode === 'variable' ? 'variable' : 'fixed';
+    const spendAmount = Math.max(1, finiteInteger(candidate.spendAmount, 1, 1));
+    const shortRestRestore = finiteInteger(candidate.shortRestRestore, 0);
+    const linkedSpellId = typeof candidate.linkedSpellId === 'string'
+      ? candidate.linkedSpellId.trim()
+      : '';
+    const rawEffect = candidate.activeEffect;
+    let activeEffect: CharacterResourceEffect | undefined;
+    if (rawEffect && typeof rawEffect === 'object') {
+      const duration = EFFECT_DURATIONS.includes(rawEffect.duration)
+        ? rawEffect.duration
+        : 'manual';
+      const icon = typeof rawEffect.icon === 'string' ? rawEffect.icon.trim() : '';
+      activeEffect = {
+        duration,
+        ...(icon ? { icon } : {}),
+        ...(duration === 'rounds'
+          ? { rounds: Math.max(1, finiteInteger(rawEffect.rounds, 1, 1)) }
+          : {}),
+      };
+    }
     const recovery = isUnlimited
       ? ('manual' as const)
       : RECOVERY_TYPES.includes(candidate.recovery as ResourceRecovery)
@@ -59,8 +88,16 @@ export function normalizeCharacterResources(value: unknown): CharacterResource[]
     result.push({
       id,
       name,
+      ...(icon ? { icon } : {}),
       ...(description ? { description } : {}),
       ...(isUnlimited ? { isUnlimited: true } : {}),
+      ...(!isUnlimited && spendMode === 'variable' ? { spendMode } : {}),
+      ...(!isUnlimited && (spendMode === 'variable' || spendAmount !== 1)
+        ? { spendAmount }
+        : {}),
+      ...(!isUnlimited && shortRestRestore > 0 ? { shortRestRestore } : {}),
+      ...(linkedSpellId ? { linkedSpellId } : {}),
+      ...(activeEffect ? { activeEffect } : {}),
       max,
       current: isUnlimited ? 0 : Math.min(max, finiteInteger(candidate.current, max)),
       recovery,

@@ -606,12 +606,14 @@
             <div class="dm-active-effects__list">
               @for (effect of combatant.activeEffects ?? []; track effect.id) {
                 <span [class]="'dm-active-effect dm-active-effect--' + effect.type">
-                  <span aria-hidden="true">{{ statusEffectDefinition(effect.type).icon }}</span>
-                  {{ statusEffectDefinition(effect.type).label }}
+                  <span aria-hidden="true">{{ effect.customIcon || statusEffectDefinition(effect.type).icon }}</span>
+                  {{ effect.customLabel || statusEffectDefinition(effect.type).label }}
                   @if (effect.damagePerTrigger) {
                     <small>−{{ effect.damagePerTrigger }} HP</small>
                   }
-                  @if (effect.remainingTriggers) {
+                  @if (effect.durationLabel) {
+                    <small>{{ effect.durationLabel }}</small>
+                  } @else if (effect.remainingTriggers) {
                     <small>×{{ effect.remainingTriggers }}</small>
                   }
                   @if (effect.source) {
@@ -627,7 +629,7 @@
                     type="button"
                     [disabled]="removingEffectId() !== null"
                     (click)="removeStatusEffect(combatant.id, effect.id)"
-                    [attr.aria-label]="'Снять эффект ' + statusEffectDefinition(effect.type).label"
+                    [attr.aria-label]="'Снять эффект ' + (effect.customLabel || statusEffectDefinition(effect.type).label)"
                   >
                     ×
                   </button>

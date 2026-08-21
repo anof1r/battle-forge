@@ -70,7 +70,7 @@
                 (click)="editResource(resource)"
               >
                 <span class="resource-manager__resource-title">
-                  <strong>⚡ {{ resource.name }}</strong>
+                  <strong>{{ resource.icon || resource.activeEffect?.icon || '⚡' }} {{ resource.name }}</strong>
                   <b>{{ resource.isUnlimited ? '∞' : resource.current + ' / ' + resource.max }}</b>
                 </span>
                 @if (resource.description) {
@@ -85,6 +85,15 @@
                       @case ('long-rest') { Долгий отдых }
                       @default { Только вручную }
                     }
+                  }
+                  @if ((resource.shortRestRestore ?? 0) > 0) {
+                    · короткий отдых +{{ resource.shortRestRestore }}
+                  }
+                  @if (resource.spendMode === 'variable') {
+                    · произвольный расход
+                  }
+                  @if (resource.activeEffect) {
+                    · активируемый эффект
                   }
                   · нажмите для редактирования
                 </span>
@@ -107,9 +116,27 @@
 
         <div class="resource-manager__form resource-manager__form--resource">
           <h4>{{ resourceId() ? 'Редактирование ресурса' : 'Новый ресурс' }}</h4>
+          <div class="resource-manager__presets" aria-label="Готовые шаблоны ресурсов">
+            <span>Быстрые шаблоны</span>
+            @for (preset of resourcePresets; track preset.id) {
+              <button type="button" class="secondary" (click)="applyResourcePreset(preset.id)">
+                {{ preset.label }}
+              </button>
+            }
+          </div>
           <label class="resource-manager__field--name">
             <span>Название</span>
             <input type="text" [value]="resourceName()" (input)="setResourceName($event)" placeholder="Например: Ярость" />
+          </label>
+          <label class="resource-manager__field--icon">
+            <span>Иконка</span>
+            <input
+              type="text"
+              maxlength="4"
+              [value]="resourceIcon()"
+              (input)="setResourceIcon($event)"
+              placeholder="⚡"
+            />
           </label>
           <label class="resource-manager__field--description">
             <span>Описание</span>
@@ -144,6 +171,88 @@
               </select>
             </label>
           }
+          <details class="resource-manager__advanced">
+            <summary>Дополнительные настройки</summary>
+            <div class="resource-manager__advanced-grid">
+              @if (!resourceUnlimited()) {
+                <label>
+                  <span>Способ расхода</span>
+                  <select [value]="resourceSpendMode()" (change)="setSpendMode($event)">
+                    <option value="fixed">Фиксированное количество</option>
+                    <option value="variable">Игрок выбирает количество</option>
+                  </select>
+                </label>
+                @if (resourceSpendMode() === 'fixed') {
+                  <label>
+                    <span>Списывать за применение</span>
+                    <input
+                      type="number"
+                      min="1"
+                      [max]="resourceMax() || 1"
+                      [value]="resourceSpendAmount()"
+                      (input)="setNumber('resourceSpendAmount', $event)"
+                    />
+                  </label>
+                }
+                <label>
+                  <span>Вернуть после короткого отдыха</span>
+                  <input
+                    type="number"
+                    min="0"
+                    [max]="resourceMax()"
+                    [value]="resourceShortRestRestore()"
+                    (input)="setNumber('resourceShortRestRestore', $event)"
+                  />
+                  <small>0 — ничего. Для Ярости укажите 1.</small>
+                </label>
+              }
+
+              <label>
+                <span>Связанное заклинание</span>
+                <select [value]="resourceLinkedSpellId()" (change)="setLinkedSpell($event)">
+                  <option value="">Не связано</option>
+                  @for (spell of char.spells ?? []; track spell.id) {
+                    <option [value]="spell.id">{{ spell.name }}</option>
+                  }
+                </select>
+                <small>Даёт бесплатный способ применения вместо ячейки.</small>
+              </label>
+
+              <label class="resource-manager__effect-toggle">
+                <input
+                  type="checkbox"
+                  [checked]="resourceActivatesEffect()"
+                  (change)="setActivatesEffect($event)"
+                />
+                <span>
+                  <strong>Создавать активный эффект</strong>
+                  <small>После использования эффект появится у персонажа и в бою.</small>
+                </span>
+              </label>
+
+              @if (resourceActivatesEffect()) {
+                <label>
+                  <span>Длительность</span>
+                  <select [value]="resourceEffectDuration()" (change)="setEffectDuration($event)">
+                    <option value="manual">До ручного завершения</option>
+                    <option value="until-next-turn-end">До конца следующего хода</option>
+                    <option value="rounds">Количество раундов</option>
+                  </select>
+                </label>
+                @if (resourceEffectDuration() === 'rounds') {
+                  <label>
+                    <span>Раундов</span>
+                    <input
+                      type="number"
+                      min="1"
+                      [value]="resourceEffectRounds()"
+                      (input)="setNumber('resourceEffectRounds', $event)"
+                    />
+                  </label>
+                }
+              }
+            </div>
+          </details>
           <div class="resource-manager__form-actions">
             @if (!resourceUnlimited()) {
               <button type="button" class="secondary" [disabled]="resourceMax() <= 0" (click)="fillResourceToMax()">

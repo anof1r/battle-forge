@@ -804,6 +804,62 @@ describe('BattleService', () => {
     }));
   });
 
+  it('stores a named resource effect independently from other resources', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(NOW);
+    vi.spyOn(globalThis.crypto, 'randomUUID').mockReturnValue(UUID);
+    await setup();
+    firebase.clearCalls();
+
+    await expect(service.addStatusEffect('enemy-1', STATUS_EFFECT_TYPE.RESOURCE_ACTIVE, {
+      resourceId: 'rage',
+      customLabel: 'Ярость',
+      customIcon: '🔥',
+      trigger: STATUS_EFFECT_TRIGGER.TURN_END,
+      durationTriggers: 2,
+      durationLabel: 'до конца следующего хода',
+    })).resolves.toBe(true);
+
+    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+      'combatants/enemy-1/activeEffects': [expect.objectContaining({
+        type: STATUS_EFFECT_TYPE.RESOURCE_ACTIVE,
+        resourceId: 'rage',
+        customLabel: 'Ярость',
+        customIcon: '🔥',
+        remainingTriggers: 2,
+      })],
+    }));
+  });
+
+  it('refreshes the duration of an active resource effect', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(NOW);
+    const effect = {
+      id: 'effect-rage',
+      type: STATUS_EFFECT_TYPE.RESOURCE_ACTIVE,
+      appliedAt: 1,
+      resourceId: 'rage',
+      customLabel: 'Ярость',
+      remainingTriggers: 1,
+    };
+    await setup(createRoom({
+      combatants: { 'enemy-1': createCombatant({ activeEffects: [effect] }) },
+      initiativeOrder: ['enemy-1'],
+    }));
+    firebase.clearCalls();
+
+    await expect(
+      service.refreshStatusEffect('enemy-1', effect.id, 2, 'до конца следующего хода'),
+    ).resolves.toBe(true);
+
+    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+      'combatants/enemy-1/activeEffects': [expect.objectContaining({
+        id: effect.id,
+        remainingTriggers: 2,
+        durationLabel: 'до конца следующего хода',
+      })],
+      history: expect.any(Array),
+    }));
+  });
+
   it('processes end/start effects once, expires them, and downs the next player', async () => {
     vi.spyOn(Date, 'now').mockReturnValue(NOW);
     const first = createCombatant({
