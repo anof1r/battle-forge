@@ -407,6 +407,25 @@ describe('PlayerComponent', () => {
     expect(fixture.nativeElement).toHaveTextContent('Ограничения на количество атак нет');
   });
 
+  it('shows the calculated attack bonus in the weapon list and arena attack form', () => {
+    component.character.set(character());
+    component.isLoggedIn.set(true);
+
+    fixture.detectChanges();
+
+    const weaponBonus = fixture.nativeElement.querySelector('.player__weapon-attack');
+    expect(weaponBonus).toHaveTextContent('+5');
+
+    component.activeTab.set('arena');
+    battle.aliveEnemies.set([enemy]);
+    battle.sortedCombatants.set([enemy]);
+    component.selectEnemy(enemy.id);
+    fixture.detectChanges();
+
+    const arenaBonus = fixture.nativeElement.querySelector('.player__attack-bonus');
+    expect(arenaBonus).toHaveTextContent('+5');
+  });
+
   it('keeps current and maximum HP in one dedicated vitality value', () => {
     component.character.set(character({ currentHp: 120, maxHp: 120 }));
     component.isLoggedIn.set(true);

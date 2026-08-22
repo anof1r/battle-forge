@@ -944,6 +944,7 @@
         font-size: 0.8rem;
         text-transform: lowercase;
       }
+
     }
   }
 }
@@ -1480,6 +1481,35 @@
   outline: none;
   &:focus {
     border-color: #c9a84c;
+  }
+}
+
+.player__weapon-attack,
+.player__attack-bonus {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid var(--bf-border-strong);
+  border-radius: 999px;
+  background: var(--bf-gold-dim);
+  white-space: nowrap;
+}
+
+.player__weapon-attack {
+  color: var(--bf-gold-bright);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.player__attack-bonus {
+  gap: var(--bf-space-1);
+  color: var(--bf-text-primary);
+  font-size: 0.8rem;
+
+  strong {
+    color: var(--bf-gold-bright);
+    font-family: var(--bf-font-display);
+    font-size: 1rem;
   }
 }
 

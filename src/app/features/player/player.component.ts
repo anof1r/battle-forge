@@ -13,6 +13,7 @@ import { LoggerService } from '../../core/services/logger.service';
 import { Subscription } from 'rxjs';
 import { CharacterParserService } from '../../core/services/characterParser.service';
 import {
+  CharacterWeapon,
   CharacterResource,
   LssCharacterSheet,
   ParsedCharacter,
@@ -22,7 +23,11 @@ import { ActiveStatusEffect, Combatant, SpellData } from '../../core/models/comb
 import { COMBATANT_STATUS, COMBATANT_TYPE } from '../../core/constants/combatant.constants';
 import { StatusEffectListComponent } from '../../shared/ui/status-effect-list/status-effect-list.component';
 import { CombatantLifeStateComponent } from '../../shared/ui/combatant-life-state/combatant-life-state.component';
-import { parseJsonWithTrailingCommaRecovery } from '../../core/utils';
+import {
+  formatSignedModifier,
+  getWeaponAttackBonus,
+  parseJsonWithTrailingCommaRecovery,
+} from '../../core/utils';
 import {
   STATUS_EFFECT_TRIGGER,
   STATUS_EFFECT_TYPE,
@@ -63,6 +68,11 @@ interface ResourceEffectConfirmation {
   resourceName: string;
   durationLabel: string;
   icon: string;
+}
+
+interface CharacterWeaponView {
+  weapon: CharacterWeapon;
+  attackBonus: string | null;
 }
 
 const DICE_NOTATION_PATTERN = /(\d+\s*[dдк]\s*\d+(?:\s*[+\-−]\s*\d+)?)/giu;
@@ -139,6 +149,18 @@ export class PlayerComponent implements OnDestroy {
 
   // --- Производные значения ---
   readonly weapons = computed(() => this.character()?.weapons ?? []);
+  readonly weaponCards = computed<CharacterWeaponView[]>(() => {
+    const character = this.character();
+    if (!character) return [];
+
+    return character.weapons.map((weapon) => {
+      const attackBonus = getWeaponAttackBonus(weapon, character.stats, character.level);
+      return {
+        weapon,
+        attackBonus: attackBonus === null ? null : formatSignedModifier(attackBonus),
+      };
+    });
+  });
   readonly spellSlots = computed(() => this.character()?.spellSlots ?? []);
   readonly characterResources = computed(() => this.character()?.resources ?? []);
 
@@ -161,6 +183,10 @@ export class PlayerComponent implements OnDestroy {
     const weapons = this.weapons();
     return weapons[this.selectedWeaponIndex()] || null;
   });
+
+  readonly selectedWeaponAttackBonus = computed(
+    () => this.weaponCards()[this.selectedWeaponIndex()]?.attackBonus ?? null,
+  );
 
   readonly selectedEnemy = computed(() => {
     const id = this.selectedEnemyId();
