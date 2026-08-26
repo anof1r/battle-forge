@@ -1,12 +1,19 @@
 import {
-  CharacterResource,
-  CharacterResourceEffect,
   CharacterWeapon,
   ParsedCharacter,
+} from '../models/character.model';
+import {
+  CharacterResource,
+  CharacterResourceEffect,
   ResourceEffectDuration,
   ResourceRecovery,
-  SpellSlotPool,
-} from '../models/character.model';
+} from '../models/character-resource.model';
+import { SpellSlotPool } from '../models/spell-slot.model';
+import {
+  CharacterSkill,
+  CharacterStatKey,
+} from '../models/character-skill.model';
+import { CHARACTER_STAT_KEYS } from '../constants/character-skill.constants';
 import { formatWeaponDamageFormula } from './weapon-formula.util';
 import { getAutomaticSpellSlots } from './spell-slot-progression.util';
 
@@ -124,6 +131,46 @@ export function normalizeCharacterWeapons(value: unknown): CharacterWeapon[] {
   });
 }
 
+export function normalizeCharacterSkills(value: unknown): CharacterSkill[] {
+  if (!Array.isArray(value)) return [];
+  const ids = new Set<string>();
+  const result: CharacterSkill[] = [];
+
+  for (const raw of value) {
+    if (!raw || typeof raw !== 'object') continue;
+    const candidate = raw as Partial<CharacterSkill>;
+    const id = typeof candidate.id === 'string' ? candidate.id.trim() : '';
+    const name = typeof candidate.name === 'string' ? candidate.name.trim() : '';
+    const baseStat = candidate.baseStat as CharacterStatKey;
+    const modifier = typeof candidate.modifier === 'number'
+      ? candidate.modifier
+      : Number.NaN;
+    if (
+      !id
+      || ids.has(id)
+      || !name
+      || !CHARACTER_STAT_KEYS.includes(baseStat)
+      || !Number.isFinite(modifier)
+    ) {
+      continue;
+    }
+    if (candidate.proficiency !== 'proficient' && candidate.proficiency !== 'expertise') {
+      continue;
+    }
+
+    ids.add(id);
+    result.push({
+      id,
+      name,
+      baseStat,
+      proficiency: candidate.proficiency,
+      modifier: Math.trunc(modifier),
+    });
+  }
+
+  return result;
+}
+
 export function normalizeCharacter(character: ParsedCharacter): ParsedCharacter {
   const maxHp = Math.max(1, finiteInteger(character.maxHp, 10, 1));
   const spellSlots = character.spellSlots === undefined
@@ -142,5 +189,6 @@ export function normalizeCharacter(character: ParsedCharacter): ParsedCharacter 
     spells: Array.isArray(character.spells) ? character.spells : [],
     spellSlots,
     resources: normalizeCharacterResources(character.resources),
+    skills: normalizeCharacterSkills(character.skills),
   };
 }

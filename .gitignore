@@ -50,3 +50,6 @@ Thumbs.db
 
 # agents
 .agents*
+
+#assets
+/public/assets

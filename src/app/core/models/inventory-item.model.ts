@@ -11,3 +11,14 @@ export interface InventoryItem {
   rarity?: ItemRarity;
   icon?: string;
 }
+
+export interface GiveItemInput {
+  name: string;
+  quantity: number;
+  description?: string;
+  rarity?: ItemRarity;
+  effectFormula?: string;
+  isStackable?: boolean;
+  isConsumable?: boolean;
+  icon?: string;
+}

@@ -153,6 +153,7 @@ describe('DisplayComponent', () => {
     presentationMode.set('story');
     activeStorySlide.set({
       id: 'tavern',
+      order: 0,
       name: 'Таверна.webp',
       blob: new Blob(['tavern']),
       objectUrl: 'blob:tavern',

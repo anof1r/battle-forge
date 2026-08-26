@@ -39,12 +39,14 @@ describe('DmStoryComponent', () => {
   const tavern: StorySlide = {
     id: 'tavern',
     name: '1.png',
+    order: 0,
     blob: new Blob(['tavern']),
     objectUrl: 'blob:tavern',
   };
   const forest: StorySlide = {
     id: 'forest',
     name: '2.jpg',
+    order: 1,
     blob: new Blob(['forest']),
     objectUrl: 'blob:forest',
   };
@@ -100,11 +102,13 @@ describe('DmStoryComponent', () => {
       ],
       value: 'selected',
     };
+    component.insertBeforeSlideId.set('forest');
 
     component.onFilesSelected({ target: input } as unknown as Event);
 
-    expect(story.addFiles).toHaveBeenCalledWith(input.files);
+    expect(story.addFiles).toHaveBeenCalledWith(input.files, 'forest');
     expect(input.value).toBe('');
+    expect(component.insertBeforeSlideId()).toBeNull();
     expect(component.uploadMessage()).toBe('Добавлено изображений: 2');
   });
 

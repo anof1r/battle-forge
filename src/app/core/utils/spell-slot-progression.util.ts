@@ -5,7 +5,7 @@ import {
   PACT_CASTER_CLASS_ALIASES,
   PACT_MAGIC_SLOTS_2024,
 } from '../constants/spell-slot-progression.constants';
-import { SpellSlotPool } from '../models/character.model';
+import { SpellSlotPool } from '../models/spell-slot.model';
 
 export function getAutomaticSpellSlots(className: string, classLevel: number): SpellSlotPool[] {
   const normalizedClass = normalizeClassName(className);

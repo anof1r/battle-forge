@@ -5,8 +5,7 @@ import {
   StorySlide,
   StorySlideTransfer,
 } from '../models/story-presentation.model';
-
-const STORY_CHANNEL_NAME = 'battle-forge-story-presentation';
+import { STORY_PRESENTATION_CHANNEL } from '../constants/story-presentation.constants';
 
 @Injectable({ providedIn: 'root' })
 export class StoryPresentationService implements OnDestroy {
@@ -39,17 +38,24 @@ export class StoryPresentationService implements OnDestroy {
     queueMicrotask(() => this.channel?.postMessage({ type: 'request-state' }));
   }
 
-  addFiles(files: readonly File[]): number {
+  addFiles(files: readonly File[], beforeSlideId: string | null = null): number {
     const imageFiles = files.filter((file) => file.type.startsWith('image/'));
     if (imageFiles.length === 0) return 0;
 
     const additions = imageFiles.map<StorySlide>((file) => ({
       id: `story_${crypto.randomUUID()}`,
       name: file.name,
+      order: 0,
       blob: file,
       objectUrl: this.createObjectUrl(file),
     }));
-    this.slides.update((current) => [...current, ...additions]);
+    const next = [...this.slides()];
+    const requestedIndex = beforeSlideId
+      ? next.findIndex((slide) => slide.id === beforeSlideId)
+      : next.length;
+    const insertAt = requestedIndex < 0 ? next.length : requestedIndex;
+    next.splice(insertAt, 0, ...additions);
+    this.slides.set(this.reindex(next));
     if (!this.activeSlideId()) this.activeSlideId.set(additions[0].id);
     this.publishDeckState();
     return additions.length;
@@ -88,7 +94,7 @@ export class StoryPresentationService implements OnDestroy {
     const target = index + offset;
     if (index < 0 || target < 0 || target >= slides.length) return;
     [slides[index], slides[target]] = [slides[target], slides[index]];
-    this.slides.set(slides);
+    this.slides.set(this.reindex(slides));
     this.publishDeckState();
   }
 
@@ -101,7 +107,7 @@ export class StoryPresentationService implements OnDestroy {
     const [slide] = slides.splice(sourceIndex, 1);
     const adjustedTarget = sourceIndex < targetIndex ? targetIndex - 1 : targetIndex;
     slides.splice(adjustedTarget, 0, slide);
-    this.slides.set(slides);
+    this.slides.set(this.reindex(slides));
     this.publishDeckState();
   }
 
@@ -110,7 +116,7 @@ export class StoryPresentationService implements OnDestroy {
     const index = current.findIndex((slide) => slide.id === slideId);
     if (index < 0) return;
     this.revokeObjectUrl(current[index].objectUrl);
-    const remaining = current.filter((slide) => slide.id !== slideId);
+    const remaining = this.reindex(current.filter((slide) => slide.id !== slideId));
     this.slides.set(remaining);
     if (this.activeSlideId() === slideId) {
       this.activeSlideId.set(remaining[Math.min(index, remaining.length - 1)]?.id ?? null);
@@ -139,12 +145,12 @@ export class StoryPresentationService implements OnDestroy {
 
   private replaceDeck(transfers: StorySlideTransfer[]): void {
     this.slides().forEach((slide) => this.revokeObjectUrl(slide.objectUrl));
-    this.slides.set(
-      transfers.map((slide) => ({
-        ...slide,
-        objectUrl: this.createObjectUrl(slide.blob),
-      })),
-    );
+    const slides = transfers.map<StorySlide>((slide, index) => ({
+      ...slide,
+      order: Number.isFinite(slide.order) ? Number(slide.order) : index,
+      objectUrl: this.createObjectUrl(slide.blob),
+    }));
+    this.slides.set(this.sortAndReindex(slides));
   }
 
   private applyPresentationState(
@@ -164,7 +170,7 @@ export class StoryPresentationService implements OnDestroy {
       type: 'deck-state',
       mode: this.mode(),
       activeSlideId: this.activeSlideId(),
-      slides: this.slides().map(({ id, name, blob }) => ({ id, name, blob })),
+      slides: this.slides().map(({ id, name, order, blob }) => ({ id, name, order, blob })),
     };
     this.channel?.postMessage(message);
   }
@@ -181,7 +187,21 @@ export class StoryPresentationService implements OnDestroy {
   private createChannel(): BroadcastChannel | null {
     return typeof BroadcastChannel === 'undefined'
       ? null
-      : new BroadcastChannel(STORY_CHANNEL_NAME);
+      : new BroadcastChannel(STORY_PRESENTATION_CHANNEL);
+  }
+
+  private sortAndReindex(slides: readonly StorySlide[]): StorySlide[] {
+    return slides
+      .map((slide, index) => ({ slide, index }))
+      .sort(
+        (left, right) =>
+          left.slide.order - right.slide.order || left.index - right.index,
+      )
+      .map(({ slide }, order) => ({ ...slide, order }));
+  }
+
+  private reindex(slides: readonly StorySlide[]): StorySlide[] {
+    return slides.map((slide, order) => ({ ...slide, order }));
   }
 
   private createObjectUrl(blob: Blob): string {

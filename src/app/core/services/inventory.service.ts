@@ -1,18 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { CharacterService } from './character.service';
-import { InventoryItem } from '../models/inventory-item.model';
-import { ItemRarity } from '../constants/item-rarity.constants';
-
-export interface GiveItemInput {
-  name: string;
-  quantity: number;
-  description?: string;
-  rarity?: ItemRarity;
-  effectFormula?: string;
-  isStackable?: boolean;
-  isConsumable?: boolean;
-  icon?: string;
-}
+import { GiveItemInput, InventoryItem } from '../models/inventory-item.model';
 
 /** Business logic for a player's inventory — kept out of `CharacterService` (character CRUD) and components. */
 @Injectable({ providedIn: 'root' })

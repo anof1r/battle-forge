@@ -36,21 +36,8 @@ import {
 } from '../constants/status-effect.constants';
 import { MAIN_ROOM_ID, roomPath as buildRoomPath } from '../constants/firebase-paths.constants';
 import { withTimestamp } from '../utils';
-
-const EMPTY_ROOM: BattleRoom = {
-  status: BATTLE_STATUS.PREPARATION,
-  currentRound: 1,
-  currentTurnIndex: 0,
-  combatants: {},
-  initiativeOrder: [],
-  history: [],
-  lastUpdated: Date.now(),
-};
-
-interface ProcessedTurnEffects {
-  combatant: Combatant;
-  changed: boolean;
-}
+import { EMPTY_BATTLE_ROOM } from '../constants/battle-room.constants';
+import { ProcessedTurnEffects } from '../models/battle-turn.model';
 
 @Injectable({
   providedIn: 'root',
@@ -124,7 +111,7 @@ export class BattleService {
   private async ensureRoomExists(): Promise<void> {
     const existing = await this.firebaseService.get<BattleRoom>(this.roomPath);
     if (!existing) {
-      await this.firebaseService.set(this.roomPath, withTimestamp(EMPTY_ROOM));
+      await this.firebaseService.set(this.roomPath, withTimestamp(EMPTY_BATTLE_ROOM));
     }
   }
 
@@ -844,7 +831,7 @@ export class BattleService {
   }
 
   async resetScene(): Promise<void> {
-    await this.firebaseService.set(this.roomPath, withTimestamp(EMPTY_ROOM));
+    await this.firebaseService.set(this.roomPath, withTimestamp(EMPTY_BATTLE_ROOM));
     this.actionHistory.set([]);
   }
 

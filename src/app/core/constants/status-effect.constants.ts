@@ -31,15 +31,6 @@ export const STATUS_EFFECT_TRIGGER = {
 export type StatusEffectTrigger =
   (typeof STATUS_EFFECT_TRIGGER)[keyof typeof STATUS_EFFECT_TRIGGER];
 
-export interface StatusEffectDefinition {
-  type: StatusEffectType;
-  label: string;
-  icon: string;
-  description: string;
-  beneficial: boolean;
-  damageCapable: boolean;
-}
-
 export const STATUS_EFFECT_DEFINITIONS: readonly StatusEffectDefinition[] = [
   {
     type: STATUS_EFFECT_TYPE.POISONED,
@@ -215,3 +206,4 @@ export function getStatusEffectDefinition(type: StatusEffectType): StatusEffectD
     }
   );
 }
+import { StatusEffectDefinition } from '../models/status-effect-definition.model';

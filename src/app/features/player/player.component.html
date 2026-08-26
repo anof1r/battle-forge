@@ -112,6 +112,34 @@
                 }
               </div>
 
+              @if ((char.skills?.length ?? 0) > 0) {
+                <section class="player__skill-bonuses" aria-labelledby="player-skill-bonuses-title">
+                  <h3 id="player-skill-bonuses-title" class="player__panel-title">Бонусы</h3>
+                  @for (stat of CHARACTER_STATS; track stat.key) {
+                    @if (skillsByStat()[stat.key].length > 0) {
+                      <div class="player__skill-group">
+                        <h4 class="player__skill-stat" [attr.title]="stat.title">
+                          {{ stat.label }}:
+                        </h4>
+                        <ul class="player__skill-list">
+                          @for (skill of skillsByStat()[stat.key]; track skill.id) {
+                            <li
+                              class="player__skill"
+                              [attr.title]="getSkillProficiencyLabel(skill)"
+                            >
+                              <span>{{ skill.name }}</span>
+                              <strong class="player__skill-mod">{{
+                                getSkillModString(skill.modifier)
+                              }}</strong>
+                            </li>
+                          }
+                        </ul>
+                      </div>
+                    }
+                  }
+                </section>
+              }
+
               <div class="player__vitality">
                 <div class="player__vitality-item player__vitality-item--hp">
                   <span class="player__vitality-label">HP</span>
@@ -622,7 +650,17 @@
       }
 
       <footer class="player__footer">
-        <button class="player__reset-btn" (click)="logout()">Выйти</button>
+        <label class="player__reset-btn">
+          <input
+            class="player__reimport-input"
+            type="file"
+            accept=".json"
+            (change)="onFileSelected($event)"
+            hidden
+          />
+          📂 Обновить JSON
+        </label>
+        <button type="button" class="player__reset-btn" (click)="logout()">Выйти</button>
       </footer>
     </div>
   }

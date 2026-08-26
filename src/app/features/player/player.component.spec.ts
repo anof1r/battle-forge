@@ -407,6 +407,76 @@ describe('PlayerComponent', () => {
     expect(fixture.nativeElement).toHaveTextContent('Ограничения на количество атак нет');
   });
 
+  it('groups proficient skills in a separate bonus block below the stats', () => {
+    component.character.set(character({
+      skills: [
+        {
+          id: 'perception',
+          name: 'Внимательность',
+          baseStat: 'wis',
+          proficiency: 'proficient',
+          modifier: 3,
+        },
+        {
+          id: 'survival',
+          name: 'Выживание',
+          baseStat: 'wis',
+          proficiency: 'expertise',
+          modifier: 3,
+        },
+        {
+          id: 'intimidation',
+          name: 'Запугивание',
+          baseStat: 'cha',
+          proficiency: 'proficient',
+          modifier: 2,
+        },
+      ],
+    }));
+    component.isLoggedIn.set(true);
+
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelectorAll('.player__stat-box .player__skill')).toHaveLength(0);
+
+    const bonusBlock = fixture.nativeElement.querySelector(
+      '.player__skill-bonuses',
+    ) as HTMLElement;
+    expect(bonusBlock).toBeInTheDocument();
+    expect(bonusBlock.querySelector('.player__panel-title')).toHaveTextContent('Бонусы');
+
+    const groups = Array.from<HTMLElement>(
+      bonusBlock.querySelectorAll('.player__skill-group'),
+    );
+    expect(groups).toHaveLength(2);
+    expect(groups[0].querySelector('.player__skill-stat')).toHaveTextContent('МДР:');
+    expect(groups[0]).toHaveTextContent('Внимательность');
+    expect(groups[0]).toHaveTextContent('Выживание');
+    expect(groups[0].querySelectorAll('.player__skill-mod')[0]).toHaveTextContent('+3');
+    expect(groups[0].querySelectorAll('.player__skill-mod')[1]).toHaveTextContent('+3');
+    expect(groups[0].querySelectorAll('.player__skill')[1]).toHaveAttribute(
+      'title',
+      'Экспертиза',
+    );
+    expect(groups[1].querySelector('.player__skill-stat')).toHaveTextContent('ХАР:');
+    expect(groups[1]).toHaveTextContent('Запугивание');
+    expect(groups[1].querySelector('.player__skill-mod')).toHaveTextContent('+2');
+  });
+
+  it('offers JSON reimport for an existing character', () => {
+    component.character.set(character());
+    component.isLoggedIn.set(true);
+
+    fixture.detectChanges();
+
+    const input = fixture.nativeElement.querySelector(
+      '.player__reimport-input',
+    ) as HTMLInputElement;
+    expect(input).toBeInTheDocument();
+    expect(input).toHaveAttribute('accept', '.json');
+    expect(input.closest('label')).toHaveTextContent('Обновить JSON');
+  });
+
   it('shows the calculated attack bonus in the weapon list and arena attack form', () => {
     component.character.set(character());
     component.isLoggedIn.set(true);

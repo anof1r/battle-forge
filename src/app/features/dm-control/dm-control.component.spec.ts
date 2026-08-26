@@ -391,6 +391,7 @@ describe('DmControlComponent', () => {
   it('keeps display battle/story and slide navigation controls available above every workspace', () => {
     const tavern: StorySlide = {
       id: 'tavern',
+      order: 0,
       name: 'tavern.jpg',
       blob: new Blob(['tavern']),
       objectUrl: 'blob:tavern',

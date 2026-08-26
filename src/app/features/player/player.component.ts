@@ -12,12 +12,13 @@ import { InventoryService } from '../../core/services/inventory.service';
 import { LoggerService } from '../../core/services/logger.service';
 import { Subscription } from 'rxjs';
 import { CharacterParserService } from '../../core/services/characterParser.service';
+import { ParsedCharacter } from '../../core/models/character.model';
+import { CharacterResource } from '../../core/models/character-resource.model';
+import { LssCharacterSheet } from '../../core/models/lss-character.model';
 import {
-  CharacterWeapon,
-  CharacterResource,
-  LssCharacterSheet,
-  ParsedCharacter,
-} from '../../core/models/character.model';
+  CharacterSkill,
+  CharacterStatKey,
+} from '../../core/models/character-skill.model';
 import { InventoryItem } from '../../core/models/inventory-item.model';
 import { ActiveStatusEffect, Combatant, SpellData } from '../../core/models/combatant.model';
 import { COMBATANT_STATUS, COMBATANT_TYPE } from '../../core/constants/combatant.constants';
@@ -32,52 +33,19 @@ import {
   STATUS_EFFECT_TRIGGER,
   STATUS_EFFECT_TYPE,
 } from '../../core/constants/status-effect.constants';
-
-const CHARACTER_STATS = [
-  { key: 'str', label: 'СИЛ', title: 'Сила' },
-  { key: 'dex', label: 'ЛОВ', title: 'Ловкость' },
-  { key: 'con', label: 'ТЕЛ', title: 'Телосложение' },
-  { key: 'int', label: 'ИНТ', title: 'Интеллект' },
-  { key: 'wis', label: 'МДР', title: 'Мудрость' },
-  { key: 'cha', label: 'ХАР', title: 'Харизма' },
-] as const;
-
-interface SpellDescriptionPart {
-  text: string;
-  isDice: boolean;
-}
-
-interface SpellUseConfirmation {
-  spellName: string;
-  isCantrip: boolean;
-  slotLevel: number | null;
-  resourceName?: string;
-}
-
-interface ResourceUseConfirmation {
-  resourceName: string;
-  icon: string;
-  isUnlimited: boolean;
-  remaining: number;
-  max: number;
-  spent: number;
-  activated: boolean;
-}
-
-interface ResourceEffectConfirmation {
-  resourceName: string;
-  durationLabel: string;
-  icon: string;
-}
-
-interface CharacterWeaponView {
-  weapon: CharacterWeapon;
-  attackBonus: string | null;
-}
-
-const DICE_NOTATION_PATTERN = /(\d+\s*[dдк]\s*\d+(?:\s*[+\-−]\s*\d+)?)/giu;
-const EXACT_DICE_NOTATION_PATTERN = /^\d+\s*[dдк]\s*\d+(?:\s*[+\-−]\s*\d+)?$/iu;
-const LAST_PLAYER_NAME_STORAGE_KEY = 'battle-forge:last-player-name';
+import {
+  CHARACTER_STATS,
+  DICE_NOTATION_PATTERN,
+  EXACT_DICE_NOTATION_PATTERN,
+  LAST_PLAYER_NAME_STORAGE_KEY,
+} from './player.constants';
+import {
+  CharacterWeaponView,
+  ResourceEffectConfirmation,
+  ResourceUseConfirmation,
+  SpellDescriptionPart,
+  SpellUseConfirmation,
+} from './player-view.model';
 
 @Component({
   selector: 'app-player',
@@ -163,6 +131,20 @@ export class PlayerComponent implements OnDestroy {
   });
   readonly spellSlots = computed(() => this.character()?.spellSlots ?? []);
   readonly characterResources = computed(() => this.character()?.resources ?? []);
+  readonly skillsByStat = computed<Record<CharacterStatKey, CharacterSkill[]>>(() => {
+    const grouped: Record<CharacterStatKey, CharacterSkill[]> = {
+      str: [],
+      dex: [],
+      con: [],
+      int: [],
+      wis: [],
+      cha: [],
+    };
+    for (const skill of this.character()?.skills ?? []) {
+      grouped[skill.baseStat].push(skill);
+    }
+    return grouped;
+  });
 
   readonly playerCombatant = computed(() => {
     const playerName = this.character()?.name;
@@ -358,6 +340,14 @@ export class PlayerComponent implements OnDestroy {
 
   toggleAbility(name: string): void {
     this.expandedAbility.set(this.expandedAbility() === name ? null : name);
+  }
+
+  getSkillModString(modifier: number): string {
+    return formatSignedModifier(modifier);
+  }
+
+  getSkillProficiencyLabel(skill: CharacterSkill): string {
+    return skill.proficiency === 'expertise' ? 'Экспертиза' : 'Владение';
   }
 
   getSpellMaxUses(spell: SpellData): number {

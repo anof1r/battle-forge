@@ -25,6 +25,7 @@ export class DmStoryComponent {
   private loadedSectionVersion = '';
 
   readonly draggedSlideId = signal<string | null>(null);
+  readonly insertBeforeSlideId = signal<string | null>(null);
   readonly uploadMessage = signal<string | null>(null);
   readonly scriptDraft = signal('');
   readonly scriptSaving = signal(false);
@@ -70,12 +71,17 @@ export class DmStoryComponent {
     const files = Array.from(input.files ?? []);
     input.value = '';
     if (files.length === 0) return;
-    const added = this.story.addFiles(files);
+    const added = this.story.addFiles(files, this.insertBeforeSlideId());
+    if (added > 0) this.insertBeforeSlideId.set(null);
     this.uploadMessage.set(
       added > 0
         ? `Добавлено изображений: ${added}`
         : 'Подходящие изображения не найдены.',
     );
+  }
+
+  setInsertBeforeSlide(event: Event): void {
+    this.insertBeforeSlideId.set((event.target as HTMLSelectElement).value || null);
   }
 
   onDragStart(slideId: string, event: DragEvent): void {

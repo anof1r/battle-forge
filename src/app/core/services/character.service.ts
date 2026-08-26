@@ -1,19 +1,20 @@
 import { Injectable, inject } from '@angular/core';
 import { FirebaseService } from './firebase.service';
 import { map, Observable } from 'rxjs';
-import {
-  CharacterResource,
-  ParsedCharacter,
-  ResourceRecovery,
-  SpellSlotPool,
-} from '../models/character.model';
+import { ParsedCharacter } from '../models/character.model';
+import { CharacterResource, ResourceRecovery } from '../models/character-resource.model';
+import { SpellSlotPool } from '../models/spell-slot.model';
 import { FIREBASE_ROOT, playerPath } from '../constants/firebase-paths.constants';
 import { SpellData } from '../models';
-import { normalizeCharacter, normalizeCharacterResources, normalizeSpellSlots } from '../utils';
+import { normalizeCharacter } from '../utils';
+import { CharacterResourceService } from './character-resource.service';
+import { CharacterSpellService } from './character-spell.service';
 
 @Injectable({ providedIn: 'root' })
 export class CharacterService {
   private readonly firebase = inject(FirebaseService);
+  private readonly resourceRules = inject(CharacterResourceService);
+  private readonly spellRules = inject(CharacterSpellService);
 
   async characterExists(name: string): Promise<boolean> {
     const data = await this.firebase.get(playerPath(name));
@@ -54,17 +55,10 @@ export class CharacterService {
   async updatePlayerSpells(playerName: string, spellData: SpellData): Promise<void> {
     const player = await this.loadCharacter(playerName);
     if (!player) return;
-
-    const spells = [...(player.spells || [])];
-    const existingIndex = spells.findIndex((s) => s.name === spellData.name);
-
-    if (existingIndex !== -1) {
-      spells[existingIndex] = { ...spells[existingIndex], ...spellData };
-    } else {
-      spells.push(spellData);
-    }
-
-    await this.saveCharacter({ ...player, spells });
+    await this.saveCharacter({
+      ...player,
+      spells: this.spellRules.upsert(player.spells, spellData),
+    });
   }
 
   async updatePlayerHealth(name: string, currentHp: number, temporaryHp: number): Promise<void> {
@@ -78,131 +72,73 @@ export class CharacterService {
   async usePlayerSpell(playerName: string, spellId: string, slotLevel?: number): Promise<boolean> {
     const player = await this.loadCharacter(playerName);
     if (!player) return false;
-
-    const spell = player.spells?.find((candidate) => candidate.id === spellId);
-    if (!spell || !spell.isPrepared) return false;
-    if (spell.isCantrip) return true;
-
-    const slots = normalizeSpellSlots(player.spellSlots);
-    if (slots.length > 0) {
-      const requestedLevel = Math.max(spell.level, Math.floor(slotLevel ?? spell.level));
-      const slot = slots.find((candidate) => candidate.level === requestedLevel);
-      if (!slot || slot.current <= 0) return false;
-      const spellSlots = slots.map((candidate) =>
-        candidate.level === requestedLevel
-          ? { ...candidate, current: candidate.current - 1 }
-          : candidate,
-      );
-      await this.saveCharacter({ ...player, spellSlots });
-      return true;
+    const result = this.spellRules.use(player.spells, player.spellSlots, spellId, slotLevel);
+    if (result.shouldPersist) {
+      await this.saveCharacter({
+        ...player,
+        spells: result.spells,
+        spellSlots: result.spellSlots,
+      });
     }
-
-    // Legacy characters keep their old per-spell counters until the DM configures shared slots.
-    const maxUses = Math.max(1, spell.maxUses ?? 1);
-    const usesRemaining = spell.usesRemaining ?? maxUses;
-    if (usesRemaining <= 0) return false;
-
-    const spells = (player.spells || []).map((candidate) =>
-      candidate.id === spellId
-        ? { ...candidate, maxUses, usesRemaining: usesRemaining - 1 }
-        : candidate,
-    );
-    await this.saveCharacter({ ...player, spells });
-    return true;
+    return result.used;
   }
 
   async restorePlayerSpells(playerName: string): Promise<void> {
     const player = await this.loadCharacter(playerName);
     if (!player) return;
-
-    const spellSlots = normalizeSpellSlots(player.spellSlots).map((slot) => ({
-      ...slot,
-      current: slot.max,
-    }));
-    const spells = (player.spells || []).map((spell) => {
-      if (spell.isCantrip) return spell;
-      const maxUses = Math.max(1, spell.maxUses ?? 1);
-      return { ...spell, maxUses, usesRemaining: maxUses };
+    await this.saveCharacter({
+      ...player,
+      ...this.spellRules.restore(player.spells, player.spellSlots),
     });
-    await this.saveCharacter({ ...player, spells, spellSlots });
   }
 
   async setSpellSlotPool(playerName: string, pool: SpellSlotPool): Promise<void> {
     const player = await this.loadCharacter(playerName);
     if (!player) return;
-    const level = Math.max(1, Math.min(9, Math.floor(pool.level)));
-    const max = Math.max(0, Math.floor(pool.max));
-    const normalized: SpellSlotPool = {
-      level,
-      max,
-      current: Math.max(0, Math.min(max, Math.floor(pool.current))),
-      ...(pool.recovery === 'short-rest' ? { recovery: 'short-rest' } : {}),
-    };
-    const slots = normalizeSpellSlots(player.spellSlots).filter((slot) => slot.level !== level);
-    await this.saveCharacter({ ...player, spellSlots: [...slots, normalized] });
+    await this.saveCharacter({
+      ...player,
+      spellSlots: this.spellRules.upsertSlot(player.spellSlots, pool),
+    });
   }
 
   async upsertResource(playerName: string, resource: CharacterResource): Promise<void> {
     const player = await this.loadCharacter(playerName);
     if (!player) return;
-    const resources = normalizeCharacterResources(player.resources);
-    const normalized = normalizeCharacterResources([{
-      ...resource,
-      id: resource.id || `resource_${crypto.randomUUID()}`,
-    }])[0];
-    if (!normalized) return;
-    if (!normalized.name) return;
-    const index = resources.findIndex((candidate) => candidate.id === normalized.id);
-    const next = index < 0
-      ? [...resources, normalized]
-      : resources.map((candidate) => (candidate.id === normalized.id ? normalized : candidate));
-    await this.saveCharacter({ ...player, resources: next });
+    await this.saveCharacter({
+      ...player,
+      resources: this.resourceRules.upsert(player.resources, resource),
+    });
   }
 
   async removeResource(playerName: string, resourceId: string): Promise<void> {
     const player = await this.loadCharacter(playerName);
     if (!player) return;
-    const resources = normalizeCharacterResources(player.resources).filter(
-      (resource) => resource.id !== resourceId,
-    );
-    await this.saveCharacter({ ...player, resources });
+    await this.saveCharacter({
+      ...player,
+      resources: this.resourceRules.remove(player.resources, resourceId),
+    });
   }
 
   async useResource(playerName: string, resourceId: string, amount = 1): Promise<boolean> {
     const player = await this.loadCharacter(playerName);
     if (!player) return false;
-    const resources = normalizeCharacterResources(player.resources);
-    const resource = resources.find((candidate) => candidate.id === resourceId);
-    const spent = Math.max(1, Math.floor(amount));
-    if (!resource) return false;
-    if (resource.isUnlimited) return true;
-    if (resource.current < spent) return false;
-    await this.saveCharacter({
-      ...player,
-      resources: resources.map((candidate) =>
-        candidate.id === resourceId
-          ? { ...candidate, current: candidate.current - spent }
-          : candidate,
-      ),
-    });
-    return true;
+    const result = this.resourceRules.spend(player.resources, resourceId, amount);
+    if (result.changed) {
+      await this.saveCharacter({ ...player, resources: result.resources });
+    }
+    return result.spent;
   }
 
-  async restoreResources(playerName: string, rest: Exclude<ResourceRecovery, 'manual'>): Promise<void> {
+  async restoreResources(
+    playerName: string,
+    rest: Exclude<ResourceRecovery, 'manual'>,
+  ): Promise<void> {
     const player = await this.loadCharacter(playerName);
     if (!player) return;
-    const resources = normalizeCharacterResources(player.resources).map((resource) => {
-      if (rest === 'short-rest' && (resource.shortRestRestore ?? 0) > 0) {
-        return {
-          ...resource,
-          current: Math.min(resource.max, resource.current + resource.shortRestRestore!),
-        };
-      }
-      return resource.recovery === rest || (rest === 'long-rest' && resource.recovery === 'short-rest')
-        ? { ...resource, current: resource.max }
-        : resource;
+    await this.saveCharacter({
+      ...player,
+      resources: this.resourceRules.restore(player.resources, rest),
     });
-    await this.saveCharacter({ ...player, resources });
   }
 
   async completeShortRest(playerName: string): Promise<void> {
@@ -210,19 +146,8 @@ export class CharacterService {
     if (!player) return;
     await this.saveCharacter({
       ...player,
-      spellSlots: normalizeSpellSlots(player.spellSlots).map((slot) =>
-        slot.recovery === 'short-rest' ? { ...slot, current: slot.max } : slot,
-      ),
-      resources: normalizeCharacterResources(player.resources).map((resource) =>
-        (resource.shortRestRestore ?? 0) > 0
-          ? {
-              ...resource,
-              current: Math.min(resource.max, resource.current + resource.shortRestRestore!),
-            }
-          : resource.recovery === 'short-rest'
-            ? { ...resource, current: resource.max }
-            : resource,
-      ),
+      spellSlots: this.spellRules.restoreShortRestSlots(player.spellSlots),
+      resources: this.resourceRules.restore(player.resources, 'short-rest'),
     });
   }
 
@@ -230,23 +155,13 @@ export class CharacterService {
     const player = await this.loadCharacter(playerName);
     if (!player) return;
 
-    const spells = (player.spells || []).map((spell) => {
-      if (spell.isCantrip) return spell;
-      const maxUses = Math.max(1, spell.maxUses ?? 1);
-      return { ...spell, maxUses, usesRemaining: maxUses };
-    });
+    const restoredSpells = this.spellRules.restore(player.spells, player.spellSlots);
     await this.saveCharacter({
       ...player,
       currentHp: Math.max(0, maxHp),
       temporaryHp: 0,
-      spells,
-      spellSlots: normalizeSpellSlots(player.spellSlots).map((slot) => ({
-        ...slot,
-        current: slot.max,
-      })),
-      resources: normalizeCharacterResources(player.resources).map((resource) =>
-        resource.recovery === 'manual' ? resource : { ...resource, current: resource.max },
-      ),
+      ...restoredSpells,
+      resources: this.resourceRules.restore(player.resources, 'long-rest'),
     });
   }
 
@@ -254,7 +169,9 @@ export class CharacterService {
     const player = await this.loadCharacter(playerName);
     if (!player) return;
 
-    const spells = (player.spells || []).filter((s) => s.id !== spellId);
-    await this.saveCharacter({ ...player, spells });
+    await this.saveCharacter({
+      ...player,
+      spells: this.spellRules.remove(player.spells, spellId),
+    });
   }
 }

@@ -3,30 +3,43 @@ import {
   CharacterAbility,
   CharacterStats,
   CharacterWeapon,
+  ParsedCharacter,
+} from '../models/character.model';
+import {
   LssCharacterData,
   LssCharacterSheet,
   LssTextNode,
-  ParsedCharacter,
-} from '../models/character.model';
+} from '../models/lss-character.model';
+import {
+  CharacterSkill,
+  CharacterStatKey,
+} from '../models/character-skill.model';
 import { LoggerService } from './logger.service';
 import {
   formatWeaponDamageFormula,
   getAutomaticSpellSlots,
   parseJsonWithTrailingCommaRecovery,
+  getCharacterProficiencyBonus,
 } from '../utils';
+import {
+  DEFAULT_ABILITY_NAME,
+  DEFAULT_AC,
+  DEFAULT_DAMAGE_TYPE,
+  DEFAULT_MAX_HP,
+  DEFAULT_SPEED,
+  DEFAULT_STAT_SCORE,
+  DEFAULT_WEAPON_DAMAGE,
+  DEFAULT_WEAPON_NAME,
+  UNKNOWN_CHARACTER_NAME,
+  UNKNOWN_CLASS_OR_RACE,
+} from '../constants/character-parser.constants';
+import {
+  CHARACTER_SKILL_DEFINITIONS,
+  CHARACTER_STAT_KEYS,
+  LSS_SKILL_PROFICIENCY_TARGET_PREFIX,
+} from '../constants/character-skill.constants';
 
 export type { ParsedCharacter } from '../models/character.model';
-
-const DEFAULT_STAT_SCORE = 10;
-const DEFAULT_MAX_HP = 10;
-const DEFAULT_AC = 10;
-const DEFAULT_SPEED = 30;
-const UNKNOWN_NAME = 'Неизвестный';
-const UNKNOWN_CLASS_OR_RACE = 'Неизвестно';
-const DEFAULT_WEAPON_NAME = 'Оружие';
-const DEFAULT_DAMAGE = '1d4';
-const DEFAULT_DAMAGE_TYPE = 'дробящий';
-const DEFAULT_ABILITY_NAME = 'Способность';
 
 @Injectable({ providedIn: 'root' })
 export class CharacterParserService {
@@ -35,7 +48,7 @@ export class CharacterParserService {
   parseCharacter(jsonData: LssCharacterSheet): ParsedCharacter {
     const dataObj = this.resolveDataObject(jsonData);
 
-    const name = dataObj.name?.value ?? UNKNOWN_NAME;
+    const name = dataObj.name?.value ?? UNKNOWN_CHARACTER_NAME;
     const charClass = dataObj.info?.charClass?.value ?? UNKNOWN_CLASS_OR_RACE;
     const level = dataObj.info?.level?.value ?? 1;
     const race = dataObj.info?.race?.value ?? UNKNOWN_CLASS_OR_RACE;
@@ -59,6 +72,7 @@ export class CharacterParserService {
       level,
       race,
       stats: parsedStats,
+      skills: this.parseSkills(dataObj, parsedStats, level),
       maxHp,
       currentHp,
       temporaryHp: 0,
@@ -115,9 +129,103 @@ export class CharacterParserService {
     const weaponsList = dataObj.weaponsList ?? [];
     return weaponsList.map((w) => ({
       name: w.name?.value ?? DEFAULT_WEAPON_NAME,
-      damage: formatWeaponDamageFormula(w.dmg?.value ?? DEFAULT_DAMAGE, w.ability ?? 'str'),
+      damage: formatWeaponDamageFormula(w.dmg?.value ?? DEFAULT_WEAPON_DAMAGE, w.ability ?? 'str'),
       damageType: w.dmgType?.value ?? DEFAULT_DAMAGE_TYPE,
     }));
+  }
+
+  private parseSkills(
+    dataObj: LssCharacterData,
+    stats: CharacterStats,
+    level: number,
+  ): CharacterSkill[] {
+    const rawSkills = dataObj.skills ?? {};
+    const proficiencyBonus = this.parseProficiencyBonus(dataObj, level);
+    const bonusRanks = this.parseSkillProficiencyBonusRanks(dataObj);
+    const skillIds = new Set([
+      ...Object.keys(rawSkills),
+      ...bonusRanks.keys(),
+    ]);
+
+    return Array.from(skillIds).flatMap((id) => {
+      const raw = rawSkills[id] ?? {};
+      const embeddedRank = raw.isProf === 2
+        ? 2
+        : raw.isProf === true || raw.isProf === 1
+          ? 1
+          : 0;
+      const rank = Math.max(embeddedRank, bonusRanks.get(id) ?? 0);
+      if (rank === 0) return [];
+
+      const definition = CHARACTER_SKILL_DEFINITIONS.find((skill) => skill.id === id);
+      const baseStat = this.isCharacterStatKey(raw.baseStat)
+        ? raw.baseStat
+        : definition?.baseStat;
+      if (!baseStat) return [];
+
+      const customModifier = this.finiteNumber(raw.customModifier);
+      const legacyBonus = this.finiteNumber(raw.bonus) ?? 0;
+      const rawName = typeof raw.name === 'string' ? raw.name.trim() : '';
+      const modifier = customModifier
+        ?? this.getModifier(stats[baseStat]) + proficiencyBonus * rank + legacyBonus;
+
+      return [{
+        id,
+        name: definition?.name ?? (rawName || id),
+        baseStat,
+        proficiency: rank === 2 ? 'expertise' as const : 'proficient' as const,
+        modifier: Math.trunc(modifier),
+      }];
+    });
+  }
+
+  private parseSkillProficiencyBonusRanks(dataObj: LssCharacterData): Map<string, number> {
+    const ranks = new Map<string, number>();
+
+    for (const bonus of dataObj.bonuses ?? []) {
+      if (
+        bonus.disabled
+        || typeof bonus.target !== 'string'
+        || !bonus.target.startsWith(LSS_SKILL_PROFICIENCY_TARGET_PREFIX)
+        || (bonus.mode !== 'upgrade' && bonus.mode !== 'set')
+      ) {
+        continue;
+      }
+
+      const skillId = bonus.target.slice(LSS_SKILL_PROFICIENCY_TARGET_PREFIX.length).trim();
+      const rawRank = this.finiteNumber(bonus.value);
+      if (!skillId || rawRank === null || rawRank <= 0) continue;
+
+      const rank = Math.min(2, Math.trunc(rawRank));
+      ranks.set(skillId, Math.max(ranks.get(skillId) ?? 0, rank));
+    }
+
+    return ranks;
+  }
+
+  private parseProficiencyBonus(dataObj: LssCharacterData, level: number): number {
+    const custom = this.finiteNumber(dataObj.proficiencyCustom);
+    const regular = this.finiteNumber(dataObj.proficiency);
+    return custom && custom > 0
+      ? Math.trunc(custom)
+      : regular && regular > 0
+        ? Math.trunc(regular)
+        : getCharacterProficiencyBonus(level);
+  }
+
+  private finiteNumber(value: unknown): number | null {
+    const unwrapped =
+      value && typeof value === 'object' && 'value' in value
+        ? (value as { value?: unknown }).value
+        : value;
+    if (unwrapped === null || unwrapped === undefined || unwrapped === '') return null;
+    const number = typeof unwrapped === 'number' ? unwrapped : Number(unwrapped);
+    return Number.isFinite(number) ? number : null;
+  }
+
+  private isCharacterStatKey(value: unknown): value is CharacterStatKey {
+    return typeof value === 'string'
+      && CHARACTER_STAT_KEYS.includes(value as CharacterStatKey);
   }
 
   private parseResourcesAndText(dataObj: LssCharacterData): {

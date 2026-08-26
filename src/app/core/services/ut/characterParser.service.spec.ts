@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { LssCharacterData, LssCharacterSheet } from '../../models/character.model';
+import { LssCharacterData, LssCharacterSheet } from '../../models/lss-character.model';
 import { CharacterParserService } from '../characterParser.service';
 import { LoggerService } from '../logger.service';
 
@@ -110,9 +110,109 @@ describe('CharacterParserService', () => {
       weapons: [],
       resistances: [],
       abilities: [],
+      skills: [],
       spellSlots: [],
       resources: [],
     });
+  });
+
+  it('imports proficient skills and expertise with their final check modifiers', () => {
+    const parsed = service.parseCharacter({
+      data: {
+        info: { level: { value: 1 } },
+        proficiency: 2,
+        stats: {
+          str: { score: 10 },
+          dex: { score: 16 },
+          wis: { score: 14 },
+        },
+        skills: {
+          athletics: { name: 'athletics', baseStat: 'str', isProf: true },
+          perception: { name: 'perception', baseStat: 'wis', isProf: 1 },
+          stealth: { name: 'stealth', baseStat: 'dex', isProf: 2 },
+          medicine: {
+            name: 'medicine',
+            baseStat: 'wis',
+            isProf: true,
+            customModifier: '7',
+          },
+          arcana: { name: 'arcana', baseStat: 'int', isProf: false },
+        },
+      },
+    });
+
+    expect(parsed.skills).toEqual([
+      {
+        id: 'athletics',
+        name: 'Атлетика',
+        baseStat: 'str',
+        proficiency: 'proficient',
+        modifier: 2,
+      },
+      {
+        id: 'perception',
+        name: 'Внимательность',
+        baseStat: 'wis',
+        proficiency: 'proficient',
+        modifier: 4,
+      },
+      {
+        id: 'stealth',
+        name: 'Скрытность',
+        baseStat: 'dex',
+        proficiency: 'expertise',
+        modifier: 7,
+      },
+      {
+        id: 'medicine',
+        name: 'Медицина',
+        baseStat: 'wis',
+        proficiency: 'proficient',
+        modifier: 7,
+      },
+    ]);
+  });
+
+  it('imports skill proficiencies from current LSS bonus targets', () => {
+    const parsed = service.parseCharacter({
+      data: {
+        info: { level: { value: 1 } },
+        proficiency: 2,
+        stats: {
+          str: { score: 14 },
+          dex: { score: 16 },
+          wis: { score: 12 },
+        },
+        skills: {
+          athletics: { name: 'athletics', baseStat: 'str' },
+          perception: { name: 'perception', baseStat: 'wis' },
+        },
+        bonuses: [
+          { target: 'prof.skill.athletics', mode: 'upgrade', value: 1 },
+          { target: 'prof.skill.athletics', mode: 'upgrade', value: 1 },
+          { target: 'prof.skill.perception', mode: 'upgrade', value: 1, disabled: true },
+          { target: 'prof.skill.stealth', mode: 'set', value: 2 },
+          { target: 'skill.athletics', mode: 'add', value: 5 },
+        ],
+      },
+    });
+
+    expect(parsed.skills).toEqual([
+      {
+        id: 'athletics',
+        name: 'Атлетика',
+        baseStat: 'str',
+        proficiency: 'proficient',
+        modifier: 4,
+      },
+      {
+        id: 'stealth',
+        name: 'Скрытность',
+        baseStat: 'dex',
+        proficiency: 'expertise',
+        modifier: 7,
+      },
+    ]);
   });
 
   it('moves the weapon ability into a Russian damage formula', () => {

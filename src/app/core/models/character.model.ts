@@ -1,5 +1,8 @@
 import { SpellData } from './combatant.model';
 import { InventoryItem } from './inventory-item.model';
+import { CharacterResource } from './character-resource.model';
+import { SpellSlotPool } from './spell-slot.model';
+import { CharacterSkill } from './character-skill.model';
 
 export interface CharacterStats {
   str: number;
@@ -22,41 +25,6 @@ export interface CharacterAbility {
   source?: 'resource' | 'feat';
 }
 
-export type ResourceRecovery = 'short-rest' | 'long-rest' | 'manual';
-
-export type ResourceSpendMode = 'fixed' | 'variable';
-
-export type ResourceEffectDuration = 'manual' | 'until-next-turn-end' | 'rounds';
-
-export interface CharacterResourceEffect {
-  icon?: string;
-  duration: ResourceEffectDuration;
-  rounds?: number;
-}
-
-export interface CharacterResource {
-  id: string;
-  name: string;
-  icon?: string;
-  description?: string;
-  isUnlimited?: boolean;
-  spendMode?: ResourceSpendMode;
-  spendAmount?: number;
-  shortRestRestore?: number;
-  linkedSpellId?: string;
-  activeEffect?: CharacterResourceEffect;
-  current: number;
-  max: number;
-  recovery: ResourceRecovery;
-}
-
-export interface SpellSlotPool {
-  level: number;
-  current: number;
-  max: number;
-  recovery?: Exclude<ResourceRecovery, 'manual'>;
-}
-
 /** Character sheet normalized from a raw LSS (Long Story Short) export. */
 export interface ParsedCharacter {
   name: string;
@@ -76,91 +44,5 @@ export interface ParsedCharacter {
   spells?: SpellData[];
   spellSlots?: SpellSlotPool[];
   resources?: CharacterResource[];
-}
-
-// --- Raw LSS (Long Story Short) character sheet JSON shape ---
-// Field values are almost always wrapped as `{ value: T }`; unknown/optional
-// sub-trees are typed loosely on purpose since the export format isn't versioned.
-
-export interface LssValue<T> {
-  value?: T;
-}
-
-export interface LssStat {
-  score?: number;
-}
-
-export interface LssStatsBlock {
-  str?: LssStat;
-  dex?: LssStat;
-  con?: LssStat;
-  int?: LssStat;
-  wis?: LssStat;
-  cha?: LssStat;
-}
-
-export interface LssVitalityBlock {
-  'hp-max'?: LssValue<number>;
-  'hp-current'?: LssValue<number>;
-  speed?: LssValue<number>;
-  ac?: LssValue<number | string>;
-}
-
-export interface LssWeaponEntry {
-  name?: LssValue<string>;
-  dmg?: LssValue<string | null>;
-  dmgType?: LssValue<string>;
-  ability?: string;
-}
-
-export interface LssResourceEntry {
-  id?: string;
-  isDeleted?: boolean;
-  isShortRest?: boolean;
-  isLongRest?: boolean;
-  name?: string;
-  notes?: string;
-  value?: number | LssValue<number>;
-  current?: number | LssValue<number>;
-  max?: number | LssValue<number>;
-  recovery?: string;
-}
-
-export interface LssTextNode {
-  type: string;
-  text?: string;
-  attrs?: {
-    formula?: string;
-    label?: string;
-  };
-  content?: LssTextNode[];
-}
-
-export interface LssTextBlockValue {
-  data?: { content?: LssTextNode[] };
-}
-
-export interface LssTextSection {
-  traits?: LssValue<LssTextBlockValue>;
-  feats?: LssValue<LssTextBlockValue>;
-}
-
-export interface LssCharacterData {
-  name?: LssValue<string>;
-  info?: {
-    charClass?: LssValue<string>;
-    level?: LssValue<number>;
-    race?: LssValue<string>;
-  };
-  stats?: LssStatsBlock;
-  vitality?: LssVitalityBlock;
-  weaponsList?: LssWeaponEntry[];
-  resources?: Record<string, LssResourceEntry>;
-  text?: LssTextSection;
-}
-
-/** Top-level LSS export payload; `data` may arrive as an inline object or a JSON string. */
-export interface LssCharacterSheet {
-  data?: LssCharacterData | string;
-  [key: string]: unknown;
+  skills?: CharacterSkill[];
 }

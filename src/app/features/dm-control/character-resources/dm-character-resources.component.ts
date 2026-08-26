@@ -1,14 +1,15 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import {
   CharacterResource,
-  ParsedCharacter,
   ResourceEffectDuration,
   ResourceRecovery,
   ResourceSpendMode,
-} from '../../../core/models/character.model';
+} from '../../../core/models/character-resource.model';
+import { ParsedCharacter } from '../../../core/models/character.model';
 import { BattleService } from '../../../core/services/battle.service';
 import { CharacterService } from '../../../core/services/character.service';
 import { LoggerService } from '../../../core/services/logger.service';
+import { CHARACTER_RESOURCE_PRESETS } from './dm-character-resources.constants';
 
 @Component({
   selector: 'app-dm-character-resources',
@@ -53,14 +54,7 @@ export class DmCharacterResourcesComponent {
   readonly resourceEffectDuration = signal<ResourceEffectDuration>('manual');
   readonly resourceEffectRounds = signal(1);
 
-  readonly resourcePresets = [
-    { id: 'rage', label: '🔥 Ярость' },
-    { id: 'lay-on-hands', label: '✋ Наложение рук' },
-    { id: 'channel-divinity', label: '✨ Божественный канал' },
-    { id: 'focus-points', label: '☯️ Очки фокуса' },
-    { id: 'heroic-inspiration', label: '⭐ Вдохновение героя' },
-    { id: 'free-spell', label: '🔮 Бесплатное заклинание' },
-  ] as const;
+  readonly resourcePresets = CHARACTER_RESOURCE_PRESETS;
 
   selectPlayer(event: Event): void {
     const playerId = (event.target as HTMLSelectElement).value;

@@ -1,0 +1,10 @@
+export const DEFAULT_STAT_SCORE = 10;
+export const DEFAULT_MAX_HP = 10;
+export const DEFAULT_AC = 10;
+export const DEFAULT_SPEED = 30;
+export const UNKNOWN_CHARACTER_NAME = 'Неизвестный';
+export const UNKNOWN_CLASS_OR_RACE = 'Неизвестно';
+export const DEFAULT_WEAPON_NAME = 'Оружие';
+export const DEFAULT_WEAPON_DAMAGE = '1d4';
+export const DEFAULT_DAMAGE_TYPE = 'дробящий';
+export const DEFAULT_ABILITY_NAME = 'Способность';

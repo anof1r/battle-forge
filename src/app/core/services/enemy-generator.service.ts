@@ -1,20 +1,13 @@
 import { Injectable } from '@angular/core';
-import { EnemyAction } from '../models/enemy.model';
+import { EnemyAction, GeneratedEnemyFlavor } from '../models/enemy.model';
 import {
   ACTION_DESCRIPTIONS,
   DAMAGE_TYPES,
+  ENEMY_DAMAGE_DICE_SIDES,
   RESISTANCE_TYPES,
   STATUS_EFFECTS,
   WEAPON_NAMES,
 } from '../constants/enemy-generator.constants';
-
-export interface GeneratedEnemyFlavor {
-  actions: EnemyAction[];
-  statuses: string[];
-  resistances: string[];
-}
-
-const DICE_SIDES = [4, 6, 8, 10, 12] as const;
 
 function randomItem<T>(arr: readonly T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -41,7 +34,7 @@ export class EnemyGeneratorService {
       const description = randomItem(ACTION_DESCRIPTIONS);
       const toHit = randomInt(2, 6);
       const diceCount = randomInt(1, 3);
-      const diceSides = randomItem(DICE_SIDES);
+      const diceSides = randomItem(ENEMY_DAMAGE_DICE_SIDES);
       const damageBonus = randomInt(0, 4);
       const damageFormula = `${diceCount}d${diceSides} + ${damageBonus}`;
       actions.push({

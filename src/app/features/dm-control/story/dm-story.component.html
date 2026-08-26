@@ -57,10 +57,24 @@
     <div class="story-deck__body">
       <div class="story-deck__toolbar">
         <p>Имя файла связывает картинку с сюжетом: <code>1.png</code> → ключ <code>1</code>.</p>
-        <label class="story-editor__upload">
-          <span>＋ Добавить изображения</span>
-          <input type="file" accept="image/*" multiple (change)="onFilesSelected($event)" />
-        </label>
+        <div class="story-deck__add-controls">
+          <label class="story-deck__position">
+            <span>Позиция новых изображений</span>
+            <select
+              [value]="insertBeforeSlideId() ?? ''"
+              (change)="setInsertBeforeSlide($event)"
+            >
+              <option value="">В конец списка</option>
+              @for (slide of story.slides(); track slide.id; let index = $index) {
+                <option [value]="slide.id">Перед {{ index + 1 }}: {{ slide.name }}</option>
+              }
+            </select>
+          </label>
+          <label class="story-editor__upload">
+            <span>＋ Добавить изображения</span>
+            <input type="file" accept="image/*" multiple (change)="onFilesSelected($event)" />
+          </label>
+        </div>
       </div>
 
       @if (uploadMessage(); as message) {
@@ -93,7 +107,7 @@
             >
               <div class="story-slide__preview">
                 <img [src]="slide.objectUrl" [alt]="slide.name" />
-                <span class="story-slide__number">{{ index + 1 }}</span>
+                <span class="story-slide__number">{{ slide.order + 1 }}</span>
                 @if (story.activeSlideId() === slide.id) {
                   <span class="story-slide__live">На экране</span>
                 }

@@ -2,6 +2,7 @@
 export const DEFAULT_ENEMY_TYPE = 'goblin';
 export const DEFAULT_ENEMY_MAX_HP = 10;
 export const DEFAULT_ENEMY_AC = 12;
+export const ENEMY_DAMAGE_DICE_SIDES = [4, 6, 8, 10, 12] as const;
 
 /** Pools used to randomly generate flavor data (actions/statuses/resistances) for enemies. */
 export const WEAPON_NAMES = [
