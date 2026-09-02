@@ -4,7 +4,7 @@
       <p class="story-editor__eyebrow">Локальная презентация и суфлёр</p>
       <h2 id="story-editor-title">🎭 История</h2>
       <p>
-        Изображения остаются на этом устройстве, а сюжетные заметки сохраняются в Firebase.
+        Изображения остаются на этом устройстве, а сюжетные заметки сохраняются локально в MongoDB.
       </p>
     </div>
   </header>
@@ -157,7 +157,7 @@
           <h3 id="story-script-title">📜 {{ slide.name }}</h3>
         </div>
         <div class="story-script__header-actions">
-          <span class="story-script__key">Ключ Firebase: {{ activeSectionId() }}</span>
+          <span class="story-script__key">Ключ раздела: {{ activeSectionId() }}</span>
           @if (!scriptEditing()) {
             <button
               type="button"

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { renderStoryMarkdown, storySectionIdFromFileName } from './story-script.util';
 
 describe('story script utilities', () => {
-  it('derives stable Firebase-safe section ids from image names', () => {
+  it('derives stable database-safe section ids from image names', () => {
     expect(storySectionIdFromFileName('1.png')).toBe('1');
     expect(storySectionIdFromFileName('1')).toBe('1');
     expect(storySectionIdFromFileName(' act.1/intro.webp ')).toBe('act_1_intro');

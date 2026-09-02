@@ -2,7 +2,7 @@ import { BattleStatus } from '../constants/battle-status.constants';
 import { Combatant } from './combatant.model';
 import { BattleAction } from './action.model';
 
-/** Shape of the data synced to/from Firebase for a room. */
+/** Shape of the room document synchronized between connected clients. */
 export interface BattleRoom {
   status: BattleStatus;
   currentRound: number;

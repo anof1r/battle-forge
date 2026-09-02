@@ -1,0 +1,38 @@
+{
+  "name": "@battle-forge/server",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "nest build",
+    "start": "node dist/main.js",
+    "start:dev": "nest start --watch",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "data:export": "node scripts/data-transfer.mjs export",
+    "data:import": "node scripts/data-transfer.mjs import"
+  },
+  "dependencies": {
+    "@nestjs/common": "^12.0.1",
+    "@nestjs/config": "^12.0.0",
+    "@nestjs/core": "^12.0.1",
+    "@nestjs/mongoose": "^12.0.0",
+    "@nestjs/platform-express": "^12.0.1",
+    "@nestjs/platform-socket.io": "^12.0.1",
+    "@nestjs/serve-static": "^12.0.0",
+    "@nestjs/websockets": "^12.0.1",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.2",
+    "mongoose": "^9.9.4",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "socket.io": "^4.8.3"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^12.0.0",
+    "@nestjs/testing": "^12.0.1",
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.3.0",
+    "typescript": "~5.9.2",
+    "vitest": "^3.2.7"
+  }
+}

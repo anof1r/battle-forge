@@ -1,0 +1,13 @@
+.angular
+.git
+.github
+.vscode
+coverage
+dist
+node_modules
+server/coverage
+server/dist
+server/node_modules
+src/environments
+npm-debug.log
+*.md

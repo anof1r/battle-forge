@@ -1,14 +1,14 @@
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { FIREBASE_ROOT } from '../../../core/constants/firebase-paths.constants';
+import { DATA_ROOT } from '../../../core/constants/data-paths.constants';
 import { CreatureTemplate, EnemyAction, ScenePreset, ScenePresetEntry } from '../../../core/models';
-import { FirebaseService } from '../../../core/services/firebase.service';
+import { RealtimeDataService } from '../../../core/services/realtime-data.service';
 import { SceneLibraryService } from './scene-library.service';
 
 describe('SceneLibraryService', () => {
   let service: SceneLibraryService;
-  let firebase: {
+  let realtimeData: {
     set: ReturnType<typeof vi.fn>;
     remove: ReturnType<typeof vi.fn>;
     subscribe: ReturnType<typeof vi.fn>;
@@ -43,17 +43,17 @@ describe('SceneLibraryService', () => {
     creatures: Record<string, CreatureTemplate> | null = null,
     scenes: Record<string, ScenePreset> | null = null,
   ): void {
-    firebase = {
+    realtimeData = {
       set: vi.fn().mockResolvedValue(undefined),
       remove: vi.fn().mockResolvedValue(undefined),
       subscribe: vi.fn((path: string) =>
-        path === FIREBASE_ROOT.CREATURE_TEMPLATES ? of(creatures) : of(scenes),
+        path === DATA_ROOT.CREATURE_TEMPLATES ? of(creatures) : of(scenes),
       ),
     };
     TestBed.configureTestingModule({
       providers: [
         SceneLibraryService,
-        { provide: FirebaseService, useValue: firebase },
+        { provide: RealtimeDataService, useValue: realtimeData },
       ],
     });
     service = TestBed.inject(SceneLibraryService);
@@ -82,7 +82,7 @@ describe('SceneLibraryService', () => {
     expect(service.resolveScene('missing')).toBeNull();
   });
 
-  it('normalizes collections omitted by Firebase for otherwise empty creature data', () => {
+  it('normalizes collections omitted by database for otherwise empty creature data', () => {
     const legacy = {
       id: 'creature-empty',
       name: 'Empty Creature',
@@ -122,13 +122,13 @@ describe('SceneLibraryService', () => {
         statuses: [],
       }),
     ).resolves.toBe('creature_00000000-0000-4000-8000-000000000010');
-    expect(firebase.set).toHaveBeenLastCalledWith(
+    expect(realtimeData.set).toHaveBeenLastCalledWith(
       'dm-library/creatures/creature_00000000-0000-4000-8000-000000000010',
       expect.objectContaining({ createdAt: 500, lastUpdated: 500 }),
     );
 
     await service.saveCreature({ ...existing, name: 'Goblin Boss' });
-    expect(firebase.set).toHaveBeenLastCalledWith(
+    expect(realtimeData.set).toHaveBeenLastCalledWith(
       `dm-library/creatures/${existing.id}`,
       expect.objectContaining({ name: 'Goblin Boss', createdAt: 100, lastUpdated: 500 }),
     );
@@ -140,7 +140,7 @@ describe('SceneLibraryService', () => {
     setup({ [goblin.id]: goblin }, { [forest.id]: forest });
 
     await expect(service.deleteCreature(goblin.id)).resolves.toBe(false);
-    expect(firebase.remove).not.toHaveBeenCalled();
+    expect(realtimeData.remove).not.toHaveBeenCalled();
 
     await service.saveScene({
       id: forest.id,
@@ -148,7 +148,7 @@ describe('SceneLibraryService', () => {
       description: forest.description,
       entries: [{ templateId: goblin.id, quantity: 0 }],
     });
-    expect(firebase.set).toHaveBeenCalledWith(
+    expect(realtimeData.set).toHaveBeenCalledWith(
       `dm-library/scenes/${forest.id}`,
       expect.objectContaining({
         createdAt: 100,
@@ -176,7 +176,7 @@ describe('SceneLibraryService', () => {
       ] as unknown as ScenePresetEntry[],
     });
 
-    expect(firebase.set).toHaveBeenLastCalledWith(
+    expect(realtimeData.set).toHaveBeenLastCalledWith(
       `dm-library/scenes/${forest.id}`,
       expect.objectContaining({
         entries: [
@@ -200,7 +200,7 @@ describe('SceneLibraryService', () => {
       ],
     });
 
-    expect(firebase.set).toHaveBeenLastCalledWith(
+    expect(realtimeData.set).toHaveBeenLastCalledWith(
       `dm-library/creatures/${goblin.id}`,
       expect.objectContaining({
         actions: [
@@ -224,7 +224,7 @@ describe('SceneLibraryService', () => {
     await expect(service.deleteCreature(goblin.id)).resolves.toBe(true);
     await service.deleteScene(forest.id);
 
-    expect(firebase.remove).toHaveBeenNthCalledWith(1, `dm-library/creatures/${goblin.id}`);
-    expect(firebase.remove).toHaveBeenNthCalledWith(2, `dm-library/scenes/${forest.id}`);
+    expect(realtimeData.remove).toHaveBeenNthCalledWith(1, `dm-library/creatures/${goblin.id}`);
+    expect(realtimeData.remove).toHaveBeenNthCalledWith(2, `dm-library/scenes/${forest.id}`);
   });
 });

@@ -1,21 +1,21 @@
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { FIREBASE_ROOT } from '../../../core/constants/firebase-paths.constants';
-import { FirebaseService } from '../../../core/services/firebase.service';
+import { DATA_ROOT } from '../../../core/constants/data-paths.constants';
+import { RealtimeDataService } from '../../../core/services/realtime-data.service';
 import { EnemyActionLibraryService } from './enemy-action-library.service';
 
 describe('EnemyActionLibraryService', () => {
   it('normalizes legacy records and saves reusable enemy attacks', async () => {
-    const firebase = {
-      subscribe: vi.fn((path: string) => path === FIREBASE_ROOT.ENEMY_ACTION_TEMPLATES
+    const realtimeData = {
+      subscribe: vi.fn((path: string) => path === DATA_ROOT.ENEMY_ACTION_TEMPLATES
         ? of({ legacy: { name: 'Кинжал', damage: '1d4' } })
         : of(null)),
       set: vi.fn().mockResolvedValue(undefined),
       remove: vi.fn().mockResolvedValue(undefined),
     };
     TestBed.configureTestingModule({
-      providers: [EnemyActionLibraryService, { provide: FirebaseService, useValue: firebase }],
+      providers: [EnemyActionLibraryService, { provide: RealtimeDataService, useValue: realtimeData }],
     });
     const service = TestBed.inject(EnemyActionLibraryService);
 
@@ -43,7 +43,7 @@ describe('EnemyActionLibraryService', () => {
       },
     });
 
-    expect(firebase.set).toHaveBeenCalledWith(
+    expect(realtimeData.set).toHaveBeenCalledWith(
       'dm-library/enemy-actions/weapon_open5e_srd-2024_longsword',
       expect.objectContaining({ name: 'Длинный меч', createdAt: expect.any(Number) }),
     );

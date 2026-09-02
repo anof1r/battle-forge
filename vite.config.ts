@@ -10,7 +10,6 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test-setup.ts'],
     include: ['src/**/*.spec.ts'],
-    exclude: ['src/**/*.firebase.spec.ts'],
     clearMocks: true,
     restoreMocks: true,
     unstubGlobals: true,

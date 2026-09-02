@@ -1,4 +1,4 @@
-const FIREBASE_FORBIDDEN_KEY_CHARACTERS = /[\u0000-\u001f\u007f.#$[\]/]/g;
+const DATA_PATH_FORBIDDEN_KEY_CHARACTERS = /[\u0000-\u001f\u007f.#$[\]/]/g;
 
 export function storySectionIdFromFileName(fileName: string): string {
   const normalizedName = fileName.trim().normalize('NFKC');
@@ -7,7 +7,7 @@ export function storySectionIdFromFileName(fileName: string): string {
     ? normalizedName.slice(0, extensionIndex)
     : normalizedName;
 
-  return nameWithoutExtension.replace(FIREBASE_FORBIDDEN_KEY_CHARACTERS, '_').trim() || 'slide';
+  return nameWithoutExtension.replace(DATA_PATH_FORBIDDEN_KEY_CHARACTERS, '_').trim() || 'slide';
 }
 
 export function renderStoryMarkdown(markdown: string): string {

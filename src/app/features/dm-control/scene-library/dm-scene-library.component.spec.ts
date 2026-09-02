@@ -218,7 +218,7 @@ describe('DmSceneLibraryComponent', () => {
     expect(component.error()).not.toBeNull();
   });
 
-  it('can edit legacy creatures whose empty collections were omitted by Firebase', () => {
+  it('can edit legacy creatures whose empty collections were omitted by database', () => {
     const legacy = {
       ...goblin,
       actions: undefined,

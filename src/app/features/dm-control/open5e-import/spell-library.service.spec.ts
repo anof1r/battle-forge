@@ -1,14 +1,14 @@
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { FIREBASE_ROOT } from '../../../core/constants/firebase-paths.constants';
+import { DATA_ROOT } from '../../../core/constants/data-paths.constants';
 import { SpellTemplate } from '../../../core/models';
-import { FirebaseService } from '../../../core/services/firebase.service';
+import { RealtimeDataService } from '../../../core/services/realtime-data.service';
 import { SpellLibraryService } from './spell-library.service';
 
 describe('SpellLibraryService', () => {
   let service: SpellLibraryService;
-  let firebase: { subscribe: ReturnType<typeof vi.fn>; set: ReturnType<typeof vi.fn>; remove: ReturnType<typeof vi.fn> };
+  let realtimeData: { subscribe: ReturnType<typeof vi.fn>; set: ReturnType<typeof vi.fn>; remove: ReturnType<typeof vi.fn> };
 
   const spell = (overrides: Partial<SpellTemplate> = {}): SpellTemplate => ({
     id: 'spell_open5e_srd-2024_magic-missile',
@@ -43,13 +43,13 @@ describe('SpellLibraryService', () => {
 
   beforeEach(() => {
     const existing = spell();
-    firebase = {
-      subscribe: vi.fn((path: string) => path === FIREBASE_ROOT.SPELL_TEMPLATES ? of({ [existing.id]: existing }) : of(null)),
+    realtimeData = {
+      subscribe: vi.fn((path: string) => path === DATA_ROOT.SPELL_TEMPLATES ? of({ [existing.id]: existing }) : of(null)),
       set: vi.fn().mockResolvedValue(undefined),
       remove: vi.fn().mockResolvedValue(undefined),
     };
     TestBed.configureTestingModule({
-      providers: [SpellLibraryService, { provide: FirebaseService, useValue: firebase }],
+      providers: [SpellLibraryService, { provide: RealtimeDataService, useValue: realtimeData }],
     });
     service = TestBed.inject(SpellLibraryService);
     vi.spyOn(Date, 'now').mockReturnValue(500);
@@ -61,7 +61,7 @@ describe('SpellLibraryService', () => {
     const updated = spell({ name: 'Магическая стрела', createdAt: 0, lastUpdated: 0 });
     await service.saveSpell(updated);
 
-    expect(firebase.set).toHaveBeenCalledWith(
+    expect(realtimeData.set).toHaveBeenCalledWith(
       `dm-library/spells/${updated.id}`,
       expect.objectContaining({ name: 'Магическая стрела', createdAt: 100, lastUpdated: 500 }),
     );
@@ -69,6 +69,6 @@ describe('SpellLibraryService', () => {
 
   it('removes a saved spell', async () => {
     await service.deleteSpell('spell-id');
-    expect(firebase.remove).toHaveBeenCalledWith('dm-library/spells/spell-id');
+    expect(realtimeData.remove).toHaveBeenCalledWith('dm-library/spells/spell-id');
   });
 });

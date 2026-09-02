@@ -2,20 +2,20 @@ import { Injectable, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { catchError, of } from 'rxjs';
 import {
-  FIREBASE_ROOT,
+  DATA_ROOT,
   mainStorySectionPath,
-} from '../../../core/constants/firebase-paths.constants';
+} from '../../../core/constants/data-paths.constants';
 import { StoryScriptSection } from '../../../core/models';
-import { FirebaseService } from '../../../core/services/firebase.service';
+import { RealtimeDataService } from '../../../core/services/realtime-data.service';
 import { LoggerService } from '../../../core/services/logger.service';
 
 @Injectable({ providedIn: 'root' })
 export class StoryScriptService {
-  private readonly firebase = inject(FirebaseService);
+  private readonly realtimeData = inject(RealtimeDataService);
   private readonly logger = inject(LoggerService);
   private readonly records = toSignal(
-    this.firebase
-      .subscribe<Record<string, Partial<StoryScriptSection>>>(FIREBASE_ROOT.MAIN_STORY_SECTIONS)
+    this.realtimeData
+      .subscribe<Record<string, Partial<StoryScriptSection>>>(DATA_ROOT.MAIN_STORY_SECTIONS)
       .pipe(
         catchError((error: unknown) => {
           this.logger.error('StoryScriptService.subscribe', error);
@@ -50,7 +50,7 @@ export class StoryScriptService {
       createdAt: existing?.createdAt ?? now,
       lastUpdated: now,
     };
-    await this.firebase.set(mainStorySectionPath(id), section);
+    await this.realtimeData.set(mainStorySectionPath(id), section);
   }
 
   private normalize(id: string, section: Partial<StoryScriptSection>): StoryScriptSection {

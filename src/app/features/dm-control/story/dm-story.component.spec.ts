@@ -181,7 +181,7 @@ describe('DmStoryComponent', () => {
     );
   });
 
-  it('keeps the draft and reports a retryable error when Firebase saving fails', async () => {
+  it('keeps the draft and reports a retryable error when database saving fails', async () => {
     slides.set([tavern]);
     activeSlide.set(tavern);
     story.activeSlideId.set(tavern.id);

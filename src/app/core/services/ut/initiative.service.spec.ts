@@ -2,12 +2,12 @@ import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { COMBATANT_STATUS, COMBATANT_TYPE } from '../../constants/combatant.constants';
 import { Combatant } from '../../models/combatant.model';
-import { FirebaseService } from '../firebase.service';
+import { RealtimeDataService } from '../realtime-data.service';
 import { InitiativeService } from '../initiative.service';
 
 describe('InitiativeService', () => {
   let service: InitiativeService;
-  let firebase: { update: ReturnType<typeof vi.fn> };
+  let realtimeData: { update: ReturnType<typeof vi.fn> };
 
   const combatant = (id: string, initiative: number): Combatant => ({
     id,
@@ -21,11 +21,11 @@ describe('InitiativeService', () => {
   });
 
   beforeEach(() => {
-    firebase = { update: vi.fn().mockResolvedValue(undefined) };
+    realtimeData = { update: vi.fn().mockResolvedValue(undefined) };
     TestBed.configureTestingModule({
       providers: [
         InitiativeService,
-        { provide: FirebaseService, useValue: firebase },
+        { provide: RealtimeDataService, useValue: realtimeData },
       ],
     });
     service = TestBed.inject(InitiativeService);
@@ -39,7 +39,7 @@ describe('InitiativeService', () => {
       middle: combatant('middle', 11),
     });
 
-    expect(firebase.update).toHaveBeenCalledWith('rooms/main', {
+    expect(realtimeData.update).toHaveBeenCalledWith('rooms/main', {
       initiativeOrder: ['fast', 'middle', 'slow'],
       lastUpdated: 1234,
     });
@@ -48,7 +48,7 @@ describe('InitiativeService', () => {
   it('updates only the selected combatant initiative', async () => {
     await service.setInitiative('rooms/main', 'goblin-1', 17);
 
-    expect(firebase.update).toHaveBeenCalledWith('rooms/main/combatants/goblin-1', {
+    expect(realtimeData.update).toHaveBeenCalledWith('rooms/main/combatants/goblin-1', {
       initiative: 17,
       lastUpdated: 1234,
     });

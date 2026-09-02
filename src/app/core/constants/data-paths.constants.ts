@@ -1,5 +1,5 @@
-/** Root Firebase Realtime Database collections used by the app. */
-export const FIREBASE_ROOT = {
+/** Stable logical paths shared by the client and the Mongo compatibility API. */
+export const DATA_ROOT = {
   ROOMS: 'rooms',
   PLAYERS: 'players',
   CREATURE_TEMPLATES: 'dm-library/creatures',
@@ -13,33 +13,33 @@ export const FIREBASE_ROOT = {
 export const MAIN_ROOM_ID = 'main-room';
 
 export function roomPath(roomId: string): string {
-  return `${FIREBASE_ROOT.ROOMS}/${roomId}`;
+  return `${DATA_ROOT.ROOMS}/${roomId}`;
 }
 
 export function playerPath(playerName: string): string {
-  return `${FIREBASE_ROOT.PLAYERS}/${playerName}`;
+  return `${DATA_ROOT.PLAYERS}/${playerName}`;
 }
 
 export function creatureTemplatePath(templateId: string): string {
-  return `${FIREBASE_ROOT.CREATURE_TEMPLATES}/${templateId}`;
+  return `${DATA_ROOT.CREATURE_TEMPLATES}/${templateId}`;
 }
 
 export function scenePresetPath(sceneId: string): string {
-  return `${FIREBASE_ROOT.SCENE_PRESETS}/${sceneId}`;
+  return `${DATA_ROOT.SCENE_PRESETS}/${sceneId}`;
 }
 
 export function itemTemplatePath(templateId: string): string {
-  return `${FIREBASE_ROOT.ITEM_TEMPLATES}/${templateId}`;
+  return `${DATA_ROOT.ITEM_TEMPLATES}/${templateId}`;
 }
 
 export function spellTemplatePath(templateId: string): string {
-  return `${FIREBASE_ROOT.SPELL_TEMPLATES}/${templateId}`;
+  return `${DATA_ROOT.SPELL_TEMPLATES}/${templateId}`;
 }
 
 export function enemyActionTemplatePath(templateId: string): string {
-  return `${FIREBASE_ROOT.ENEMY_ACTION_TEMPLATES}/${templateId}`;
+  return `${DATA_ROOT.ENEMY_ACTION_TEMPLATES}/${templateId}`;
 }
 
 export function mainStorySectionPath(sectionId: string): string {
-  return `${FIREBASE_ROOT.MAIN_STORY_SECTIONS}/${sectionId}`;
+  return `${DATA_ROOT.MAIN_STORY_SECTIONS}/${sectionId}`;
 }

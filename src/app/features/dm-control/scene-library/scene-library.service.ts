@@ -11,24 +11,24 @@ import {
   ScenePresetEntry,
 } from '../../../core/models';
 import {
-  FIREBASE_ROOT,
+  DATA_ROOT,
   creatureTemplatePath,
   scenePresetPath,
-} from '../../../core/constants/firebase-paths.constants';
-import { FirebaseService } from '../../../core/services/firebase.service';
+} from '../../../core/constants/data-paths.constants';
+import { RealtimeDataService } from '../../../core/services/realtime-data.service';
 
 @Injectable({ providedIn: 'root' })
 export class SceneLibraryService {
-  private readonly firebase = inject(FirebaseService);
+  private readonly realtimeData = inject(RealtimeDataService);
 
   private readonly creatureRecords = toSignal(
-    this.firebase.subscribe<Record<string, Partial<CreatureTemplate>>>(
-      FIREBASE_ROOT.CREATURE_TEMPLATES,
+    this.realtimeData.subscribe<Record<string, Partial<CreatureTemplate>>>(
+      DATA_ROOT.CREATURE_TEMPLATES,
     ),
     { initialValue: null },
   );
   private readonly sceneRecords = toSignal(
-    this.firebase.subscribe<Record<string, Partial<ScenePreset>>>(FIREBASE_ROOT.SCENE_PRESETS),
+    this.realtimeData.subscribe<Record<string, Partial<ScenePreset>>>(DATA_ROOT.SCENE_PRESETS),
     { initialValue: null },
   );
 
@@ -62,7 +62,7 @@ export class SceneLibraryService {
       createdAt: existing?.createdAt ?? now,
       lastUpdated: now,
     };
-    await this.firebase.set(creatureTemplatePath(id), creature);
+    await this.realtimeData.set(creatureTemplatePath(id), creature);
     return id;
   }
 
@@ -70,7 +70,7 @@ export class SceneLibraryService {
     if (this.scenes().some((scene) => scene.entries.some((entry) => entry.templateId === templateId))) {
       return false;
     }
-    await this.firebase.remove(creatureTemplatePath(templateId));
+    await this.realtimeData.remove(creatureTemplatePath(templateId));
     return true;
   }
 
@@ -86,12 +86,12 @@ export class SceneLibraryService {
       createdAt: existing?.createdAt ?? now,
       lastUpdated: now,
     };
-    await this.firebase.set(scenePresetPath(id), scene);
+    await this.realtimeData.set(scenePresetPath(id), scene);
     return id;
   }
 
   async deleteScene(sceneId: string): Promise<void> {
-    await this.firebase.remove(scenePresetPath(sceneId));
+    await this.realtimeData.remove(scenePresetPath(sceneId));
   }
 
   resolveScene(sceneId: string): SceneCreatureStack[] | null {

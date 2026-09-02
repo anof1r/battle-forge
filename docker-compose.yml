@@ -1,0 +1,54 @@
+services:
+  mongo:
+    image: mongo:8.0
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME:-battleforge}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-battleforge-local}
+    volumes:
+      - battle-forge-mongo:/data/db
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          mongosh --quiet
+          --username "$${MONGO_INITDB_ROOT_USERNAME}"
+          --password "$${MONGO_INITDB_ROOT_PASSWORD}"
+          --authenticationDatabase admin
+          --eval "quit(db.adminCommand('ping').ok ? 0 : 1)"
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      PORT: 8080
+      MONGO_URI: mongodb://${MONGO_USERNAME:-battleforge}:${MONGO_PASSWORD:-battleforge-local}@mongo:27017/battle-forge?authSource=admin
+      STATIC_ROOT: /app/public
+    depends_on:
+      mongo:
+        condition: service_healthy
+        restart: true
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - >-
+          fetch('http://127.0.0.1:8080/api/health')
+          .then(response => process.exit(response.ok ? 0 : 1))
+          .catch(() => process.exit(1))
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    ports:
+      - ${BATTLE_FORGE_PORT:-8080}:8080
+
+volumes:
+  battle-forge-mongo:

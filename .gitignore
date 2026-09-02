@@ -8,6 +8,8 @@
 
 # Node
 /node_modules
+/server/node_modules
+/server/dist
 npm-debug.log
 yarn-error.log
 
@@ -34,8 +36,6 @@ yarn-error.log
 /connect.lock
 /coverage
 /libpeerconnection.log
-firebase-debug.log
-database-debug.log
 testem.log
 /typings
 __screenshots__/
@@ -44,9 +44,7 @@ __screenshots__/
 .DS_Store
 Thumbs.db
 
-# Local Angular environments (generated in CI)
-/src/environments/environment.ts
-/src/environments/environment.prod.ts
+/.env
 
 # agents
 .agents*

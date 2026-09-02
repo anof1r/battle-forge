@@ -13,15 +13,15 @@ import { BattleRoom, Combatant, CreatureTemplate } from '../../models';
 import { BattleService } from '../battle.service';
 import { CharacterService } from '../character.service';
 import { DamageCalculationService } from '../damage-calculation.service';
-import { FirebaseService } from '../firebase.service';
+import { RealtimeDataService } from '../realtime-data.service';
 import { InitiativeService } from '../initiative.service';
 
 const ROOM_PATH = 'rooms/main-room';
 const UUID = '00000000-0000-4000-8000-000000000001';
 const NOW = 1_700_000_000_000;
 
-class FirebaseServiceFake
-  implements Pick<FirebaseService, 'get' | 'set' | 'update' | 'remove' | 'subscribe'>
+class RealtimeDataServiceFake
+  implements Pick<RealtimeDataService, 'get' | 'set' | 'update' | 'remove' | 'subscribe'>
 {
   readonly getMock = vi.fn<(path: string) => Promise<unknown | null>>();
   readonly setMock = vi.fn<(path: string, data: unknown) => Promise<void>>();
@@ -68,7 +68,7 @@ class FirebaseServiceFake
 
 describe('BattleService', () => {
   let service: BattleService;
-  let firebase: FirebaseServiceFake;
+  let realtimeData: RealtimeDataServiceFake;
   let room$: ReplaySubject<BattleRoom | null>;
   let characterService: {
     updatePlayerHp: ReturnType<typeof vi.fn>;
@@ -84,7 +84,7 @@ describe('BattleService', () => {
   async function setup(initialRoom: BattleRoom | null = createRoom()): Promise<void> {
     room$ = new ReplaySubject<BattleRoom | null>(1);
     room$.next(initialRoom);
-    firebase = new FirebaseServiceFake(room$.asObservable(), initialRoom);
+    realtimeData = new RealtimeDataServiceFake(room$.asObservable(), initialRoom);
     characterService = {
       updatePlayerHp: vi.fn().mockResolvedValue(undefined),
       updatePlayerHealth: vi.fn().mockResolvedValue(undefined),
@@ -100,21 +100,21 @@ describe('BattleService', () => {
       providers: [
         BattleService,
         DamageCalculationService,
-        { provide: FirebaseService, useValue: firebase },
+        { provide: RealtimeDataService, useValue: realtimeData },
         { provide: CharacterService, useValue: characterService },
         { provide: InitiativeService, useValue: initiativeService },
       ],
     });
     service = TestBed.inject(BattleService);
-    await vi.waitFor(() => expect(firebase.getMock).toHaveBeenCalledWith(ROOM_PATH));
+    await vi.waitFor(() => expect(realtimeData.getMock).toHaveBeenCalledWith(ROOM_PATH));
   }
 
-  it('creates an empty room when Firebase has no room yet', async () => {
+  it('creates an empty room when database has no room yet', async () => {
     vi.spyOn(Date, 'now').mockReturnValue(NOW);
     await setup(null);
 
-    await vi.waitFor(() => expect(firebase.setMock).toHaveBeenCalledOnce());
-    expect(firebase.setMock).toHaveBeenCalledWith(ROOM_PATH, {
+    await vi.waitFor(() => expect(realtimeData.setMock).toHaveBeenCalledOnce());
+    expect(realtimeData.setMock).toHaveBeenCalledWith(ROOM_PATH, {
       status: 'preparation',
       currentRound: 1,
       currentTurnIndex: 0,
@@ -125,7 +125,7 @@ describe('BattleService', () => {
     });
   });
 
-  it('recomputes battle projections when Firebase emits a new room', async () => {
+  it('recomputes battle projections when database emits a new room', async () => {
     await setup();
     expect(service.aliveEnemies().map((enemy) => enemy.id)).toEqual(['enemy-1']);
     expect(service.currentCombatant()?.id).toBe('enemy-1');
@@ -152,13 +152,13 @@ describe('BattleService', () => {
     vi.spyOn(Date, 'now').mockReturnValue(NOW);
     vi.spyOn(globalThis.crypto, 'randomUUID').mockReturnValue(UUID);
     await setup();
-    firebase.clearCalls();
+    realtimeData.clearCalls();
 
     const id = await service.addEnemy(createEnemyInput({ name: 'Orc', maxHp: 15 }));
 
     expect(id).toBe(`enemy_${UUID}`);
-    expect(firebase.setMock).toHaveBeenCalledOnce();
-    expect(firebase.setMock).toHaveBeenCalledWith(`${ROOM_PATH}/combatants/enemy_${UUID}`, {
+    expect(realtimeData.setMock).toHaveBeenCalledOnce();
+    expect(realtimeData.setMock).toHaveBeenCalledWith(`${ROOM_PATH}/combatants/enemy_${UUID}`, {
       id: `enemy_${UUID}`,
       type: 'enemy',
       subtype: 'goblin',
@@ -173,8 +173,8 @@ describe('BattleService', () => {
       resistances: [],
       lastUpdated: NOW,
     });
-    expect(firebase.updateMock).toHaveBeenCalledOnce();
-    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, {
+    expect(realtimeData.updateMock).toHaveBeenCalledOnce();
+    expect(realtimeData.updateMock).toHaveBeenCalledWith(ROOM_PATH, {
       initiativeOrder: ['enemy-1', `enemy_${UUID}`],
       lastUpdated: NOW,
     });
@@ -188,7 +188,7 @@ describe('BattleService', () => {
       .mockReturnValueOnce(firstUuid)
       .mockReturnValueOnce(secondUuid);
     await setup(createRoom({ initiativeOrder: ['enemy-1'] }));
-    firebase.clearCalls();
+    realtimeData.clearCalls();
     const template: CreatureTemplate = {
       id: 'creature-goblin',
       name: 'Goblin',
@@ -208,8 +208,8 @@ describe('BattleService', () => {
       `enemy_${secondUuid}`,
     ]);
 
-    expect(firebase.updateMock).toHaveBeenCalledOnce();
-    expect(firebase.updateMock).toHaveBeenCalledWith(
+    expect(realtimeData.updateMock).toHaveBeenCalledOnce();
+    expect(realtimeData.updateMock).toHaveBeenCalledWith(
       ROOM_PATH,
       expect.objectContaining({
         [`combatants/enemy_${firstUuid}`]: expect.objectContaining({
@@ -225,10 +225,10 @@ describe('BattleService', () => {
     );
   });
 
-  it('never sends undefined optional creature collections to Firebase', async () => {
+  it('never sends undefined optional creature collections to database', async () => {
     vi.spyOn(globalThis.crypto, 'randomUUID').mockReturnValue(UUID);
     await setup();
-    firebase.clearCalls();
+    realtimeData.clearCalls();
     const legacyTemplate = {
       id: 'legacy',
       name: 'Legacy Goblin',
@@ -241,7 +241,7 @@ describe('BattleService', () => {
 
     await service.addCreatureStacks([{ template: legacyTemplate, quantity: 1 }]);
 
-    expect(firebase.updateMock).toHaveBeenCalledWith(
+    expect(realtimeData.updateMock).toHaveBeenCalledWith(
       ROOM_PATH,
       expect.objectContaining({
         [`combatants/enemy_${UUID}`]: expect.objectContaining({
@@ -258,11 +258,11 @@ describe('BattleService', () => {
     vi.spyOn(Date, 'now').mockReturnValue(NOW);
     vi.spyOn(globalThis.crypto, 'randomUUID').mockReturnValue(UUID);
     await setup();
-    firebase.clearCalls();
+    realtimeData.clearCalls();
 
     await service.takeDamage('enemy-1', 4);
 
-    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+    expect(realtimeData.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
       'combatants/enemy-1/currentHp': 6,
       'combatants/enemy-1/status': COMBATANT_STATUS.ALIVE,
       'combatants/enemy-1/deathSaves': null,
@@ -273,7 +273,7 @@ describe('BattleService', () => {
     expect(characterService.updatePlayerHp).not.toHaveBeenCalled();
 
     await service.undoLastAction();
-    expect(firebase.updateMock).toHaveBeenLastCalledWith(ROOM_PATH, expect.objectContaining({
+    expect(realtimeData.updateMock).toHaveBeenLastCalledWith(ROOM_PATH, expect.objectContaining({
       'combatants/enemy-1': expect.objectContaining({ currentHp: 10 }),
       history: null,
       lastUpdated: NOW,
@@ -298,11 +298,11 @@ describe('BattleService', () => {
         initiativeOrder: ['player-aria'],
       }),
     );
-    firebase.clearCalls();
+    realtimeData.clearCalls();
 
     await service.takeDamage('player-aria', 10);
 
-    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+    expect(realtimeData.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
       'combatants/player-aria/currentHp': 0,
       'combatants/player-aria/status': COMBATANT_STATUS.DOWNED,
       'combatants/player-aria/deathSaves': { successes: 0, failures: 0 },
@@ -316,11 +316,11 @@ describe('BattleService', () => {
   it('marks an enemy dead on lethal damage', async () => {
     vi.spyOn(Date, 'now').mockReturnValue(NOW);
     await setup();
-    firebase.clearCalls();
+    realtimeData.clearCalls();
 
     await service.takeDamage('enemy-1', 20);
 
-    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+    expect(realtimeData.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
       'combatants/enemy-1/currentHp': 0,
       'combatants/enemy-1/status': COMBATANT_STATUS.DEAD,
       'combatants/enemy-1/deathSaves': null,
@@ -346,13 +346,13 @@ describe('BattleService', () => {
         initiativeOrder: ['player_Aria'],
       }),
     );
-    firebase.clearCalls();
+    realtimeData.clearCalls();
 
     await expect(
       service.recordDeathSave('player_Aria', DEATH_SAVE_RESULT.SUCCESS),
     ).resolves.toBe(true);
 
-    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+    expect(realtimeData.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
       'combatants/player_Aria/currentHp': 0,
       'combatants/player_Aria/status': COMBATANT_STATUS.STABLE,
       'combatants/player_Aria/deathSaves': { successes: 3, failures: 1 },
@@ -377,11 +377,11 @@ describe('BattleService', () => {
         initiativeOrder: ['player_Aria'],
       }),
     );
-    firebase.clearCalls();
+    realtimeData.clearCalls();
 
     await service.recordDeathSave('player_Aria', DEATH_SAVE_RESULT.FAILURE);
 
-    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+    expect(realtimeData.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
       'combatants/player_Aria/currentHp': 0,
       'combatants/player_Aria/status': COMBATANT_STATUS.DEAD,
       'combatants/player_Aria/deathSaves': { successes: 1, failures: 3 },
@@ -403,11 +403,11 @@ describe('BattleService', () => {
     await setup(
       createRoom({ combatants: { player_Aria: downed }, initiativeOrder: ['player_Aria'] }),
     );
-    firebase.clearCalls();
+    realtimeData.clearCalls();
 
     await service.recordDeathSave('player_Aria', DEATH_SAVE_RESULT.CRITICAL_SUCCESS);
 
-    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+    expect(realtimeData.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
       'combatants/player_Aria/currentHp': 1,
       'combatants/player_Aria/status': COMBATANT_STATUS.ALIVE,
       'combatants/player_Aria/deathSaves': null,
@@ -423,10 +423,10 @@ describe('BattleService', () => {
         initiativeOrder: ['player_Aria'],
       }),
     );
-    firebase.clearCalls();
+    realtimeData.clearCalls();
 
     await expect(service.revive('player_Aria')).resolves.toBe(true);
-    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+    expect(realtimeData.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
       'combatants/player_Aria/currentHp': 1,
       'combatants/player_Aria/status': COMBATANT_STATUS.ALIVE,
       'combatants/player_Aria/deathSaves': null,
@@ -436,11 +436,11 @@ describe('BattleService', () => {
 
   it('does nothing when damage target does not exist', async () => {
     await setup();
-    firebase.clearCalls();
+    realtimeData.clearCalls();
 
     await service.takeDamage('missing', 5);
 
-    expect(firebase.updateMock).not.toHaveBeenCalled();
+    expect(realtimeData.updateMock).not.toHaveBeenCalled();
     expect(characterService.updatePlayerHp).not.toHaveBeenCalled();
     expect(service.canUndo()).toBe(false);
   });
@@ -461,12 +461,12 @@ describe('BattleService', () => {
         initiativeOrder: ['enemy-1', 'enemy-2', 'player-1'],
       }),
     );
-    firebase.clearCalls();
+    realtimeData.clearCalls();
 
     await service.damageAll(3);
 
-    expect(firebase.updateMock).toHaveBeenCalledOnce();
-    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, {
+    expect(realtimeData.updateMock).toHaveBeenCalledOnce();
+    expect(realtimeData.updateMock).toHaveBeenCalledWith(ROOM_PATH, {
       'combatants/enemy-1/currentHp': 7,
       'combatants/enemy-1/temporaryHp': 0,
       'combatants/enemy-1/status': COMBATANT_STATUS.ALIVE,
@@ -482,11 +482,11 @@ describe('BattleService', () => {
     await setup(
       createRoom({ status: BATTLE_STATUS.BATTLE, currentRound: 3, currentTurnIndex: 0 }),
     );
-    firebase.clearCalls();
+    realtimeData.clearCalls();
 
     await service.nextTurn();
 
-    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+    expect(realtimeData.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
       currentTurnIndex: 0,
       currentRound: 4,
       lastUpdated: NOW,
@@ -508,11 +508,11 @@ describe('BattleService', () => {
         initiativeOrder: ['enemy-1', 'enemy-2'],
       }),
     );
-    firebase.clearCalls();
+    realtimeData.clearCalls();
 
     await service.nextTurn();
 
-    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+    expect(realtimeData.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
       currentTurnIndex: 1,
       currentRound: 3,
       lastUpdated: NOW,
@@ -522,9 +522,9 @@ describe('BattleService', () => {
 
   it('coalesces repeated next-turn clicks while a transition is still saving', async () => {
     await setup(createRoom({ status: BATTLE_STATUS.BATTLE }));
-    firebase.clearCalls();
+    realtimeData.clearCalls();
     let finishWrite: (() => void) | undefined;
-    firebase.updateMock.mockImplementationOnce(
+    realtimeData.updateMock.mockImplementationOnce(
       () =>
         new Promise<void>((resolve) => {
           finishWrite = resolve;
@@ -535,7 +535,7 @@ describe('BattleService', () => {
     const second = service.nextTurn();
 
     expect(first).toBe(second);
-    expect(firebase.updateMock).toHaveBeenCalledOnce();
+    expect(realtimeData.updateMock).toHaveBeenCalledOnce();
     finishWrite?.();
     await first;
   });
@@ -543,28 +543,28 @@ describe('BattleService', () => {
   it('updates an existing enemy and ignores an unknown enemy', async () => {
     vi.spyOn(Date, 'now').mockReturnValue(NOW);
     await setup();
-    firebase.clearCalls();
+    realtimeData.clearCalls();
 
     await service.updateEnemy('enemy-1', { ac: 18 });
-    expect(firebase.updateMock).toHaveBeenCalledWith(`${ROOM_PATH}/combatants/enemy-1`, {
+    expect(realtimeData.updateMock).toHaveBeenCalledWith(`${ROOM_PATH}/combatants/enemy-1`, {
       ac: 18,
       lastUpdated: NOW,
     });
 
-    firebase.updateMock.mockClear();
+    realtimeData.updateMock.mockClear();
     await service.updateEnemy('missing', { ac: 99 });
-    expect(firebase.updateMock).not.toHaveBeenCalled();
+    expect(realtimeData.updateMock).not.toHaveBeenCalled();
   });
 
   it('removes an enemy from both combatants and initiative order', async () => {
     vi.spyOn(Date, 'now').mockReturnValue(NOW);
     await setup();
-    firebase.clearCalls();
+    realtimeData.clearCalls();
 
     await service.removeEnemy('enemy-1');
 
-    expect(firebase.removeMock).toHaveBeenCalledWith(`${ROOM_PATH}/combatants/enemy-1`);
-    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, {
+    expect(realtimeData.removeMock).toHaveBeenCalledWith(`${ROOM_PATH}/combatants/enemy-1`);
+    expect(realtimeData.updateMock).toHaveBeenCalledWith(ROOM_PATH, {
       initiativeOrder: [],
       lastUpdated: NOW,
     });
@@ -573,12 +573,12 @@ describe('BattleService', () => {
   it('adds a player once and appends them to initiative order', async () => {
     vi.spyOn(Date, 'now').mockReturnValue(NOW);
     await setup();
-    firebase.clearCalls();
+    realtimeData.clearCalls();
     const player = { ...createPlayer(), currentHp: 9 };
 
     await service.addPlayerToBattle(player, 17);
 
-    expect(firebase.setMock).toHaveBeenCalledWith(`${ROOM_PATH}/combatants/player_Aria`, {
+    expect(realtimeData.setMock).toHaveBeenCalledWith(`${ROOM_PATH}/combatants/player_Aria`, {
       id: 'player_Aria',
       type: 'player',
       name: 'Aria',
@@ -592,7 +592,7 @@ describe('BattleService', () => {
       emoji: '🧙',
       lastUpdated: NOW,
     });
-    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, {
+    expect(realtimeData.updateMock).toHaveBeenCalledWith(ROOM_PATH, {
       initiativeOrder: ['enemy-1', 'player_Aria'],
       lastUpdated: NOW,
     });
@@ -612,14 +612,14 @@ describe('BattleService', () => {
       initiativeOrder: ['enemy-1'],
     });
     await setup(room);
-    firebase.clearCalls();
+    realtimeData.clearCalls();
     const borin = { ...createPlayer(), name: 'Borin', currentHp: 11 };
 
     await service.syncPlayersToBattle([createPlayer(), borin]);
 
-    expect(firebase.setMock).not.toHaveBeenCalled();
-    expect(firebase.updateMock).toHaveBeenCalledOnce();
-    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, {
+    expect(realtimeData.setMock).not.toHaveBeenCalled();
+    expect(realtimeData.updateMock).toHaveBeenCalledOnce();
+    expect(realtimeData.updateMock).toHaveBeenCalledWith(ROOM_PATH, {
       'combatants/player_Borin': expect.objectContaining({
         id: 'player_Borin',
         name: 'Borin',
@@ -629,7 +629,7 @@ describe('BattleService', () => {
       initiativeOrder: ['enemy-1', 'player_Aria', 'player_Borin'],
       lastUpdated: NOW,
     });
-    expect(firebase.updateMock.mock.calls[0][1]).not.toHaveProperty('combatants/player_Aria');
+    expect(realtimeData.updateMock.mock.calls[0][1]).not.toHaveProperty('combatants/player_Aria');
   });
 
   it('does not add a player already present in the room', async () => {
@@ -645,12 +645,12 @@ describe('BattleService', () => {
         initiativeOrder: ['player_Aria'],
       }),
     );
-    firebase.clearCalls();
+    realtimeData.clearCalls();
 
     await service.addPlayerToBattle(createPlayer(), 17);
 
-    expect(firebase.setMock).not.toHaveBeenCalled();
-    expect(firebase.updateMock).not.toHaveBeenCalled();
+    expect(realtimeData.setMock).not.toHaveBeenCalled();
+    expect(realtimeData.updateMock).not.toHaveBeenCalled();
   });
 
   it('restores an existing player missing from initiative order', async () => {
@@ -667,12 +667,12 @@ describe('BattleService', () => {
         initiativeOrder: [],
       }),
     );
-    firebase.clearCalls();
+    realtimeData.clearCalls();
 
     await service.addPlayerToBattle(createPlayer(), 17);
 
-    expect(firebase.setMock).not.toHaveBeenCalled();
-    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, {
+    expect(realtimeData.setMock).not.toHaveBeenCalled();
+    expect(realtimeData.updateMock).toHaveBeenCalledWith(ROOM_PATH, {
       initiativeOrder: ['player_Aria'],
       lastUpdated: NOW,
     });
@@ -686,11 +686,11 @@ describe('BattleService', () => {
         combatants: { 'enemy-1': createCombatant({ id: 'enemy-1', currentHp: 7 }) },
       }),
     );
-    firebase.clearCalls();
+    realtimeData.clearCalls();
 
     await service.heal('enemy-1', 10);
 
-    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+    expect(realtimeData.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
       'combatants/enemy-1/currentHp': 10,
       'combatants/enemy-1/status': COMBATANT_STATUS.ALIVE,
       'combatants/enemy-1/deathSaves': null,
@@ -715,7 +715,7 @@ describe('BattleService', () => {
         initiativeOrder: ['player_Aria'],
       }),
     );
-    firebase.clearCalls();
+    realtimeData.clearCalls();
 
     await service.heal('player_Aria', 3);
 
@@ -740,11 +740,11 @@ describe('BattleService', () => {
         initiativeOrder: ['player_Aria'],
       }),
     );
-    firebase.clearCalls();
+    realtimeData.clearCalls();
 
     await service.heal('player_Aria', 4);
 
-    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+    expect(realtimeData.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
       'combatants/player_Aria/currentHp': 4,
       'combatants/player_Aria/status': COMBATANT_STATUS.ALIVE,
       'combatants/player_Aria/deathSaves': null,
@@ -757,13 +757,13 @@ describe('BattleService', () => {
     vi.spyOn(Date, 'now').mockReturnValue(NOW);
     vi.spyOn(globalThis.crypto, 'randomUUID').mockReturnValue(UUID);
     await setup();
-    firebase.clearCalls();
+    realtimeData.clearCalls();
 
     await expect(
       service.addStatusEffect('enemy-1', STATUS_EFFECT_TYPE.BURNING),
     ).resolves.toBe(true);
 
-    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+    expect(realtimeData.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
       'combatants/enemy-1/activeEffects': [
         {
           id: `effect_${UUID}`,
@@ -780,7 +780,7 @@ describe('BattleService', () => {
     vi.spyOn(Date, 'now').mockReturnValue(NOW);
     vi.spyOn(globalThis.crypto, 'randomUUID').mockReturnValue(UUID);
     await setup();
-    firebase.clearCalls();
+    realtimeData.clearCalls();
 
     await service.addStatusEffect('enemy-1', STATUS_EFFECT_TYPE.BURNING, {
       damagePerTrigger: 3,
@@ -788,7 +788,7 @@ describe('BattleService', () => {
       durationTriggers: 2,
     });
 
-    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+    expect(realtimeData.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
       'combatants/enemy-1/activeEffects': [
         {
           id: `effect_${UUID}`,
@@ -808,7 +808,7 @@ describe('BattleService', () => {
     vi.spyOn(Date, 'now').mockReturnValue(NOW);
     vi.spyOn(globalThis.crypto, 'randomUUID').mockReturnValue(UUID);
     await setup();
-    firebase.clearCalls();
+    realtimeData.clearCalls();
 
     await expect(service.addStatusEffect('enemy-1', STATUS_EFFECT_TYPE.RESOURCE_ACTIVE, {
       resourceId: 'rage',
@@ -819,7 +819,7 @@ describe('BattleService', () => {
       durationLabel: 'до конца следующего хода',
     })).resolves.toBe(true);
 
-    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+    expect(realtimeData.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
       'combatants/enemy-1/activeEffects': [expect.objectContaining({
         type: STATUS_EFFECT_TYPE.RESOURCE_ACTIVE,
         resourceId: 'rage',
@@ -844,13 +844,13 @@ describe('BattleService', () => {
       combatants: { 'enemy-1': createCombatant({ activeEffects: [effect] }) },
       initiativeOrder: ['enemy-1'],
     }));
-    firebase.clearCalls();
+    realtimeData.clearCalls();
 
     await expect(
       service.refreshStatusEffect('enemy-1', effect.id, 2, 'до конца следующего хода'),
     ).resolves.toBe(true);
 
-    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+    expect(realtimeData.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
       'combatants/enemy-1/activeEffects': [expect.objectContaining({
         id: effect.id,
         remainingTriggers: 2,
@@ -900,12 +900,12 @@ describe('BattleService', () => {
         initiativeOrder: ['enemy-1', 'player_Aria'],
       }),
     );
-    firebase.clearCalls();
+    realtimeData.clearCalls();
 
     await service.nextTurn();
 
-    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.any(Object));
-    const updates = firebase.updateMock.mock.calls[0][1];
+    expect(realtimeData.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.any(Object));
+    const updates = realtimeData.updateMock.mock.calls[0][1];
     const processedEnemy = updates['combatants/enemy-1'] as Combatant;
     const processedPlayer = updates['combatants/player_Aria'] as Combatant;
     expect(processedEnemy.currentHp).toBe(3);
@@ -947,11 +947,11 @@ describe('BattleService', () => {
         initiativeOrder: ['enemy-1', 'dead', 'stable', 'next'],
       }),
     );
-    firebase.clearCalls();
+    realtimeData.clearCalls();
 
     await service.nextTurn();
 
-    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+    expect(realtimeData.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
       currentTurnIndex: 3,
       currentRound: 1,
       lastUpdated: NOW,
@@ -972,15 +972,15 @@ describe('BattleService', () => {
         },
       }),
     );
-    firebase.clearCalls();
+    realtimeData.clearCalls();
 
     await expect(
       service.addStatusEffect('enemy-1', STATUS_EFFECT_TYPE.BURNING),
     ).resolves.toBe(false);
-    expect(firebase.updateMock).not.toHaveBeenCalled();
+    expect(realtimeData.updateMock).not.toHaveBeenCalled();
   });
 
-  it('removes the final status effect without writing an empty Firebase array', async () => {
+  it('removes the final status effect without writing an empty database array', async () => {
     vi.spyOn(Date, 'now').mockReturnValue(NOW);
     await setup(
       createRoom({
@@ -994,10 +994,10 @@ describe('BattleService', () => {
         },
       }),
     );
-    firebase.clearCalls();
+    realtimeData.clearCalls();
 
     await expect(service.removeStatusEffect('enemy-1', 'effect-poison')).resolves.toBe(true);
-    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+    expect(realtimeData.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
       'combatants/enemy-1/activeEffects': null,
       history: expect.any(Array),
       lastUpdated: NOW,
@@ -1007,7 +1007,7 @@ describe('BattleService', () => {
   it('delegates initiative operations and moves the room into initiative state', async () => {
     vi.spyOn(Date, 'now').mockReturnValue(NOW);
     await setup();
-    firebase.clearCalls();
+    realtimeData.clearCalls();
 
     await service.setInitiative('enemy-1', 19);
     await service.sortInitiative();
@@ -1019,7 +1019,7 @@ describe('BattleService', () => {
       ROOM_PATH,
       service.combatants(),
     );
-    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, {
+    expect(realtimeData.updateMock).toHaveBeenCalledWith(ROOM_PATH, {
       status: 'initiative',
       currentRound: 1,
       currentTurnIndex: 0,
@@ -1049,11 +1049,11 @@ describe('BattleService', () => {
         initiativeOrder: ['enemy-1', 'player_Aria'],
       }),
     );
-    firebase.clearCalls();
+    realtimeData.clearCalls();
 
     await service.finishScene('preserve');
 
-    expect(firebase.setMock).toHaveBeenCalledWith(ROOM_PATH, {
+    expect(realtimeData.setMock).toHaveBeenCalledWith(ROOM_PATH, {
       status: BATTLE_STATUS.PREPARATION,
       currentRound: 1,
       currentTurnIndex: 0,
@@ -1068,7 +1068,7 @@ describe('BattleService', () => {
       initiativeOrder: ['player_Aria'],
       lastUpdated: NOW,
     });
-    const writtenRoom = firebase.setMock.mock.calls[0][1] as BattleRoom;
+    const writtenRoom = realtimeData.setMock.mock.calls[0][1] as BattleRoom;
     expect(writtenRoom.combatants['player_Aria'].activeEffects).toBeUndefined();
   });
 
@@ -1096,11 +1096,11 @@ describe('BattleService', () => {
         initiativeOrder: ['player_Aria', 'player_Borin'],
       }),
     );
-    firebase.clearCalls();
+    realtimeData.clearCalls();
 
     await service.finishScene('long-rest');
 
-    const writtenRoom = firebase.setMock.mock.calls[0][1] as BattleRoom;
+    const writtenRoom = realtimeData.setMock.mock.calls[0][1] as BattleRoom;
     expect(writtenRoom.combatants['player_Aria']).toEqual(
       expect.objectContaining({ currentHp: 12, status: COMBATANT_STATUS.ALIVE }),
     );
@@ -1115,7 +1115,7 @@ describe('BattleService', () => {
     vi.spyOn(Date, 'now').mockReturnValue(NOW);
     vi.spyOn(globalThis.crypto, 'randomUUID').mockReturnValue(UUID);
     await setup();
-    firebase.clearCalls();
+    realtimeData.clearCalls();
     await service.takeDamage('enemy-1', 1);
     expect(service.canUndo()).toBe(true);
 
@@ -1123,15 +1123,15 @@ describe('BattleService', () => {
     await service.endBattle();
     await service.resetScene();
 
-    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, {
+    expect(realtimeData.updateMock).toHaveBeenCalledWith(ROOM_PATH, {
       status: 'battle',
       lastUpdated: NOW,
     });
-    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, {
+    expect(realtimeData.updateMock).toHaveBeenCalledWith(ROOM_PATH, {
       status: 'ended',
       lastUpdated: NOW,
     });
-    expect(firebase.setMock).toHaveBeenCalledWith(
+    expect(realtimeData.setMock).toHaveBeenCalledWith(
       ROOM_PATH,
       expect.objectContaining({
         status: 'preparation',
@@ -1154,11 +1154,11 @@ describe('BattleService', () => {
       temporaryHp: 5,
     });
     await setup(createRoom({ combatants: { player_Aria: aria }, initiativeOrder: ['player_Aria'] }));
-    firebase.clearCalls();
+    realtimeData.clearCalls();
 
     await service.takeDamage('player_Aria', 7);
 
-    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+    expect(realtimeData.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
       'combatants/player_Aria/currentHp': 8,
       'combatants/player_Aria/temporaryHp': 0,
       'combatants/player_Aria/status': COMBATANT_STATUS.ALIVE,
@@ -1180,12 +1180,12 @@ describe('BattleService', () => {
       combatants: { goblin, player_Aria: aria },
       initiativeOrder: ['goblin', 'player_Aria'],
     }));
-    firebase.clearCalls();
+    realtimeData.clearCalls();
 
     await service.damageMany(['goblin', 'player_Aria', 'goblin', 'missing'], 4);
 
-    expect(firebase.updateMock).toHaveBeenCalledOnce();
-    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+    expect(realtimeData.updateMock).toHaveBeenCalledOnce();
+    expect(realtimeData.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
       'combatants/goblin': expect.objectContaining({ currentHp: 6 }),
       'combatants/player_Aria': expect.objectContaining({ currentHp: 5 }),
       history: expect.any(Array),
@@ -1209,14 +1209,14 @@ describe('BattleService', () => {
       combatants: { 'enemy-1': first, 'enemy-2': second },
       initiativeOrder: ['enemy-1', 'enemy-2'],
     }));
-    firebase.clearCalls();
+    realtimeData.clearCalls();
 
     await service.addStatusEffect('enemy-2', STATUS_EFFECT_TYPE.FRIGHTENED, {
       source: 'Ария',
       concentrationSourceId: 'player_Aria',
     });
 
-    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+    expect(realtimeData.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
       'combatants/enemy-1/activeEffects': null,
       'combatants/enemy-2/activeEffects': [expect.objectContaining({
         type: STATUS_EFFECT_TYPE.FRIGHTENED,
@@ -1243,12 +1243,12 @@ describe('BattleService', () => {
         undoState: { combatants: { 'enemy-1': previous } },
       }],
     }));
-    firebase.clearCalls();
+    realtimeData.clearCalls();
 
     expect(service.canUndo()).toBe(true);
     await service.undoLastAction();
 
-    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+    expect(realtimeData.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
       'combatants/enemy-1': expect.objectContaining({ currentHp: 10 }),
       history: null,
     }));
@@ -1265,17 +1265,17 @@ describe('BattleService', () => {
       initiativeOrder: ['enemy-1', 'enemy-2'],
       currentTurnIndex: 0,
     }));
-    firebase.clearCalls();
+    realtimeData.clearCalls();
 
     await expect(service.setCurrentTurn('enemy-2')).resolves.toBe(true);
-    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+    expect(realtimeData.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
       currentTurnIndex: 1,
       history: expect.any(Array),
     }));
 
-    firebase.updateMock.mockClear();
+    realtimeData.updateMock.mockClear();
     await expect(service.moveCombatant('enemy-2', -1)).resolves.toBe(true);
-    expect(firebase.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+    expect(realtimeData.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
       initiativeOrder: ['enemy-2', 'enemy-1'],
       currentTurnIndex: 1,
       history: expect.any(Array),
@@ -1302,11 +1302,11 @@ describe('BattleService', () => {
       combatants: { player_Aria: aria, player_Borin: dead },
       initiativeOrder: ['player_Aria', 'player_Borin'],
     }));
-    firebase.clearCalls();
+    realtimeData.clearCalls();
 
     await service.finishScene('short-rest');
 
-    const writtenRoom = firebase.setMock.mock.calls[0][1] as BattleRoom;
+    const writtenRoom = realtimeData.setMock.mock.calls[0][1] as BattleRoom;
     expect(writtenRoom.combatants['player_Aria']).toEqual(expect.objectContaining({
       currentHp: 3,
       temporaryHp: 2,

@@ -1,15 +1,15 @@
 import { Injectable, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { FIREBASE_ROOT, itemTemplatePath } from '../../../core/constants/firebase-paths.constants';
+import { DATA_ROOT, itemTemplatePath } from '../../../core/constants/data-paths.constants';
 import { ITEM_RARITY } from '../../../core/constants/item-rarity.constants';
 import { ItemTemplate, ItemTemplateDraft } from '../../../core/models';
-import { FirebaseService } from '../../../core/services/firebase.service';
+import { RealtimeDataService } from '../../../core/services/realtime-data.service';
 
 @Injectable({ providedIn: 'root' })
 export class ItemLibraryService {
-  private readonly firebase = inject(FirebaseService);
+  private readonly realtimeData = inject(RealtimeDataService);
   private readonly records = toSignal(
-    this.firebase.subscribe<Record<string, Partial<ItemTemplate>>>(FIREBASE_ROOT.ITEM_TEMPLATES),
+    this.realtimeData.subscribe<Record<string, Partial<ItemTemplate>>>(DATA_ROOT.ITEM_TEMPLATES),
     { initialValue: null },
   );
 
@@ -30,12 +30,12 @@ export class ItemLibraryService {
       createdAt: existing?.createdAt ?? now,
       lastUpdated: now,
     };
-    await this.firebase.set(itemTemplatePath(id), item);
+    await this.realtimeData.set(itemTemplatePath(id), item);
     return id;
   }
 
   async deleteItem(templateId: string): Promise<void> {
-    await this.firebase.remove(itemTemplatePath(templateId));
+    await this.realtimeData.remove(itemTemplatePath(templateId));
   }
 
   private normalize(id: string, item: Partial<ItemTemplate>): ItemTemplate {

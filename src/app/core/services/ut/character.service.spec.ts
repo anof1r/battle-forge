@@ -5,11 +5,11 @@ import { ParsedCharacter } from '../../models/character.model';
 import { SpellData } from '../../models/combatant.model';
 import { normalizeCharacter } from '../../utils';
 import { CharacterService } from '../character.service';
-import { FirebaseService } from '../firebase.service';
+import { RealtimeDataService } from '../realtime-data.service';
 
 describe('CharacterService', () => {
   let service: CharacterService;
-  let firebase: {
+  let realtimeData: {
     get: ReturnType<typeof vi.fn>;
     set: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
@@ -45,7 +45,7 @@ describe('CharacterService', () => {
   });
 
   beforeEach(() => {
-    firebase = {
+    realtimeData = {
       get: vi.fn(),
       set: vi.fn().mockResolvedValue(undefined),
       update: vi.fn().mockResolvedValue(undefined),
@@ -54,7 +54,7 @@ describe('CharacterService', () => {
     TestBed.configureTestingModule({
       providers: [
         CharacterService,
-        { provide: FirebaseService, useValue: firebase },
+        { provide: RealtimeDataService, useValue: realtimeData },
       ],
     });
     service = TestBed.inject(CharacterService);
@@ -62,8 +62,8 @@ describe('CharacterService', () => {
 
   it('uses the player path for existence checks, loading and subscriptions', async () => {
     const character = createCharacter();
-    firebase.get.mockResolvedValueOnce(character).mockResolvedValueOnce(character);
-    firebase.subscribe.mockReturnValue(of(character));
+    realtimeData.get.mockResolvedValueOnce(character).mockResolvedValueOnce(character);
+    realtimeData.subscribe.mockReturnValue(of(character));
 
     await expect(service.characterExists('Aria')).resolves.toBe(true);
     await expect(service.loadCharacter('Aria')).resolves.toEqual(normalizedCharacter(character));
@@ -71,14 +71,14 @@ describe('CharacterService', () => {
     const values: Array<ParsedCharacter | null> = [];
     service.subscribeToCharacter('Aria').subscribe((value) => values.push(value));
 
-    expect(firebase.get).toHaveBeenNthCalledWith(1, 'players/Aria');
-    expect(firebase.get).toHaveBeenNthCalledWith(2, 'players/Aria');
-    expect(firebase.subscribe).toHaveBeenCalledWith('players/Aria');
+    expect(realtimeData.get).toHaveBeenNthCalledWith(1, 'players/Aria');
+    expect(realtimeData.get).toHaveBeenNthCalledWith(2, 'players/Aria');
+    expect(realtimeData.subscribe).toHaveBeenCalledWith('players/Aria');
     expect(values).toEqual([normalizedCharacter(character)]);
   });
 
   it('returns false and null when a character does not exist', async () => {
-    firebase.get.mockResolvedValue(null);
+    realtimeData.get.mockResolvedValue(null);
 
     await expect(service.characterExists('Missing')).resolves.toBe(false);
     await expect(service.loadCharacter('Missing')).resolves.toBeNull();
@@ -88,7 +88,7 @@ describe('CharacterService', () => {
     const legacyWizard = createCharacter({ level: 3 });
     const explicitlyEmptyWizard = createCharacter({ spellSlots: [] });
     const fighter = createCharacter({ class: 'Воин', level: 3 });
-    firebase.get
+    realtimeData.get
       .mockResolvedValueOnce(legacyWizard)
       .mockResolvedValueOnce(explicitlyEmptyWizard)
       .mockResolvedValueOnce(fighter);
@@ -107,8 +107,8 @@ describe('CharacterService', () => {
     }));
   });
 
-  it('normalizes malformed optional Firebase fields without rejecting the character', async () => {
-    firebase.get.mockResolvedValue({
+  it('normalizes malformed optional database fields without rejecting the character', async () => {
+    realtimeData.get.mockResolvedValue({
       ...createCharacter(),
       currentHp: 999,
       temporaryHp: -5,
@@ -140,7 +140,7 @@ describe('CharacterService', () => {
   });
 
   it('migrates legacy weapon abilities into Russian damage formulas', async () => {
-    firebase.get.mockResolvedValue({
+    realtimeData.get.mockResolvedValue({
       ...createCharacter(),
       weapons: [
         { name: 'Dagger', damage: '1d4', damageType: 'piercing', ability: 'dex' },
@@ -163,7 +163,7 @@ describe('CharacterService', () => {
 
     await service.saveCharacter(character);
 
-    expect(firebase.set).toHaveBeenCalledWith('players/Aria', {
+    expect(realtimeData.set).toHaveBeenCalledWith('players/Aria', {
       ...normalizedCharacter(character),
       lastUpdated: 4321,
     });
@@ -173,20 +173,20 @@ describe('CharacterService', () => {
   it('returns all stored players and handles an empty collection', async () => {
     const aria = createCharacter();
     const borin = createCharacter({ name: 'Borin' });
-    firebase.get.mockResolvedValueOnce({ aria, borin }).mockResolvedValueOnce(null);
+    realtimeData.get.mockResolvedValueOnce({ aria, borin }).mockResolvedValueOnce(null);
 
     await expect(service.getAllPlayers()).resolves.toEqual([
       normalizedCharacter(aria),
       normalizedCharacter(borin),
     ]);
     await expect(service.getAllPlayers()).resolves.toEqual([]);
-    expect(firebase.get).toHaveBeenCalledWith('players');
+    expect(realtimeData.get).toHaveBeenCalledWith('players');
   });
 
   it('clamps persisted player HP at zero', async () => {
     await service.updatePlayerHp('Aria', -12);
 
-    expect(firebase.set).toHaveBeenCalledWith('players/Aria/currentHp', 0);
+    expect(realtimeData.set).toHaveBeenCalledWith('players/Aria/currentHp', 0);
   });
 
   it('atomically persists regular and temporary HP', async () => {
@@ -194,7 +194,7 @@ describe('CharacterService', () => {
 
     await service.updatePlayerHealth('Aria', -2, 7.9);
 
-    expect(firebase.update).toHaveBeenCalledWith('players/Aria', {
+    expect(realtimeData.update).toHaveBeenCalledWith('players/Aria', {
       currentHp: 0,
       temporaryHp: 7,
       lastUpdated: 9000,
@@ -378,11 +378,11 @@ describe('CharacterService', () => {
       level: 1,
       isCantrip: false,
     });
-    firebase.get.mockResolvedValue(createCharacter({ level: 3, spells: [spell] }));
+    realtimeData.get.mockResolvedValue(createCharacter({ level: 3, spells: [spell] }));
 
     await expect(service.usePlayerSpell('Aria', spell.id, 1)).resolves.toBe(true);
 
-    expect(firebase.set).toHaveBeenCalledWith(
+    expect(realtimeData.set).toHaveBeenCalledWith(
       'players/Aria',
       expect.objectContaining({
         spells: [spell],

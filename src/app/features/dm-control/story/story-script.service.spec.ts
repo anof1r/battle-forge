@@ -1,16 +1,16 @@
 import { TestBed } from '@angular/core/testing';
 import { BehaviorSubject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { FIREBASE_ROOT } from '../../../core/constants/firebase-paths.constants';
+import { DATA_ROOT } from '../../../core/constants/data-paths.constants';
 import { StoryScriptSection } from '../../../core/models';
-import { FirebaseService } from '../../../core/services/firebase.service';
+import { RealtimeDataService } from '../../../core/services/realtime-data.service';
 import { LoggerService } from '../../../core/services/logger.service';
 import { StoryScriptService } from './story-script.service';
 
 describe('StoryScriptService', () => {
   let service: StoryScriptService;
   let records: BehaviorSubject<Record<string, Partial<StoryScriptSection>> | null>;
-  let firebase: {
+  let realtimeData: {
     subscribe: ReturnType<typeof vi.fn>;
     set: ReturnType<typeof vi.fn>;
   };
@@ -20,7 +20,7 @@ describe('StoryScriptService', () => {
       '1': { id: 'legacy-id', text: '# Таверна', createdAt: 100, lastUpdated: 200 },
       '2': { text: undefined, createdAt: Number.NaN },
     });
-    firebase = {
+    realtimeData = {
       subscribe: vi.fn().mockReturnValue(records.asObservable()),
       set: vi.fn().mockResolvedValue(undefined),
     };
@@ -28,7 +28,7 @@ describe('StoryScriptService', () => {
     TestBed.configureTestingModule({
       providers: [
         StoryScriptService,
-        { provide: FirebaseService, useValue: firebase },
+        { provide: RealtimeDataService, useValue: realtimeData },
         { provide: LoggerService, useValue: { error: vi.fn() } },
       ],
     });
@@ -37,7 +37,7 @@ describe('StoryScriptService', () => {
   });
 
   it('subscribes to the main story and normalizes incomplete records', () => {
-    expect(firebase.subscribe).toHaveBeenCalledWith(FIREBASE_ROOT.MAIN_STORY_SECTIONS);
+    expect(realtimeData.subscribe).toHaveBeenCalledWith(DATA_ROOT.MAIN_STORY_SECTIONS);
     expect(service.section('1')).toEqual({
       id: '1',
       text: '# Таверна',
@@ -56,7 +56,7 @@ describe('StoryScriptService', () => {
   it('saves by image key and preserves the original creation time', async () => {
     await service.saveSection('1', '# Обновлённая таверна');
 
-    expect(firebase.set).toHaveBeenCalledWith('dm-library/stories/main/sections/1', {
+    expect(realtimeData.set).toHaveBeenCalledWith('dm-library/stories/main/sections/1', {
       id: '1',
       text: '# Обновлённая таверна',
       createdAt: 100,
@@ -64,8 +64,8 @@ describe('StoryScriptService', () => {
     });
   });
 
-  it('rejects an empty section id without writing to Firebase', async () => {
+  it('rejects an empty section id without writing to database', async () => {
     await expect(service.saveSection('  ', 'text')).rejects.toThrow('Story section id is required');
-    expect(firebase.set).not.toHaveBeenCalled();
+    expect(realtimeData.set).not.toHaveBeenCalled();
   });
 });

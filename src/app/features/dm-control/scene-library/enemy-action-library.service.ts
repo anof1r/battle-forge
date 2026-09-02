@@ -1,18 +1,18 @@
 import { Injectable, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import {
-  FIREBASE_ROOT,
+  DATA_ROOT,
   enemyActionTemplatePath,
-} from '../../../core/constants/firebase-paths.constants';
+} from '../../../core/constants/data-paths.constants';
 import { EnemyActionTemplate, EnemyActionTemplateDraft } from '../../../core/models';
-import { FirebaseService } from '../../../core/services/firebase.service';
+import { RealtimeDataService } from '../../../core/services/realtime-data.service';
 
 @Injectable({ providedIn: 'root' })
 export class EnemyActionLibraryService {
-  private readonly firebase = inject(FirebaseService);
+  private readonly realtimeData = inject(RealtimeDataService);
   private readonly records = toSignal(
-    this.firebase.subscribe<Record<string, Partial<EnemyActionTemplate>>>(
-      FIREBASE_ROOT.ENEMY_ACTION_TEMPLATES,
+    this.realtimeData.subscribe<Record<string, Partial<EnemyActionTemplate>>>(
+      DATA_ROOT.ENEMY_ACTION_TEMPLATES,
     ),
     { initialValue: null },
   );
@@ -31,12 +31,12 @@ export class EnemyActionLibraryService {
       createdAt: existing?.createdAt ?? now,
       lastUpdated: now,
     };
-    await this.firebase.set(enemyActionTemplatePath(draft.id), action);
+    await this.realtimeData.set(enemyActionTemplatePath(draft.id), action);
     return draft.id;
   }
 
   async deleteAction(id: string): Promise<void> {
-    await this.firebase.remove(enemyActionTemplatePath(id));
+    await this.realtimeData.remove(enemyActionTemplatePath(id));
   }
 
   private normalize(id: string, action: Partial<EnemyActionTemplate>): EnemyActionTemplate {

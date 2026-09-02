@@ -1,14 +1,14 @@
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { FIREBASE_ROOT } from '../../../core/constants/firebase-paths.constants';
+import { DATA_ROOT } from '../../../core/constants/data-paths.constants';
 import { ItemTemplate } from '../../../core/models';
-import { FirebaseService } from '../../../core/services/firebase.service';
+import { RealtimeDataService } from '../../../core/services/realtime-data.service';
 import { ItemLibraryService } from './item-library.service';
 
 describe('ItemLibraryService', () => {
   let service: ItemLibraryService;
-  let firebase: {
+  let realtimeData: {
     set: ReturnType<typeof vi.fn>;
     remove: ReturnType<typeof vi.fn>;
     subscribe: ReturnType<typeof vi.fn>;
@@ -30,7 +30,7 @@ describe('ItemLibraryService', () => {
   });
 
   function setup(records: Record<string, Partial<ItemTemplate>> | null = null): void {
-    firebase = {
+    realtimeData = {
       set: vi.fn().mockResolvedValue(undefined),
       remove: vi.fn().mockResolvedValue(undefined),
       subscribe: vi.fn().mockReturnValue(of(records)),
@@ -38,7 +38,7 @@ describe('ItemLibraryService', () => {
     TestBed.configureTestingModule({
       providers: [
         ItemLibraryService,
-        { provide: FirebaseService, useValue: firebase },
+        { provide: RealtimeDataService, useValue: realtimeData },
       ],
     });
     service = TestBed.inject(ItemLibraryService);
@@ -54,7 +54,7 @@ describe('ItemLibraryService', () => {
       rope: { id: 'rope', name: 'Верёвка' },
     });
 
-    expect(firebase.subscribe).toHaveBeenCalledWith(FIREBASE_ROOT.ITEM_TEMPLATES);
+    expect(realtimeData.subscribe).toHaveBeenCalledWith(DATA_ROOT.ITEM_TEMPLATES);
     expect(service.items().map((item) => item.name)).toEqual(['Верёвка', 'Зелье лечения']);
     expect(service.items()[0]).toEqual(
       expect.objectContaining({
@@ -84,18 +84,18 @@ describe('ItemLibraryService', () => {
         icon: '🔥',
       }),
     ).resolves.toBe('item_00000000-0000-4000-8000-000000000020');
-    expect(firebase.set).toHaveBeenLastCalledWith(
+    expect(realtimeData.set).toHaveBeenLastCalledWith(
       'dm-library/items/item_00000000-0000-4000-8000-000000000020',
       expect.objectContaining({ defaultQuantity: 1, createdAt: 500, lastUpdated: 500 }),
     );
 
     await service.saveItem({ ...existing, name: 'Большое зелье' });
-    expect(firebase.set).toHaveBeenLastCalledWith(
+    expect(realtimeData.set).toHaveBeenLastCalledWith(
       `dm-library/items/${existing.id}`,
       expect.objectContaining({ name: 'Большое зелье', createdAt: 100, lastUpdated: 500 }),
     );
 
     await service.deleteItem(existing.id);
-    expect(firebase.remove).toHaveBeenCalledWith(`dm-library/items/${existing.id}`);
+    expect(realtimeData.remove).toHaveBeenCalledWith(`dm-library/items/${existing.id}`);
   });
 });

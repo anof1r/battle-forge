@@ -1,5 +1,6 @@
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BATTLE_STATUS } from '../../core/constants/battle-status.constants';
 import { BattleService } from '../../core/services/battle.service';
@@ -9,6 +10,7 @@ import { ItemLibraryService } from './item-library/item-library.service';
 import { LoggerService } from '../../core/services/logger.service';
 import { SceneLibraryService } from './scene-library/scene-library.service';
 import { StoryPresentationService } from '../../core/services/story-presentation.service';
+import { RealtimeDataService } from '../../core/services/realtime-data.service';
 import { DmControlComponent } from './dm-control.component';
 
 describe('DmControlComponent', () => {
@@ -79,6 +81,16 @@ describe('DmControlComponent', () => {
         { provide: InventoryService, useValue: { giveItem: vi.fn().mockResolvedValue(undefined) } },
         { provide: LoggerService, useValue: { error: vi.fn() } },
         { provide: StoryPresentationService, useValue: story },
+        {
+          provide: RealtimeDataService,
+          useValue: {
+            get: vi.fn().mockResolvedValue(null),
+            set: vi.fn().mockResolvedValue(undefined),
+            update: vi.fn().mockResolvedValue(undefined),
+            remove: vi.fn().mockResolvedValue(undefined),
+            subscribe: vi.fn().mockReturnValue(of(null)),
+          },
+        },
         {
           provide: SceneLibraryService,
           useValue: {

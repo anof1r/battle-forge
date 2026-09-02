@@ -1,10 +1,10 @@
 import { Injectable, inject } from '@angular/core';
-import { FirebaseService } from './firebase.service';
+import { RealtimeDataService } from './realtime-data.service';
 import { map, Observable } from 'rxjs';
 import { ParsedCharacter } from '../models/character.model';
 import { CharacterResource, ResourceRecovery } from '../models/character-resource.model';
 import { SpellSlotPool } from '../models/spell-slot.model';
-import { FIREBASE_ROOT, playerPath } from '../constants/firebase-paths.constants';
+import { DATA_ROOT, playerPath } from '../constants/data-paths.constants';
 import { SpellData } from '../models';
 import { normalizeCharacter } from '../utils';
 import { CharacterResourceService } from './character-resource.service';
@@ -12,44 +12,44 @@ import { CharacterSpellService } from './character-spell.service';
 
 @Injectable({ providedIn: 'root' })
 export class CharacterService {
-  private readonly firebase = inject(FirebaseService);
+  private readonly realtimeData = inject(RealtimeDataService);
   private readonly resourceRules = inject(CharacterResourceService);
   private readonly spellRules = inject(CharacterSpellService);
 
   async characterExists(name: string): Promise<boolean> {
-    const data = await this.firebase.get(playerPath(name));
+    const data = await this.realtimeData.get(playerPath(name));
     return data !== null;
   }
 
   async saveCharacter(character: ParsedCharacter): Promise<void> {
     const normalized = normalizeCharacter(character);
-    await this.firebase.set(playerPath(character.name), {
+    await this.realtimeData.set(playerPath(character.name), {
       ...normalized,
       lastUpdated: Date.now(),
     });
   }
 
   async loadCharacter(name: string): Promise<ParsedCharacter | null> {
-    const data = await this.firebase.get<ParsedCharacter>(playerPath(name));
+    const data = await this.realtimeData.get<ParsedCharacter>(playerPath(name));
     return data ? normalizeCharacter(data) : null;
   }
 
   subscribeToCharacter(name: string): Observable<ParsedCharacter | null> {
-    return this.firebase
+    return this.realtimeData
       .subscribe<ParsedCharacter>(playerPath(name))
       .pipe(map((character) => (character ? normalizeCharacter(character) : null)));
   }
 
   async getAllPlayers(): Promise<ParsedCharacter[]> {
-    const snapshot = await this.firebase.get<Record<string, ParsedCharacter>>(
-      FIREBASE_ROOT.PLAYERS,
+    const snapshot = await this.realtimeData.get<Record<string, ParsedCharacter>>(
+      DATA_ROOT.PLAYERS,
     );
     if (!snapshot) return [];
     return Object.values(snapshot).map(normalizeCharacter);
   }
 
   async updatePlayerHp(name: string, newHp: number): Promise<void> {
-    await this.firebase.set(`${playerPath(name)}/currentHp`, Math.max(0, newHp));
+    await this.realtimeData.set(`${playerPath(name)}/currentHp`, Math.max(0, newHp));
   }
 
   async updatePlayerSpells(playerName: string, spellData: SpellData): Promise<void> {
@@ -62,7 +62,7 @@ export class CharacterService {
   }
 
   async updatePlayerHealth(name: string, currentHp: number, temporaryHp: number): Promise<void> {
-    await this.firebase.update(playerPath(name), {
+    await this.realtimeData.update(playerPath(name), {
       currentHp: Math.max(0, Math.floor(currentHp)),
       temporaryHp: Math.max(0, Math.floor(temporaryHp)),
       lastUpdated: Date.now(),

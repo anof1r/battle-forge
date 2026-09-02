@@ -1,7 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { tap } from 'rxjs';
-import { FirebaseService } from './firebase.service';
+import { RealtimeDataService } from './realtime-data.service';
 import { InitiativeService } from './initiative.service';
 import { DamageCalculationService } from './damage-calculation.service';
 import {
@@ -34,7 +34,7 @@ import {
   StatusEffectTrigger,
   StatusEffectType,
 } from '../constants/status-effect.constants';
-import { MAIN_ROOM_ID, roomPath as buildRoomPath } from '../constants/firebase-paths.constants';
+import { MAIN_ROOM_ID, roomPath as buildRoomPath } from '../constants/data-paths.constants';
 import { withTimestamp } from '../utils';
 import { EMPTY_BATTLE_ROOM } from '../constants/battle-room.constants';
 import { ProcessedTurnEffects } from '../models/battle-turn.model';
@@ -43,7 +43,7 @@ import { ProcessedTurnEffects } from '../models/battle-turn.model';
   providedIn: 'root',
 })
 export class BattleService {
-  private readonly firebaseService = inject(FirebaseService);
+  private readonly realtimeData = inject(RealtimeDataService);
   private readonly characterService = inject(CharacterService);
   private readonly initiativeService = inject(InitiativeService);
   private readonly damageCalc = inject(DamageCalculationService);
@@ -53,7 +53,7 @@ export class BattleService {
   private turnTransition: Promise<void> | null = null;
 
   private readonly room = toSignal(
-    this.firebaseService.subscribe<BattleRoom>(this.roomPath).pipe(
+    this.realtimeData.subscribe<BattleRoom>(this.roomPath).pipe(
       tap((room) => this.actionHistory.set(room?.history ?? [])),
     ),
     { initialValue: null },
@@ -109,9 +109,9 @@ export class BattleService {
   }
 
   private async ensureRoomExists(): Promise<void> {
-    const existing = await this.firebaseService.get<BattleRoom>(this.roomPath);
+    const existing = await this.realtimeData.get<BattleRoom>(this.roomPath);
     if (!existing) {
-      await this.firebaseService.set(this.roomPath, withTimestamp(EMPTY_BATTLE_ROOM));
+      await this.realtimeData.set(this.roomPath, withTimestamp(EMPTY_BATTLE_ROOM));
     }
   }
 
@@ -128,7 +128,7 @@ export class BattleService {
       lastUpdated: Date.now(),
       ...enemyData,
     };
-    await this.firebaseService.set(`${this.roomPath}/combatants/${id}`, combatant);
+    await this.realtimeData.set(`${this.roomPath}/combatants/${id}`, combatant);
     await this.appendToInitiativeOrder(id);
     return id;
   }
@@ -166,19 +166,19 @@ export class BattleService {
 
     updates['initiativeOrder'] = [...this.initiativeOrder(), ...ids];
     updates['lastUpdated'] = now;
-    await this.firebaseService.update(this.roomPath, updates);
+    await this.realtimeData.update(this.roomPath, updates);
     return ids;
   }
 
   async removeEnemy(enemyId: string): Promise<void> {
-    await this.firebaseService.remove(`${this.roomPath}/combatants/${enemyId}`);
+    await this.realtimeData.remove(`${this.roomPath}/combatants/${enemyId}`);
     await this.removeFromInitiativeOrder(enemyId);
   }
 
   async updateEnemy(enemyId: string, updates: Partial<Combatant>): Promise<void> {
     const enemy = this.combatants()[enemyId];
     if (!enemy) return;
-    await this.firebaseService.update(
+    await this.realtimeData.update(
       `${this.roomPath}/combatants/${enemyId}`,
       withTimestamp(updates),
     );
@@ -205,7 +205,7 @@ export class BattleService {
       emoji: '🧙',
       lastUpdated: Date.now(),
     };
-    await this.firebaseService.set(`${this.roomPath}/combatants/${id}`, combatant);
+    await this.realtimeData.set(`${this.roomPath}/combatants/${id}`, combatant);
     await this.appendToInitiativeOrder(id);
   }
 
@@ -213,7 +213,7 @@ export class BattleService {
     await this.roomInitialization;
     if (players.length === 0) return;
 
-    const persistedRoom = await this.firebaseService.get<BattleRoom>(this.roomPath);
+    const persistedRoom = await this.realtimeData.get<BattleRoom>(this.roomPath);
     const combatants = persistedRoom?.combatants ?? {};
     const persistedOrder = persistedRoom?.initiativeOrder ?? [];
     const initiativeOrder = [...new Set(persistedOrder)];
@@ -231,7 +231,7 @@ export class BattleService {
       return;
     }
 
-    await this.firebaseService.update(this.roomPath, {
+    await this.realtimeData.update(this.roomPath, {
       ...updates,
       initiativeOrder,
       lastUpdated: Date.now(),
@@ -240,7 +240,7 @@ export class BattleService {
 
   async removePlayerFromBattle(playerName: string): Promise<void> {
     const id = `player_${playerName}`;
-    await this.firebaseService.remove(`${this.roomPath}/combatants/${id}`);
+    await this.realtimeData.remove(`${this.roomPath}/combatants/${id}`);
     await this.removeFromInitiativeOrder(id);
   }
 
@@ -255,7 +255,7 @@ export class BattleService {
 
   async rollInitiative(): Promise<void> {
     await this.initiativeService.sortByInitiative(this.roomPath, this.combatants());
-    await this.firebaseService.update(
+    await this.realtimeData.update(
       this.roomPath,
       withTimestamp({
         status: BATTLE_STATUS.INITIATIVE,
@@ -266,7 +266,7 @@ export class BattleService {
   }
 
   async startBattle(): Promise<void> {
-    await this.firebaseService.update(
+    await this.realtimeData.update(
       this.roomPath,
       withTimestamp({ status: BATTLE_STATUS.BATTLE }),
     );
@@ -283,7 +283,7 @@ export class BattleService {
       description: `${c.name}: −${damage} HP`,
       undoState: { combatants: { [combatantId]: c } },
     });
-    await this.firebaseService.update(this.roomPath, {
+    await this.realtimeData.update(this.roomPath, {
       [`combatants/${combatantId}/currentHp`]: damaged.currentHp,
       [`combatants/${combatantId}/temporaryHp`]: damaged.temporaryHp ?? 0,
       [`combatants/${combatantId}/status`]: damaged.status,
@@ -329,7 +329,7 @@ export class BattleService {
       description: `Текущий ход: ${this.combatants()[combatantId]?.name ?? combatantId}`,
       undoState: { currentTurnIndex: this.currentTurnIndex() },
     });
-    await this.firebaseService.update(
+    await this.realtimeData.update(
       this.roomPath,
       withTimestamp({ currentTurnIndex: index, history }),
     );
@@ -353,7 +353,7 @@ export class BattleService {
       },
     });
     const currentId = this.initiativeOrder()[this.currentTurnIndex()];
-    await this.firebaseService.update(
+    await this.realtimeData.update(
       this.roomPath,
       withTimestamp({
         initiativeOrder: order,
@@ -386,7 +386,7 @@ export class BattleService {
       undoState: { combatants: before },
     });
     updates['lastUpdated'] = now;
-    await this.firebaseService.update(this.roomPath, updates);
+    await this.realtimeData.update(this.roomPath, updates);
   }
 
   async damageMany(combatantIds: readonly string[], damage: number): Promise<void> {
@@ -414,7 +414,7 @@ export class BattleService {
       undoState: { combatants: before },
     });
     updates['lastUpdated'] = now;
-    await this.firebaseService.update(this.roomPath, updates);
+    await this.realtimeData.update(this.roomPath, updates);
     for (const player of changedPlayers) {
       await this.characterService.updatePlayerHealth(
         player.playerName!,
@@ -436,7 +436,7 @@ export class BattleService {
       description: `${c.name}: +${amount} HP`,
       undoState: { combatants: { [combatantId]: c } },
     });
-    await this.firebaseService.update(this.roomPath, {
+    await this.realtimeData.update(this.roomPath, {
       [`combatants/${combatantId}/currentHp`]: newHp,
       [`combatants/${combatantId}/status`]: status,
       [`combatants/${combatantId}/deathSaves`]: newHp > 0 ? null : c.deathSaves,
@@ -480,7 +480,7 @@ export class BattleService {
       undoState: { combatants: before },
     });
     updates['lastUpdated'] = now;
-    await this.firebaseService.update(this.roomPath, updates);
+    await this.realtimeData.update(this.roomPath, updates);
     for (const player of changedPlayers) {
       await this.characterService.updatePlayerHealth(
         player.playerName!,
@@ -501,7 +501,7 @@ export class BattleService {
       description: `${combatant.name}: временные HP ${temporaryHp}`,
       undoState: { combatants: { [combatantId]: combatant } },
     });
-    await this.firebaseService.update(this.roomPath, {
+    await this.realtimeData.update(this.roomPath, {
       [`combatants/${combatantId}/temporaryHp`]: temporaryHp,
       [`combatants/${combatantId}/lastUpdated`]: Date.now(),
       history,
@@ -555,7 +555,7 @@ export class BattleService {
       description: `${combatant.name}: спасбросок от смерти`,
       undoState: { combatants: { [combatantId]: combatant } },
     });
-    await this.firebaseService.update(this.roomPath, {
+    await this.realtimeData.update(this.roomPath, {
       [`combatants/${combatantId}/currentHp`]: currentHp,
       [`combatants/${combatantId}/status`]: status,
       [`combatants/${combatantId}/deathSaves`]:
@@ -586,7 +586,7 @@ export class BattleService {
       description: `${combatant.name}: возвращён в бой`,
       undoState: { combatants: { [combatantId]: combatant } },
     });
-    await this.firebaseService.update(this.roomPath, {
+    await this.realtimeData.update(this.roomPath, {
       [`combatants/${combatantId}/currentHp`]: currentHp,
       [`combatants/${combatantId}/status`]: COMBATANT_STATUS.ALIVE,
       [`combatants/${combatantId}/deathSaves`]: null,
@@ -676,7 +676,7 @@ export class BattleService {
       undoState: { combatants: before },
     });
     updates['lastUpdated'] = Date.now();
-    await this.firebaseService.update(this.roomPath, updates);
+    await this.realtimeData.update(this.roomPath, updates);
     return true;
   }
 
@@ -712,7 +712,7 @@ export class BattleService {
       undoState: { combatants: before },
     });
     updates['lastUpdated'] = Date.now();
-    await this.firebaseService.update(this.roomPath, updates);
+    await this.realtimeData.update(this.roomPath, updates);
     return true;
   }
 
@@ -747,7 +747,7 @@ export class BattleService {
       description: `${combatant.name}: продлён ${label}`,
       undoState: { combatants: { [combatantId]: combatant } },
     });
-    await this.firebaseService.update(this.roomPath, {
+    await this.realtimeData.update(this.roomPath, {
       [`combatants/${combatantId}/activeEffects`]: activeEffects,
       [`combatants/${combatantId}/lastUpdated`]: Date.now(),
       history,
@@ -790,7 +790,7 @@ export class BattleService {
         updates['currentTurnIndex'] = last.undoState.currentTurnIndex;
       }
       if (last.undoState.status !== undefined) updates['status'] = last.undoState.status;
-      await this.firebaseService.update(this.roomPath, updates);
+      await this.realtimeData.update(this.roomPath, updates);
       for (const combatant of Object.values(last.undoState.combatants ?? {})) {
         if (combatant?.type === COMBATANT_TYPE.PLAYER && combatant.playerName) {
           await this.characterService.updatePlayerHealth(
@@ -807,7 +807,7 @@ export class BattleService {
     // Compatibility for actions recorded by an older client.
     if (last.previousValue === undefined) return;
     const combatant = this.combatants()[last.targetId];
-    await this.firebaseService.update(`${this.roomPath}/combatants/${last.targetId}`, {
+    await this.realtimeData.update(`${this.roomPath}/combatants/${last.targetId}`, {
       currentHp: last.previousValue,
       ...(last.previousStatus ? { status: last.previousStatus } : {}),
       deathSaves: last.previousDeathSaves ?? null,
@@ -824,14 +824,14 @@ export class BattleService {
   }
 
   async endBattle(): Promise<void> {
-    await this.firebaseService.update(
+    await this.realtimeData.update(
       this.roomPath,
       withTimestamp({ status: BATTLE_STATUS.ENDED }),
     );
   }
 
   async resetScene(): Promise<void> {
-    await this.firebaseService.set(this.roomPath, withTimestamp(EMPTY_BATTLE_ROOM));
+    await this.realtimeData.set(this.roomPath, withTimestamp(EMPTY_BATTLE_ROOM));
     this.actionHistory.set([]);
   }
 
@@ -868,7 +868,7 @@ export class BattleService {
       lastUpdated: Date.now(),
     };
 
-    await this.firebaseService.set(this.roomPath, nextRoom);
+    await this.realtimeData.set(this.roomPath, nextRoom);
     if (mode === 'short-rest') {
       for (const player of players) {
         if (player.status === COMBATANT_STATUS.DEAD || !player.playerName) continue;
@@ -947,7 +947,7 @@ export class BattleService {
         currentTurnIndex: room.currentTurnIndex,
       },
     });
-    await this.firebaseService.update(this.roomPath, updates);
+    await this.realtimeData.update(this.roomPath, updates);
 
     for (const [playerName, hp] of changedPlayerHp) {
       await this.characterService.updatePlayerHp(playerName, hp);
@@ -1073,7 +1073,7 @@ export class BattleService {
   private async appendToInitiativeOrder(combatantId: string): Promise<void> {
     const currentOrder = this.initiativeOrder();
     if (currentOrder.includes(combatantId)) return;
-    await this.firebaseService.update(
+    await this.realtimeData.update(
       this.roomPath,
       withTimestamp({ initiativeOrder: [...currentOrder, combatantId] }),
     );
@@ -1081,7 +1081,7 @@ export class BattleService {
 
   private async removeFromInitiativeOrder(combatantId: string): Promise<void> {
     const order = this.initiativeOrder().filter((id) => id !== combatantId);
-    await this.firebaseService.update(this.roomPath, withTimestamp({ initiativeOrder: order }));
+    await this.realtimeData.update(this.roomPath, withTimestamp({ initiativeOrder: order }));
   }
 
   private currentHistory(): BattleAction[] {

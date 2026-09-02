@@ -60,7 +60,7 @@ The DM workspace is organized in the same order in which a session is normally p
 
 #### 3. Players and rewards
 
-- Maintain a reusable Firebase item library with name, icon, rarity, description, formula, default quantity, stackability, and consumable behavior.
+- Maintain a reusable MongoDB item library with name, icon, rarity, description, formula, default quantity, stackability, and consumable behavior.
 - Quickly give a saved item to any player or create a one-off item directly from the DM console.
 - Give saved or manually entered spells to a player.
 - Configure spell-slot pools from levels 1–9 and choose long-rest or Pact Magic short-rest recovery.
@@ -73,7 +73,7 @@ The DM workspace is organized in the same order in which a session is normally p
 
 - Search Open5E for SRD 2014/2024 spells, weapons, and creatures.
 - Compare the English source and an editable translation in two columns.
-- Paste a prepared Russian translation, adjust rules text, and save it once to the personal Firebase library.
+- Paste a prepared Russian translation, adjust rules text, and save it once to the personal MongoDB library.
 - Save spells and immediately give them to a selected player.
 - Save weapon/action templates for later creature construction.
 - Save translated creatures directly as reusable creature templates.
@@ -88,13 +88,13 @@ Open5E search requires internet access. The saved personal libraries do not.
 - Switch `/display` between battle and story mode at any time from the persistent presentation bar.
 - Navigate previous/next slides without leaving another DM workspace.
 - Fit landscape and portrait images completely inside Full HD and 2K displays without cropping; a blurred backdrop fills unused space.
-- Keep image bytes local: Firebase Storage is not required.
+- Keep image bytes local: external object storage is not required.
 - Synchronize the deck and selected slide between same-origin DM and display tabs through `BroadcastChannel`.
 - Associate a persistent story section with each image using the filename without its extension (`1.png` → section `1`).
 - Write the DM script with a safe Markdown subset: headings, paragraphs, bold, italic, inline code, quotes, ordered/unordered lists, and separators.
 - After saving, the editor collapses into a rendered teleprompter; press **Edit** to change the section again.
 
-Story images live only in browser memory and must be loaded again after a full reload. The story text is stored in Firebase. Image synchronization is intended for DM and display tabs on the same device/browser; it is not transferred through Firebase to another computer.
+Story images live only in browser memory and must be loaded again after a full reload. The story text is stored in MongoDB. Image synchronization is intended for DM and display tabs on the same device/browser; it is not transferred through MongoDB to another computer.
 
 ### Player screen
 
@@ -105,7 +105,7 @@ Story images live only in browser memory and must be loaded again after a full r
 - Keep manual login available for another player; a successful login replaces the remembered name.
 - Continue normal login if Safari/private settings make local storage unavailable.
 - Upload a Long Story Short JSON character when the name is not yet stored.
-- Recover common trailing-comma JSON errors and normalize missing optional arrays and legacy data before Firebase writes.
+- Recover common trailing-comma JSON errors and normalize missing optional arrays and legacy data before MongoDB writes.
 - Parse embedded stats, HP, AC, speed, weapons, abilities, inventory, spells, resistances, race, class, and level.
 
 Battle Forge does not call authenticated Long Story Short endpoints to resolve remote spell IDs. Missing spell text should be added through the DM spell/Open5E library.
@@ -163,14 +163,14 @@ Multiclass slot calculation is intentionally not automated in the current alpha.
 
 | Data | Storage/synchronization |
 | --- | --- |
-| Battle room, initiative, HP, effects | Firebase Realtime Database, live across clients |
-| Character sheets, inventory, spells, slots, resources | Firebase Realtime Database |
-| Creature, scene, item, spell, and enemy-action libraries | Firebase Realtime Database under `dm-library` |
-| Story script sections | Firebase Realtime Database under the main story |
+| Battle room, initiative, HP, effects | local MongoDB via NestJS and Socket.IO, live across clients |
+| Character sheets, inventory, spells, slots, resources | local MongoDB via NestJS and Socket.IO |
+| Creature, scene, item, spell, and enemy-action libraries | local MongoDB via NestJS and Socket.IO under `dm-library` |
+| Story script sections | local MongoDB via NestJS and Socket.IO under the main story |
 | Story image deck | Browser memory and same-device `BroadcastChannel` |
 | Last successful player name | Browser `localStorage` |
 
-Firebase Storage is not used.
+external object storage is not used.
 
 ### Typical table workflow
 
@@ -185,56 +185,43 @@ Firebase Storage is not used.
 
 ### Current alpha scope
 
-- One fixed Firebase room: `main-room`.
-- Designed for a private/local game; authentication, hardened Firebase rules, and simultaneous independent campaigns are outside the current scope.
+- One fixed room: `main-room`.
+- Designed for a trusted local game; authentication and simultaneous independent campaigns are outside the current scope.
 - Automatic spell slots support single-class progression only.
 - LSS remote references are not resolved through private LSS APIs.
 - Dice, hit checks, critical hits, class restrictions, and exact D&D rulings remain table decisions.
-- Story image decks are session-local and are not uploaded to Firebase.
+- Story image decks are session-local and are not uploaded to MongoDB.
 
 ### Technology
 
 - Angular 20, standalone components, signals, and RxJS
 - TypeScript with strict Angular templates
-- Firebase Realtime Database
+- local MongoDB via NestJS and Socket.IO
 - SCSS design tokens and responsive/iOS-specific UI
 - Installable PWA with service worker, favicon, Apple Touch Icon, and maskable icons
-- Vitest, Angular TestBed, jsdom, and Firebase Local Emulator Suite
+- Vitest, Angular TestBed, jsdom, and NestJS server tests
 
 ### Requirements and local start
 
-- Node.js 24 (the CI version)
-- npm
-- Java 21 only for Firebase Emulator integration tests
-
-Install exact dependencies:
+Docker Desktop with Docker Compose is the only requirement for normal use. MongoDB, Node.js, and
+Nest CLI do not need to be installed separately.
 
 ```bash
-npm ci
+docker compose up --build
 ```
 
-Provide matching Firebase configuration objects in:
+Open `http://localhost:8080/dm` on the host computer. Phones and tablets on the same Wi-Fi network
+use `http://<host-lan-ip>:8080/player`; the shared display uses `/display`. Docker publishes port
+8080 on all host interfaces, while MongoDB remains private inside the Compose network. Allow
+inbound TCP 8080 in the host firewall if another device cannot connect.
 
-```text
-src/environments/environment.ts
-src/environments/environment.prod.ts
-```
+Copy `.env.example` to `.env` only when you want to change the local database credentials or
+published port. Stop the application with `docker compose down`. Do not add `--volumes` unless
+you intentionally want to erase the local database.
 
-The files are ignored by Git and generated in CI. Both Angular development and production configurations currently replace `environment.ts` with `environment.prod.ts`, so `npm start` connects to the production Firebase project configured in `environment.prod.ts`. Local manual actions can therefore change shared production data.
-
-Start the development server:
-
-```bash
-npm start
-```
-
-Open:
-
-- <http://localhost:4200/dm>
-- <http://localhost:4200/display>
-- <http://localhost:4200/player>
-
-The service worker is disabled in development mode. Test installation/offline PWA behavior with a production build served over HTTPS or localhost.
+For source development, install Node.js 24 and npm, run `npm ci` and
+`npm ci --prefix server`, start MongoDB with `docker compose up mongo -d`, then run
+`npm run server:dev` and `npm start` in separate terminals.
 
 ### Commands
 
@@ -246,43 +233,40 @@ The service worker is disabled in development mode. Test installation/offline PW
 | `npm run test:ui` | Open the Vitest UI |
 | `npm run test:coverage` | Generate coverage in `coverage/` |
 | `npm run test:ci` | Run coverage with the 70% global thresholds used by CI |
-| `npm run test:firebase` | Run Firebase SDK/rules tests against the local RTDB emulator |
-| `npm run test:all` | Run coverage tests and Firebase emulator tests |
-| `npm run emulator:firebase` | Keep the RTDB emulator running for manual work |
+| `npm run server:test` | Run NestJS data compatibility tests |
+| `npm run test:all` | Run Angular coverage and server tests |
+| `npm run docker:up` | Build and start Angular, NestJS, and MongoDB |
+| `npm run docker:down` | Stop the local stack without deleting MongoDB data |
 | `npm run build` | Build the production application |
-| `npm run build:prod` | Build for GitHub Pages with `/battle-forge/` as base href |
+| `npm --prefix server run data:export -- ../backup.json` | Export a portable JSON backup |
+| `npm --prefix server run data:import -- ../backup.json` | Import a backup or Firebase RTDB export |
 
 ### CI/CD
 
-`.github/workflows/deploy.yaml` runs on pull requests and pushes to `master`:
-
-1. installs dependencies with `npm ci`;
-2. generates temporary environment files;
-3. runs coverage tests;
-4. runs Firebase emulator integration tests;
-5. builds the GitHub Pages bundle;
-6. creates the SPA `404.html` fallback;
-7. deploys only for a push to `master`.
-
-The browser output is `dist/battle-forge/browser`.
+`.github/workflows/ci.yaml` runs on pull requests and pushes to `master`. It installs both
+lockfiles, checks Angular coverage, builds the client, tests and type-checks NestJS, and builds the
+self-hosted Docker image. GitHub Pages deployment is intentionally disabled because the client now
+requires its same-origin REST and Socket.IO server.
 
 ### Architecture
 
 ```text
-src/app/
-├── core/
-│   ├── constants/   # closed value sets, Firebase paths, progression tables
-│   ├── models/      # persisted and domain data shapes
-│   ├── services/    # combat, characters, libraries, Firebase, story, Open5E
-│   └── utils/       # normalization, initiative, JSON, Markdown, slot progression
-├── features/
-│   ├── dm-control/  # DM shell and scene/item/Open5E/story workspaces
-│   ├── player/      # player login, sheet, resources, spells, and arena
-│   └── display/     # public battle/story presentation
-└── shared/ui/       # HP bar, enemy icon, effects, and life-state components
+src/app/              # Angular client and domain services
+server/src/
+├── config/           # validated process configuration
+├── data/             # path compatibility, repository, REST, and Socket.IO
+└── health/           # MongoDB readiness endpoint
 ```
 
-`FirebaseService` is the only Firebase SDK boundary. Feature components consume signal-backed domain services and do not call the SDK directly.
+```text
+Docker :8080 → NestJS → MongoDB volume
+                 ├── serves Angular
+                 ├── REST mutations/reads
+                 └── Socket.IO subscriptions
+```
+
+`RealtimeDataService` is the only Angular transport boundary. Feature components consume
+signal-backed domain services and do not call HTTP, Socket.IO, or MongoDB directly.
 
 ### Disclaimer
 
@@ -346,7 +330,7 @@ Battle Forge — локально ориентированный помощни�
 
 #### 3. Игроки и награды
 
-- Личная библиотека предметов в Firebase: название, иконка, редкость, описание, формула, количество, стаки и расходуемость.
+- Личная библиотека предметов в MongoDB: название, иконка, редкость, описание, формула, количество, стаки и расходуемость.
 - Быстрая выдача сохранённого предмета любому игроку и отдельная форма разовой выдачи.
 - Выдача сохранённых или вручную созданных заклинаний.
 - Редактор ячеек заклинаний 1–9 уровня с восстановлением после долгого или короткого отдыха.
@@ -360,7 +344,7 @@ Battle Forge — локально ориентированный помощни�
 
 - Поиск заклинаний, оружия и существ SRD 2014/2024 через Open5E.
 - Две колонки: английский оригинал и редактируемый перевод.
-- Вставка перевода из LSS, правка правил и однократное сохранение в личную Firebase-библиотеку.
+- Вставка перевода из LSS, правка правил и однократное сохранение в личную MongoDB-библиотеку.
 - Сохранение и немедленная выдача заклинания игроку.
 - Сохранение оружия/атак для конструктора мобов.
 - Сохранение переведённого существа как готового шаблона сцены.
@@ -375,13 +359,13 @@ Battle Forge — локально ориентированный помощни�
 - Переключение `/display` между боем и историей из постоянной панели мастера.
 - Переключение слайдов без выхода из другой рабочей зоны DM.
 - Полное размещение горизонтальных и вертикальных изображений на Full HD/2K без обрезки; свободное место заполняется размытым фоном.
-- Картинки не отправляются в Firebase Storage.
+- Картинки не отправляются в external object storage.
 - Синхронизация колоды и текущего слайда между вкладками DM/display через `BroadcastChannel`.
 - Сюжетный текст связывается с именем картинки без расширения: `1.png` → раздел `1`.
 - Безопасный Markdown: заголовки, абзацы, жирный, курсив, код, цитаты, списки и разделители. Сырой HTML экранируется.
 - После сохранения редактор скрывается и остаётся отрендеренный суфлёр; кнопка **Редактировать** возвращает форму.
 
-Изображения живут в памяти браузера и после полной перезагрузки загружаются заново. Текст сюжета сохраняется в Firebase. Колода предназначена для вкладок одного браузера/устройства и не передаётся через Firebase на другой компьютер.
+Изображения живут в памяти браузера и после полной перезагрузки загружаются заново. Текст сюжета сохраняется в MongoDB. Колода предназначена для вкладок одного браузера/устройства и не передаётся через MongoDB на другой компьютер.
 
 ### Экран игрока
 
@@ -392,7 +376,7 @@ Battle Forge — локально ориентированный помощни�
 - Ручной вход другим героем остаётся доступным; следующий успешный вход заменяет сохранённое имя.
 - Если Safari или приватный режим запрещает localStorage, обычный вход продолжает работать.
 - Загрузка JSON из Long Story Short, если персонажа ещё нет в базе.
-- Исправление распространённых лишних запятых и нормализация отсутствующих/старых полей перед записью в Firebase.
+- Исправление распространённых лишних запятых и нормализация отсутствующих/старых полей перед записью в MongoDB.
 - Импорт характеристик, HP, КД, скорости, оружия, способностей, инвентаря, встроенных заклинаний, сопротивлений, расы, класса и уровня.
 
 Battle Forge не обращается к закрытым авторизованным endpoint LSS для раскрытия удалённых ID заклинаний. Недостающие заклинания добавляются через библиотеку DM/Open5E.
@@ -450,14 +434,14 @@ Battle Forge не обращается к закрытым авторизова�
 
 | Данные | Хранилище/синхронизация |
 | --- | --- |
-| Бой, инициатива, HP и эффекты | Firebase Realtime Database, realtime между клиентами |
-| Листы, инвентарь, заклинания, ячейки и ресурсы | Firebase Realtime Database |
-| Существа, сцены, предметы, заклинания и атаки мобов | Firebase Realtime Database, ветка `dm-library` |
-| Текст основной истории | Firebase Realtime Database |
+| Бой, инициатива, HP и эффекты | local MongoDB via NestJS and Socket.IO, realtime между клиентами |
+| Листы, инвентарь, заклинания, ячейки и ресурсы | local MongoDB via NestJS and Socket.IO |
+| Существа, сцены, предметы, заклинания и атаки мобов | local MongoDB via NestJS and Socket.IO, ветка `dm-library` |
+| Текст основной истории | local MongoDB via NestJS and Socket.IO |
 | Колода сюжетных картинок | Память браузера и `BroadcastChannel` одного устройства |
 | Имя последнего игрока | `localStorage` браузера |
 
-Firebase Storage не используется.
+external object storage не используется.
 
 ### Быстрый сценарий игры
 
@@ -472,8 +456,8 @@ Firebase Storage не используется.
 
 ### Ограничения alpha-версии
 
-- Одна фиксированная Firebase-комната `main-room`.
-- Приложение рассчитано на личную игру: авторизация, усиленные Firebase rules и несколько независимых кампаний пока вне текущего scope.
+- Одна фиксированная комната `main-room`.
+- Приложение рассчитано на доверенную локальную игру; авторизация и несколько независимых кампаний пока вне текущего scope.
 - Автоматические ячейки рассчитаны только для одного класса.
 - Закрытые ссылки/ID LSS не раскрываются через приватный API.
 - Броски, попадания, криты, классовые ограничения и спорные правила остаются решением стола.
@@ -483,45 +467,32 @@ Firebase Storage не используется.
 
 - Angular 20, standalone-компоненты, signals и RxJS
 - TypeScript и строгие Angular-шаблоны
-- Firebase Realtime Database
+- local MongoDB via NestJS and Socket.IO
 - SCSS-токены, адаптивная и iOS-ориентированная вёрстка
 - Устанавливаемая PWA: service worker, favicon, Apple Touch Icon и maskable-иконки
-- Vitest, Angular TestBed, jsdom и Firebase Local Emulator Suite
+- Vitest, Angular TestBed, jsdom и NestJS server tests
 
 ### Требования и локальный запуск
 
-- Node.js 24 — версия CI
-- npm
-- Java 21 — только для интеграционных тестов Firebase Emulator
-
-Установите зависимости:
+Для обычного запуска нужен только Docker Desktop с Docker Compose. Отдельно устанавливать MongoDB,
+Node.js и Nest CLI не нужно.
 
 ```bash
-npm ci
+docker compose up --build
 ```
 
-Добавьте одинаковую по структуре Firebase-конфигурацию в:
+На компьютере мастера откройте `http://localhost:8080/dm`. Телефоны и планшеты в той же Wi-Fi
+сети открывают `http://<локальный-ip-компьютера>:8080/player`, общий экран — `/display`.
+Docker публикует порт 8080 на всех интерфейсах компьютера, но MongoDB доступна только внутри
+Compose-сети. Если телефон не подключается, разрешите входящий TCP-порт 8080 в брандмауэре.
 
-```text
-src/environments/environment.ts
-src/environments/environment.prod.ts
-```
+Копировать `.env.example` в `.env` нужно только для смены локального пароля БД или внешнего
+порта. Команда `docker compose down` останавливает приложение и сохраняет данные. Не добавляйте
+`--volumes`, если не хотите удалить локальную базу.
 
-Файлы игнорируются Git и генерируются в CI. Сейчас и development-, и production-конфигурация Angular подменяют `environment.ts` на `environment.prod.ts`, поэтому `npm start` подключается к Firebase-проекту из `environment.prod.ts`. Локальные действия могут изменять общие production-данные.
-
-Запустите приложение:
-
-```bash
-npm start
-```
-
-Маршруты:
-
-- <http://localhost:4200/dm>
-- <http://localhost:4200/display>
-- <http://localhost:4200/player>
-
-В development service worker отключён. Установку и offline-поведение PWA проверяйте production-сборкой через HTTPS или localhost.
+Для разработки из исходников установите Node.js 24 и npm, выполните `npm ci` и
+`npm ci --prefix server`, запустите MongoDB через `docker compose up mongo -d`, затем в двух
+терминалах выполните `npm run server:dev` и `npm start`.
 
 ### Команды
 
@@ -533,43 +504,40 @@ npm start
 | `npm run test:ui` | Vitest UI |
 | `npm run test:coverage` | Coverage-отчёт в `coverage/` |
 | `npm run test:ci` | Coverage с глобальными порогами 70% для CI |
-| `npm run test:firebase` | Firebase SDK/rules-тесты с локальным RTDB Emulator |
-| `npm run test:all` | Coverage и Firebase-интеграционные тесты |
-| `npm run emulator:firebase` | Постоянный запуск RTDB Emulator |
+| `npm run server:test` | Тесты совместимости хранилища NestJS |
+| `npm run test:all` | Angular coverage и серверные тесты |
+| `npm run docker:up` | Сборка и запуск Angular, NestJS и MongoDB |
+| `npm run docker:down` | Остановка стека без удаления данных MongoDB |
 | `npm run build` | Production-сборка |
-| `npm run build:prod` | Сборка GitHub Pages с base href `/battle-forge/` |
+| `npm --prefix server run data:export -- ../backup.json` | Экспорт переносимой JSON-копии |
+| `npm --prefix server run data:import -- ../backup.json` | Импорт копии или экспорта Firebase RTDB |
 
 ### CI/CD
 
-`.github/workflows/deploy.yaml` запускается для pull request и push в `master`:
-
-1. `npm ci`;
-2. создание временных environment-файлов;
-3. unit/component-тесты с coverage;
-4. Firebase Emulator integration-тесты;
-5. GitHub Pages production-сборка;
-6. создание SPA fallback `404.html`;
-7. деплой только при push в `master`.
-
-Готовый browser bundle находится в `dist/battle-forge/browser`.
+`.github/workflows/ci.yaml` запускается для pull request и push в `master`. Он устанавливает
+зависимости по обоим lock-файлам, проверяет Angular coverage, собирает клиент, тестирует и
+проверяет типы NestJS, затем собирает self-hosted Docker-образ. GitHub Pages намеренно отключён:
+клиенту теперь нужен REST- и Socket.IO-сервер на том же origin.
 
 ### Архитектура
 
 ```text
-src/app/
-├── core/
-│   ├── constants/   # наборы значений, Firebase paths, таблицы прогрессии
-│   ├── models/      # доменные и сохраняемые структуры
-│   ├── services/    # бой, герои, библиотеки, Firebase, история, Open5E
-│   └── utils/       # нормализация, инициатива, JSON, Markdown, ячейки
-├── features/
-│   ├── dm-control/  # DM shell и сцены/предметы/Open5E/история
-│   ├── player/      # вход, лист, ресурсы, заклинания и арена
-│   └── display/     # общий экран боя/истории
-└── shared/ui/       # HP bar, иконка врага, эффекты и состояния жизни
+src/app/              # Angular-клиент и доменные сервисы
+server/src/
+├── config/           # проверенная конфигурация процесса
+├── data/             # пути, repository, REST и Socket.IO
+└── health/           # readiness MongoDB
 ```
 
-`FirebaseService` — единственная граница Firebase SDK. Компоненты работают с signal-состоянием доменных сервисов и не обращаются к SDK напрямую.
+```text
+Docker :8080 → NestJS → MongoDB volume
+                 ├── раздаёт Angular
+                 ├── выполняет REST-запросы
+                 └── рассылает Socket.IO-события
+```
+
+`RealtimeDataService` — единственная транспортная граница Angular. Компоненты работают с
+signal-состоянием доменных сервисов и не обращаются напрямую к HTTP, Socket.IO или MongoDB.
 
 ### Дисклеймер
 

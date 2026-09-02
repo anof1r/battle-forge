@@ -1,14 +1,14 @@
 import { Injectable, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { FIREBASE_ROOT, spellTemplatePath } from '../../../core/constants/firebase-paths.constants';
+import { DATA_ROOT, spellTemplatePath } from '../../../core/constants/data-paths.constants';
 import { SpellTemplate, SpellTemplateDraft } from '../../../core/models';
-import { FirebaseService } from '../../../core/services/firebase.service';
+import { RealtimeDataService } from '../../../core/services/realtime-data.service';
 
 @Injectable({ providedIn: 'root' })
 export class SpellLibraryService {
-  private readonly firebase = inject(FirebaseService);
+  private readonly realtimeData = inject(RealtimeDataService);
   private readonly records = toSignal(
-    this.firebase.subscribe<Record<string, Partial<SpellTemplate>>>(FIREBASE_ROOT.SPELL_TEMPLATES),
+    this.realtimeData.subscribe<Record<string, Partial<SpellTemplate>>>(DATA_ROOT.SPELL_TEMPLATES),
     { initialValue: null },
   );
 
@@ -28,12 +28,12 @@ export class SpellLibraryService {
       createdAt: existing?.createdAt ?? now,
       lastUpdated: now,
     };
-    await this.firebase.set(spellTemplatePath(draft.id), spell);
+    await this.realtimeData.set(spellTemplatePath(draft.id), spell);
     return draft.id;
   }
 
   async deleteSpell(id: string): Promise<void> {
-    await this.firebase.remove(spellTemplatePath(id));
+    await this.realtimeData.remove(spellTemplatePath(id));
   }
 
   private normalize(id: string, spell: Partial<SpellTemplate>): SpellTemplate {

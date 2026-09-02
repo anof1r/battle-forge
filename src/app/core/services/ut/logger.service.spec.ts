@@ -22,9 +22,9 @@ describe('LoggerService', () => {
     const consoleInfo = vi.spyOn(console, 'info').mockImplementation(() => undefined);
 
     service.warn('InventoryService', 'low stock');
-    service.info('FirebaseService', 'connected');
+    service.info('RealtimeDataService', 'connected');
 
     expect(consoleWarn).toHaveBeenCalledWith('[InventoryService]', 'low stock');
-    expect(consoleInfo).toHaveBeenCalledWith('[FirebaseService]', 'connected');
+    expect(consoleInfo).toHaveBeenCalledWith('[RealtimeDataService]', 'connected');
   });
 });
