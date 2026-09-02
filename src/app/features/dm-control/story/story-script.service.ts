@@ -4,10 +4,10 @@ import { catchError, of } from 'rxjs';
 import {
   FIREBASE_ROOT,
   mainStorySectionPath,
-} from '../constants/firebase-paths.constants';
-import { StoryScriptSection } from '../models';
-import { FirebaseService } from './firebase.service';
-import { LoggerService } from './logger.service';
+} from '../../../core/constants/firebase-paths.constants';
+import { StoryScriptSection } from '../../../core/models';
+import { FirebaseService } from '../../../core/services/firebase.service';
+import { LoggerService } from '../../../core/services/logger.service';
 
 @Injectable({ providedIn: 'root' })
 export class StoryScriptService {

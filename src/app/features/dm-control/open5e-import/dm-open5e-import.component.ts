@@ -20,11 +20,11 @@ import {
 } from '../../../core/models';
 import { BattleService } from '../../../core/services/battle.service';
 import { CharacterService } from '../../../core/services/character.service';
-import { EnemyActionLibraryService } from '../../../core/services/enemy-action-library.service';
+import { EnemyActionLibraryService } from '../scene-library/enemy-action-library.service';
 import { LoggerService } from '../../../core/services/logger.service';
-import { Open5eService } from '../../../core/services/open5e.service';
-import { SceneLibraryService } from '../../../core/services/scene-library.service';
-import { SpellLibraryService } from '../../../core/services/spell-library.service';
+import { Open5eService } from './open5e.service';
+import { SceneLibraryService } from '../scene-library/scene-library.service';
+import { SpellLibraryService } from './spell-library.service';
 
 @Component({
   selector: 'app-dm-open5e-import',

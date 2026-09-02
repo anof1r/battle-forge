@@ -1,10 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { FIREBASE_ROOT } from '../../constants/firebase-paths.constants';
-import { SpellTemplate } from '../../models';
-import { FirebaseService } from '../firebase.service';
-import { SpellLibraryService } from '../spell-library.service';
+import { FIREBASE_ROOT } from '../../../core/constants/firebase-paths.constants';
+import { SpellTemplate } from '../../../core/models';
+import { FirebaseService } from '../../../core/services/firebase.service';
+import { SpellLibraryService } from './spell-library.service';
 
 describe('SpellLibraryService', () => {
   let service: SpellLibraryService;

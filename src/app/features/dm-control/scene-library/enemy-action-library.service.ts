@@ -3,9 +3,9 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import {
   FIREBASE_ROOT,
   enemyActionTemplatePath,
-} from '../constants/firebase-paths.constants';
-import { EnemyActionTemplate, EnemyActionTemplateDraft } from '../models';
-import { FirebaseService } from './firebase.service';
+} from '../../../core/constants/firebase-paths.constants';
+import { EnemyActionTemplate, EnemyActionTemplateDraft } from '../../../core/models';
+import { FirebaseService } from '../../../core/services/firebase.service';
 
 @Injectable({ providedIn: 'root' })
 export class EnemyActionLibraryService {

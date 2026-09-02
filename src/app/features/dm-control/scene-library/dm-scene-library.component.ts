@@ -8,8 +8,8 @@ import {
 } from '@angular/core';
 import { BattleService } from '../../../core/services/battle.service';
 import { LoggerService } from '../../../core/services/logger.service';
-import { SceneLibraryService } from '../../../core/services/scene-library.service';
-import { EnemyActionLibraryService } from '../../../core/services/enemy-action-library.service';
+import { SceneLibraryService } from './scene-library.service';
+import { EnemyActionLibraryService } from './enemy-action-library.service';
 import {
   CreatureTemplate,
   EnemyAbility,

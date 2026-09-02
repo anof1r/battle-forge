@@ -1,10 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { FIREBASE_ROOT } from '../../constants/firebase-paths.constants';
-import { CreatureTemplate, EnemyAction, ScenePreset, ScenePresetEntry } from '../../models';
-import { FirebaseService } from '../firebase.service';
-import { SceneLibraryService } from '../scene-library.service';
+import { FIREBASE_ROOT } from '../../../core/constants/firebase-paths.constants';
+import { CreatureTemplate, EnemyAction, ScenePreset, ScenePresetEntry } from '../../../core/models';
+import { FirebaseService } from '../../../core/services/firebase.service';
+import { SceneLibraryService } from './scene-library.service';
 
 describe('SceneLibraryService', () => {
   let service: SceneLibraryService;

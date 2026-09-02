@@ -2,7 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { describe, expect, it, beforeEach, afterEach } from 'vitest';
-import { Open5eService } from '../open5e.service';
+import { Open5eService } from './open5e.service';
 
 describe('Open5eService', () => {
   let service: Open5eService;

@@ -8,7 +8,7 @@ import {
   Open5eDocumentRef,
   Open5eSpell,
   Open5eWeapon,
-} from '../models';
+} from '../../../core/models';
 
 type JsonRecord = Record<string, unknown>;
 

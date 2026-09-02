@@ -1,8 +1,8 @@
 import { Injectable, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { FIREBASE_ROOT, spellTemplatePath } from '../constants/firebase-paths.constants';
-import { SpellTemplate, SpellTemplateDraft } from '../models';
-import { FirebaseService } from './firebase.service';
+import { FIREBASE_ROOT, spellTemplatePath } from '../../../core/constants/firebase-paths.constants';
+import { SpellTemplate, SpellTemplateDraft } from '../../../core/models';
+import { FirebaseService } from '../../../core/services/firebase.service';
 
 @Injectable({ providedIn: 'root' })
 export class SpellLibraryService {

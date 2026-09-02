@@ -3,7 +3,7 @@ import { ITEM_RARITY, ItemRarity } from '../../../core/constants/item-rarity.con
 import { ItemTemplate } from '../../../core/models';
 import { BattleService } from '../../../core/services/battle.service';
 import { InventoryService } from '../../../core/services/inventory.service';
-import { ItemLibraryService } from '../../../core/services/item-library.service';
+import { ItemLibraryService } from './item-library.service';
 import { LoggerService } from '../../../core/services/logger.service';
 
 @Component({

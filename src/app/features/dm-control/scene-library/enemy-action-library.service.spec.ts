@@ -1,9 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { FIREBASE_ROOT } from '../../constants/firebase-paths.constants';
-import { FirebaseService } from '../firebase.service';
-import { EnemyActionLibraryService } from '../enemy-action-library.service';
+import { FIREBASE_ROOT } from '../../../core/constants/firebase-paths.constants';
+import { FirebaseService } from '../../../core/services/firebase.service';
+import { EnemyActionLibraryService } from './enemy-action-library.service';
 
 describe('EnemyActionLibraryService', () => {
   it('normalizes legacy records and saves reusable enemy attacks', async () => {

@@ -9,13 +9,13 @@ import {
   ScenePreset,
   ScenePresetDraft,
   ScenePresetEntry,
-} from '../models';
+} from '../../../core/models';
 import {
   FIREBASE_ROOT,
   creatureTemplatePath,
   scenePresetPath,
-} from '../constants/firebase-paths.constants';
-import { FirebaseService } from './firebase.service';
+} from '../../../core/constants/firebase-paths.constants';
+import { FirebaseService } from '../../../core/services/firebase.service';
 
 @Injectable({ providedIn: 'root' })
 export class SceneLibraryService {

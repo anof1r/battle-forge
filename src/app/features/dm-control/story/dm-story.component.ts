@@ -9,7 +9,7 @@ import {
 import { renderStoryMarkdown, storySectionIdFromFileName } from '../../../core/utils';
 import { LoggerService } from '../../../core/services/logger.service';
 import { StoryPresentationService } from '../../../core/services/story-presentation.service';
-import { StoryScriptService } from '../../../core/services/story-script.service';
+import { StoryScriptService } from './story-script.service';
 
 @Component({
   selector: 'app-dm-story',

@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { StorySlide } from '../../../core/models/story-presentation.model';
 import { LoggerService } from '../../../core/services/logger.service';
 import { StoryPresentationService } from '../../../core/services/story-presentation.service';
-import { StoryScriptService } from '../../../core/services/story-script.service';
+import { StoryScriptService } from './story-script.service';
 import { DmStoryComponent } from './dm-story.component';
 
 describe('DmStoryComponent', () => {

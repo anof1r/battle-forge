@@ -1,11 +1,11 @@
 import { TestBed } from '@angular/core/testing';
 import { BehaviorSubject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { FIREBASE_ROOT } from '../../constants/firebase-paths.constants';
-import { StoryScriptSection } from '../../models';
-import { FirebaseService } from '../firebase.service';
-import { LoggerService } from '../logger.service';
-import { StoryScriptService } from '../story-script.service';
+import { FIREBASE_ROOT } from '../../../core/constants/firebase-paths.constants';
+import { StoryScriptSection } from '../../../core/models';
+import { FirebaseService } from '../../../core/services/firebase.service';
+import { LoggerService } from '../../../core/services/logger.service';
+import { StoryScriptService } from './story-script.service';
 
 describe('StoryScriptService', () => {
   let service: StoryScriptService;

@@ -5,9 +5,9 @@ import { BATTLE_STATUS } from '../../core/constants/battle-status.constants';
 import { BattleService } from '../../core/services/battle.service';
 import { CharacterService } from '../../core/services/character.service';
 import { InventoryService } from '../../core/services/inventory.service';
-import { ItemLibraryService } from '../../core/services/item-library.service';
+import { ItemLibraryService } from './item-library/item-library.service';
 import { LoggerService } from '../../core/services/logger.service';
-import { SceneLibraryService } from '../../core/services/scene-library.service';
+import { SceneLibraryService } from './scene-library/scene-library.service';
 import { StoryPresentationService } from '../../core/services/story-presentation.service';
 import { DmControlComponent } from './dm-control.component';
 

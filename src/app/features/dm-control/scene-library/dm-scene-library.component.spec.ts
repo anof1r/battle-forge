@@ -4,8 +4,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CreatureTemplate, ScenePreset } from '../../../core/models';
 import { BattleService } from '../../../core/services/battle.service';
 import { LoggerService } from '../../../core/services/logger.service';
-import { SceneLibraryService } from '../../../core/services/scene-library.service';
-import { EnemyActionLibraryService } from '../../../core/services/enemy-action-library.service';
+import { SceneLibraryService } from './scene-library.service';
+import { EnemyActionLibraryService } from './enemy-action-library.service';
 import { DmSceneLibraryComponent } from './dm-scene-library.component';
 
 describe('DmSceneLibraryComponent', () => {

@@ -1,9 +1,9 @@
 import { Injectable, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { FIREBASE_ROOT, itemTemplatePath } from '../constants/firebase-paths.constants';
-import { ITEM_RARITY } from '../constants/item-rarity.constants';
-import { ItemTemplate, ItemTemplateDraft } from '../models';
-import { FirebaseService } from './firebase.service';
+import { FIREBASE_ROOT, itemTemplatePath } from '../../../core/constants/firebase-paths.constants';
+import { ITEM_RARITY } from '../../../core/constants/item-rarity.constants';
+import { ItemTemplate, ItemTemplateDraft } from '../../../core/models';
+import { FirebaseService } from '../../../core/services/firebase.service';
 
 @Injectable({ providedIn: 'root' })
 export class ItemLibraryService {
