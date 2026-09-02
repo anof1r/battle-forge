@@ -14,11 +14,11 @@ The application is currently an alpha intended for private games with friends. I
 
 ### Interfaces
 
-| Route | Purpose |
-| --- | --- |
-| `/dm` | Desktop DM console for preparation, combat, rewards, libraries, and story presentation |
-| `/player` | Mobile-friendly character sheet and personal combat screen |
-| `/display` | Shared full-screen battle board or story image shown to the table |
+| Route      | Purpose                                                                                |
+| ---------- | -------------------------------------------------------------------------------------- |
+| `/dm`      | Desktop DM console for preparation, combat, rewards, libraries, and story presentation |
+| `/player`  | Mobile-friendly character sheet and personal combat screen                             |
+| `/display` | Shared full-screen battle board or story image shown to the table                      |
 
 The root route redirects to `/player`.
 
@@ -161,14 +161,14 @@ Multiclass slot calculation is intentionally not automated in the current alpha.
 
 ### Persistence and synchronization
 
-| Data | Storage/synchronization |
-| --- | --- |
-| Battle room, initiative, HP, effects | local MongoDB via NestJS and Socket.IO, live across clients |
-| Character sheets, inventory, spells, slots, resources | local MongoDB via NestJS and Socket.IO |
-| Creature, scene, item, spell, and enemy-action libraries | local MongoDB via NestJS and Socket.IO under `dm-library` |
-| Story script sections | local MongoDB via NestJS and Socket.IO under the main story |
-| Story image deck | Browser memory and same-device `BroadcastChannel` |
-| Last successful player name | Browser `localStorage` |
+| Data                                                     | Storage/synchronization                                     |
+| -------------------------------------------------------- | ----------------------------------------------------------- |
+| Battle room, initiative, HP, effects                     | local MongoDB via NestJS and Socket.IO, live across clients |
+| Character sheets, inventory, spells, slots, resources    | local MongoDB via NestJS and Socket.IO                      |
+| Creature, scene, item, spell, and enemy-action libraries | local MongoDB via NestJS and Socket.IO under `dm-library`   |
+| Story script sections                                    | local MongoDB via NestJS and Socket.IO under the main story |
+| Story image deck                                         | Browser memory and same-device `BroadcastChannel`           |
+| Last successful player name                              | Browser `localStorage`                                      |
 
 external object storage is not used.
 
@@ -225,21 +225,21 @@ For source development, install Node.js 24 and npm, run `npm ci` and
 
 ### Commands
 
-| Command | Purpose |
-| --- | --- |
-| `npm start` | Start the Angular development server |
-| `npm test` | Run Vitest in watch mode |
-| `npm run test:run` | Run all unit/component tests once |
-| `npm run test:ui` | Open the Vitest UI |
-| `npm run test:coverage` | Generate coverage in `coverage/` |
-| `npm run test:ci` | Run coverage with the 70% global thresholds used by CI |
-| `npm run server:test` | Run NestJS data compatibility tests |
-| `npm run test:all` | Run Angular coverage and server tests |
-| `npm run docker:up` | Build and start Angular, NestJS, and MongoDB |
-| `npm run docker:down` | Stop the local stack without deleting MongoDB data |
-| `npm run build` | Build the production application |
-| `npm --prefix server run data:export -- ../backup.json` | Export a portable JSON backup |
-| `npm --prefix server run data:import -- ../backup.json` | Import a backup or Firebase RTDB export |
+| Command                                                 | Purpose                                                |
+| ------------------------------------------------------- | ------------------------------------------------------ |
+| `npm start`                                             | Start the Angular development server                   |
+| `npm test`                                              | Run Vitest in watch mode                               |
+| `npm run test:run`                                      | Run all unit/component tests once                      |
+| `npm run test:ui`                                       | Open the Vitest UI                                     |
+| `npm run test:coverage`                                 | Generate coverage in `coverage/`                       |
+| `npm run test:ci`                                       | Run coverage with the 70% global thresholds used by CI |
+| `npm run server:test`                                   | Run NestJS data compatibility tests                    |
+| `npm run test:all`                                      | Run Angular coverage and server tests                  |
+| `npm run docker:up`                                     | Build and start Angular, NestJS, and MongoDB           |
+| `npm run docker:down`                                   | Stop the local stack without deleting MongoDB data     |
+| `npm run build`                                         | Build the production application                       |
+| `npm --prefix server run data:export -- ../backup.json` | Export a portable JSON backup                          |
+| `npm --prefix server run data:import -- ../backup.json` | Import a backup or Firebase RTDB export                |
 
 ### CI/CD
 
@@ -270,7 +270,7 @@ signal-backed domain services and do not call HTTP, Socket.IO, or MongoDB direct
 
 ### Disclaimer
 
-Battle Forge is an unofficial fan-made tool and is not affiliated with or endorsed by Wizards of the Coast. No software license has been selected yet; the absence of a `LICENSE` file means the repository is not currently licensed for redistribution.
+Battle Forge is an independent project. No software license has been selected yet; the absence of a `LICENSE` file means the repository is not currently licensed for redistribution.
 
 ---
 
@@ -286,11 +286,11 @@ Battle Forge — локально ориентированный помощни�
 
 ### Экраны
 
-| Маршрут | Назначение |
-| --- | --- |
-| `/dm` | Панель мастера для подготовки, боя, наград, библиотек и истории |
-| `/player` | Мобильный лист героя и личная арена игрока |
-| `/display` | Общий полноэкранный режим боя или сюжетной иллюстрации |
+| Маршрут    | Назначение                                                      |
+| ---------- | --------------------------------------------------------------- |
+| `/dm`      | Панель мастера для подготовки, боя, наград, библиотек и истории |
+| `/player`  | Мобильный лист героя и личная арена игрока                      |
+| `/display` | Общий полноэкранный режим боя или сюжетной иллюстрации          |
 
 Корневой маршрут перенаправляет на `/player`.
 
@@ -432,14 +432,14 @@ Battle Forge не обращается к закрытым авторизова�
 
 ### Где хранятся данные
 
-| Данные | Хранилище/синхронизация |
-| --- | --- |
-| Бой, инициатива, HP и эффекты | local MongoDB via NestJS and Socket.IO, realtime между клиентами |
-| Листы, инвентарь, заклинания, ячейки и ресурсы | local MongoDB via NestJS and Socket.IO |
-| Существа, сцены, предметы, заклинания и атаки мобов | local MongoDB via NestJS and Socket.IO, ветка `dm-library` |
-| Текст основной истории | local MongoDB via NestJS and Socket.IO |
-| Колода сюжетных картинок | Память браузера и `BroadcastChannel` одного устройства |
-| Имя последнего игрока | `localStorage` браузера |
+| Данные                                              | Хранилище/синхронизация                                          |
+| --------------------------------------------------- | ---------------------------------------------------------------- |
+| Бой, инициатива, HP и эффекты                       | local MongoDB via NestJS and Socket.IO, realtime между клиентами |
+| Листы, инвентарь, заклинания, ячейки и ресурсы      | local MongoDB via NestJS and Socket.IO                           |
+| Существа, сцены, предметы, заклинания и атаки мобов | local MongoDB via NestJS and Socket.IO, ветка `dm-library`       |
+| Текст основной истории                              | local MongoDB via NestJS and Socket.IO                           |
+| Колода сюжетных картинок                            | Память браузера и `BroadcastChannel` одного устройства           |
+| Имя последнего игрока                               | `localStorage` браузера                                          |
 
 external object storage не используется.
 
@@ -496,21 +496,21 @@ Compose-сети. Если телефон не подключается, раз�
 
 ### Команды
 
-| Команда | Назначение |
-| --- | --- |
-| `npm start` | Angular dev-сервер |
-| `npm test` | Vitest в watch-режиме |
-| `npm run test:run` | Однократный запуск unit/component-тестов |
-| `npm run test:ui` | Vitest UI |
-| `npm run test:coverage` | Coverage-отчёт в `coverage/` |
-| `npm run test:ci` | Coverage с глобальными порогами 70% для CI |
-| `npm run server:test` | Тесты совместимости хранилища NestJS |
-| `npm run test:all` | Angular coverage и серверные тесты |
-| `npm run docker:up` | Сборка и запуск Angular, NestJS и MongoDB |
-| `npm run docker:down` | Остановка стека без удаления данных MongoDB |
-| `npm run build` | Production-сборка |
-| `npm --prefix server run data:export -- ../backup.json` | Экспорт переносимой JSON-копии |
-| `npm --prefix server run data:import -- ../backup.json` | Импорт копии или экспорта Firebase RTDB |
+| Команда                                                 | Назначение                                  |
+| ------------------------------------------------------- | ------------------------------------------- |
+| `npm start`                                             | Angular dev-сервер                          |
+| `npm test`                                              | Vitest в watch-режиме                       |
+| `npm run test:run`                                      | Однократный запуск unit/component-тестов    |
+| `npm run test:ui`                                       | Vitest UI                                   |
+| `npm run test:coverage`                                 | Coverage-отчёт в `coverage/`                |
+| `npm run test:ci`                                       | Coverage с глобальными порогами 70% для CI  |
+| `npm run server:test`                                   | Тесты совместимости хранилища NestJS        |
+| `npm run test:all`                                      | Angular coverage и серверные тесты          |
+| `npm run docker:up`                                     | Сборка и запуск Angular, NestJS и MongoDB   |
+| `npm run docker:down`                                   | Остановка стека без удаления данных MongoDB |
+| `npm run build`                                         | Production-сборка                           |
+| `npm --prefix server run data:export -- ../backup.json` | Экспорт переносимой JSON-копии              |
+| `npm --prefix server run data:import -- ../backup.json` | Импорт копии или экспорта Firebase RTDB     |
 
 ### CI/CD
 
@@ -541,4 +541,4 @@ signal-состоянием доменных сервисов и не обращ
 
 ### Дисклеймер
 
-Battle Forge — неофициальный фанатский инструмент, не связанный с Wizards of the Coast и не одобренный компанией. Лицензия пока не выбрана; без файла `LICENSE` репозиторий не лицензирован для распространения.
+Battle Forge — самостоятельный независимый проект. Лицензия пока не выбрана; без файла `LICENSE` репозиторий не лицензирован для распространения.
