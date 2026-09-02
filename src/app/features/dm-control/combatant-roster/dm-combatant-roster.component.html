@@ -1,0 +1,112 @@
+<details class="dm-section dm-section--combatants" open>
+  <summary class="dm-section__title">👥 Участники боя ({{ combatants().length }})</summary>
+  <div class="combatant-list">
+    @for (combatant of combatants(); track combatant.id; let order = $index) {
+      <article
+        class="combatant-item"
+        [class.combatant-item--active]="currentCombatant()?.id === combatant.id"
+        [class.combatant-item--player]="combatant.type === COMBATANT_TYPE.PLAYER"
+        [class.combatant-item--downed]="combatant.status === COMBATANT_STATUS.DOWNED"
+        [class.combatant-item--dead]="combatant.status === COMBATANT_STATUS.DEAD"
+      >
+        <span class="combatant-item__order" [attr.aria-label]="'Позиция ' + (order + 1)">
+          {{ order + 1 }}
+        </span>
+        <div class="combatant-item__body">
+          <div class="combatant-item__heading">
+            <strong>{{ combatant.name }}</strong>
+            <span class="combatant-item__type">
+              {{ combatant.type === COMBATANT_TYPE.PLAYER ? 'Игрок' : 'Существо' }}
+            </span>
+            @if (currentCombatant()?.id === combatant.id) {
+              <span class="combatant-item__current">⚔️ Сейчас ходит</span>
+            }
+          </div>
+          <div class="combatant-item__stats">
+            <b>HP {{ combatant.currentHp }}/{{ combatant.maxHp }}</b>
+            @if ((combatant.temporaryHp ?? 0) > 0) {
+              <span>🛡️ {{ combatant.temporaryHp }}</span>
+            }
+            <span>КД {{ combatant.ac }}</span>
+            <span>Инициатива {{ combatant.initiative }}</span>
+            <span [class]="'combatant-item__life combatant-item__life--' + combatant.status">
+              {{ lifeStatusLabel(combatant) }}
+            </span>
+            @if (
+              combatant.type === COMBATANT_TYPE.PLAYER &&
+              combatant.status !== COMBATANT_STATUS.ALIVE
+            ) {
+              <span class="combatant-item__death-saves">
+                ✓ {{ combatant.deathSaves?.successes ?? 0 }}/3 ·
+                ✕ {{ combatant.deathSaves?.failures ?? 0 }}/3
+              </span>
+            }
+          </div>
+        </div>
+        <div class="combatant-item__actions">
+          <button
+            class="dm-btn dm-btn--small"
+            title="Сделать текущим ходом"
+            [attr.aria-label]="'Передать ход: ' + combatant.name"
+            (click)="setCurrentTurn(combatant.id)"
+          >▶</button>
+          <button
+            class="dm-btn dm-btn--small"
+            title="Выше в инициативе"
+            [attr.aria-label]="'Поднять в инициативе: ' + combatant.name"
+            (click)="moveCombatant(combatant.id, -1)"
+          >↑</button>
+          <button
+            class="dm-btn dm-btn--small"
+            title="Ниже в инициативе"
+            [attr.aria-label]="'Опустить в инициативе: ' + combatant.name"
+            (click)="moveCombatant(combatant.id, 1)"
+          >↓</button>
+          @if (
+            combatant.type === COMBATANT_TYPE.PLAYER &&
+            combatant.status === COMBATANT_STATUS.DOWNED
+          ) {
+            <button
+              class="dm-btn dm-btn--small dm-btn--success"
+              (click)="recordDeathSave(combatant.id, DEATH_SAVE_RESULT.SUCCESS)"
+            >✓ Успех</button>
+            <button
+              class="dm-btn dm-btn--small dm-btn--danger"
+              (click)="recordDeathSave(combatant.id, DEATH_SAVE_RESULT.FAILURE)"
+            >✕ Провал</button>
+            <button
+              class="dm-btn dm-btn--small"
+              title="Натуральная 20: подняться с 1 HP"
+              (click)="recordDeathSave(combatant.id, DEATH_SAVE_RESULT.CRITICAL_SUCCESS)"
+            >20</button>
+            <button
+              class="dm-btn dm-btn--small"
+              title="Натуральная 1: два провала"
+              (click)="recordDeathSave(combatant.id, DEATH_SAVE_RESULT.CRITICAL_FAILURE)"
+            >1</button>
+          }
+          @if (
+            (combatant.type === COMBATANT_TYPE.ENEMY &&
+              combatant.status === COMBATANT_STATUS.DEAD) ||
+            (combatant.type === COMBATANT_TYPE.PLAYER &&
+              combatant.status !== COMBATANT_STATUS.ALIVE)
+          ) {
+            <button
+              class="dm-btn dm-btn--small dm-btn--success"
+              (click)="reviveCombatant(combatant.id)"
+            >Вернуть в бой</button>
+          }
+          <button
+            class="dm-btn dm-btn--small dm-btn--secondary"
+            [attr.aria-label]="'Убрать из боя: ' + combatant.name"
+            (click)="removeCombatant(combatant)"
+          >✕</button>
+        </div>
+      </article>
+    } @empty {
+      <div class="empty-hint">
+        Участников пока нет. Игроки загрузятся из базы автоматически, существ добавьте из сцены.
+      </div>
+    }
+  </div>
+</details>

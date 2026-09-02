@@ -1,0 +1,22 @@
+@if (visible()) {
+  <details class="dm-section dm-section--initiative" open>
+    <summary class="dm-section__title">🎲 Инициатива</summary>
+    <div class="initiative-editor">
+      @for (combatant of allCombatants(); track combatant.id) {
+        <label class="initiative-editor__row">
+          <span>{{ combatant.name }} ({{ combatant.type | uppercase }})</span>
+          <input
+            type="number"
+            min="0"
+            class="field__input field__input--sm"
+            [value]="initiativeValues()[combatant.id]"
+            (input)="onInitiativeInput(combatant.id, $event)"
+          />
+        </label>
+      }
+    </div>
+    <button class="dm-btn dm-btn--success" [disabled]="saving()" (click)="confirmInitiative()">
+      {{ saving() ? '⏳ Сохраняем…' : '✅ Подтвердить инициативу' }}
+    </button>
+  </details>
+}

@@ -1,0 +1,60 @@
+<details class="dm-section dm-section--controls" open>
+  <summary class="dm-section__title">🎮 Управление боем</summary>
+  <div class="dm-controls-group">
+    <h3 class="dm-controls-group__title">⚙️ Подготовка</h3>
+    <div class="dm-controls">
+      <button class="dm-btn" [disabled]="playersLoading()" (click)="loadPlayersToBattle()">
+        {{ playersLoading() ? '⏳ Загружаем игроков…' : '🔄 Обновить игроков из базы' }}
+      </button>
+      @if (battleStatus() === BATTLE_STATUS.PREPARATION) {
+        <button class="dm-btn" (click)="startInitiativeRolls()">🎲 Бросить инициативу</button>
+      }
+      @if (
+        battleStatus() === BATTLE_STATUS.PREPARATION ||
+        battleStatus() === BATTLE_STATUS.INITIATIVE
+      ) {
+        <button class="dm-btn dm-btn--success" (click)="startBattle()">⚔️ Начать битву</button>
+      }
+    </div>
+    @if (playerSyncMessage()) {
+      <p class="dm-sync-message" role="status">{{ playerSyncMessage() }}</p>
+    }
+    @if (playerSyncError()) {
+      <p class="dm-sync-message dm-sync-message--error" role="alert">{{ playerSyncError() }}</p>
+    }
+  </div>
+
+  <div class="dm-controls-group">
+    <h3 class="dm-controls-group__title">⏳ Управление ходом</h3>
+    <div class="dm-controls">
+      <button class="dm-btn" [disabled]="advancingTurn()" (click)="nextTurn()">
+        {{ advancingTurn() ? '⏳ Обработка хода…' : '➡️ Следующий ход' }}
+      </button>
+      <button class="dm-btn" [disabled]="!canUndo()" (click)="undoLastAction()">
+        ↩️ Отменить
+      </button>
+      <button
+        class="dm-btn dm-btn--secondary"
+        [disabled]="transitioningScene()"
+        (click)="finishScene('preserve')"
+      >
+        🏁 Завершить сцену
+      </button>
+      <button
+        class="dm-btn"
+        [disabled]="transitioningScene()"
+        (click)="finishScene('short-rest')"
+      >
+        ☕ Короткий отдых
+      </button>
+      <button
+        class="dm-btn dm-btn--success"
+        [disabled]="transitioningScene()"
+        (click)="finishScene('long-rest')"
+      >
+        🌙 Завершить с долгим отдыхом
+      </button>
+      <button class="dm-btn dm-btn--danger" (click)="resetScene()">🔄 Сбросить</button>
+    </div>
+  </div>
+</details>

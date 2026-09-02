@@ -20,31 +20,24 @@
       type="button"
       [class.dm-workspace-tabs__button--active]="activePanel() === 'scenes'"
       (click)="activePanel.set('scenes')"
-    >
-      <b>1</b> 🗺️ Сцены и существа
-    </button>
+    ><b>1</b> 🗺️ Сцены и существа</button>
     <button
       type="button"
       [class.dm-workspace-tabs__button--active]="activePanel() === 'battle'"
       (click)="activePanel.set('battle')"
     >
-      <b>2</b> ⚔️ Бой
-      <span>{{ aliveEnemies().length + (playersInBattle() | keyvalue).length }}</span>
+      <b>2</b> ⚔️ Бой <span>{{ battleParticipantCount() }}</span>
     </button>
     <button
       type="button"
       [class.dm-workspace-tabs__button--active]="activePanel() === 'rewards'"
       (click)="activePanel.set('rewards')"
-    >
-      <b>3</b> 🎁 Игроки и награды
-    </button>
+    ><b>3</b> 🎁 Игроки и награды</button>
     <button
       type="button"
       [class.dm-workspace-tabs__button--active]="activePanel() === 'library'"
       (click)="activePanel.set('library')"
-    >
-      <b>4</b> 📚 Переводы Open5E
-    </button>
+    ><b>4</b> 📚 Переводы Open5E</button>
     <button
       type="button"
       [class.dm-workspace-tabs__button--active]="activePanel() === 'story'"
@@ -60,9 +53,7 @@
   <section class="dm-presentation-bar" aria-label="Режим общего экрана">
     <div class="dm-presentation-bar__status">
       <span>DISPLAY</span>
-      <strong>
-        {{ storyPresentation.mode() === 'story' ? '🖼 История' : '⚔ Бой' }}
-      </strong>
+      <strong>{{ storyPresentation.mode() === 'story' ? '🖼 История' : '⚔ Бой' }}</strong>
       @if (storyPresentation.activeSlide(); as slide) {
         <small>{{ slide.name }}</small>
       }
@@ -72,25 +63,19 @@
         type="button"
         [class.dm-presentation-bar__button--active]="storyPresentation.mode() === 'battle'"
         (click)="storyPresentation.setMode('battle')"
-      >
-        ⚔ Бой
-      </button>
+      >⚔ Бой</button>
       <button
         type="button"
         [class.dm-presentation-bar__button--active]="storyPresentation.mode() === 'story'"
         [disabled]="!storyPresentation.canShowStory()"
         (click)="storyPresentation.setMode('story')"
-      >
-        🖼 История
-      </button>
+      >🖼 История</button>
       <button
         type="button"
         aria-label="Предыдущий слайд"
         [disabled]="!storyPresentation.canGoPrevious()"
         (click)="storyPresentation.previousSlide()"
-      >
-        ←
-      </button>
+      >←</button>
       <span class="dm-presentation-bar__counter">
         {{ storyPresentation.activeSlideIndex() + 1 }} / {{ storyPresentation.slides().length }}
       </span>
@@ -99,775 +84,47 @@
         aria-label="Следующий слайд"
         [disabled]="!storyPresentation.canGoNext()"
         (click)="storyPresentation.nextSlide()"
-      >
-        →
-      </button>
+      >→</button>
     </div>
   </section>
 
   @if (activePanel() === 'library') {
     <app-dm-open5e-import />
   }
-
   @if (activePanel() === 'scenes') {
     <app-dm-scene-library />
   }
-
   @if (activePanel() === 'story') {
     <app-dm-story />
   }
 
-  @if (activePanel() === 'battle') {
-    <div class="dm-workspace-grid">
-
-  <!-- ===== УПРАВЛЕНИЕ БОЕМ ===== -->
-  <details class="dm-section dm-section--controls" open>
-    <summary class="dm-section__title">🎮 Управление боем</summary>
-    <div class="dm-controls-group">
-      <h3 class="dm-controls-group__title">⚙️ Подготовка</h3>
-      <div class="dm-controls">
-        <button class="dm-btn" [disabled]="playersLoading()" (click)="loadPlayersToBattle()">
-          {{ playersLoading() ? '⏳ Загружаем игроков…' : '🔄 Обновить игроков из базы' }}
-        </button>
-        @if (battleStatus() === BATTLE_STATUS.PREPARATION) {
-          <button class="dm-btn" (click)="startInitiativeRolls()">🎲 Бросить инициативу</button>
-        }
-        @if (battleStatus() === BATTLE_STATUS.INITIATIVE) {
-          <button class="dm-btn dm-btn--success" (click)="confirmInitiative()">
-            ✅ Подтвердить инициативу
-          </button>
-        }
-        @if (
-          battleStatus() === BATTLE_STATUS.PREPARATION ||
-          battleStatus() === BATTLE_STATUS.INITIATIVE
-        ) {
-          <button class="dm-btn dm-btn--success" (click)="startBattle()">⚔️ Начать битву</button>
-        }
-      </div>
-      @if (playerSyncMessage()) {
-        <p class="dm-sync-message" role="status">{{ playerSyncMessage() }}</p>
-      }
-      @if (playerSyncError()) {
-        <p class="dm-sync-message dm-sync-message--error" role="alert">{{ playerSyncError() }}</p>
-      }
-    </div>
-    <div class="dm-controls-group">
-      <h3 class="dm-controls-group__title">⏳ Управление ходом</h3>
-      <div class="dm-controls">
-        <button class="dm-btn" [disabled]="advancingTurn()" (click)="nextTurn()">
-          {{ advancingTurn() ? '⏳ Обработка хода…' : '➡️ Следующий ход' }}
-        </button>
-        <button class="dm-btn" [disabled]="!canUndo()" (click)="undoLastAction()">
-          ↩️ Отменить
-        </button>
-        <button
-          class="dm-btn dm-btn--secondary"
-          [disabled]="transitioningScene()"
-          (click)="finishScene('preserve')"
-        >
-          🏁 Завершить сцену
-        </button>
-        <button
-          class="dm-btn"
-          [disabled]="transitioningScene()"
-          (click)="finishScene('short-rest')"
-        >
-          ☕ Короткий отдых
-        </button>
-        <button
-          class="dm-btn dm-btn--success"
-          [disabled]="transitioningScene()"
-          (click)="finishScene('long-rest')"
-        >
-          🌙 Завершить с долгим отдыхом
-        </button>
-        <button class="dm-btn dm-btn--danger" (click)="resetScene()">🔄 Сбросить</button>
-      </div>
-    </div>
-  </details>
-
-  <!-- ===== ЕДИНЫЙ СПИСОК УЧАСТНИКОВ ===== -->
-  <details class="dm-section dm-section--combatants" open>
-    <summary class="dm-section__title">
-      👥 Участники боя ({{ sortedByInitiative().length }})
-    </summary>
-    <div class="combatant-list">
-      @for (combatant of sortedByInitiative(); track combatant.id; let order = $index) {
-        <article
-          class="combatant-item"
-          [class.combatant-item--active]="currentEnemy()?.id === combatant.id"
-          [class.combatant-item--player]="combatant.type === COMBATANT_TYPE.PLAYER"
-          [class.combatant-item--downed]="combatant.status === COMBATANT_STATUS.DOWNED"
-          [class.combatant-item--dead]="combatant.status === COMBATANT_STATUS.DEAD"
-        >
-          <span class="combatant-item__order" [attr.aria-label]="'Позиция ' + (order + 1)">
-            {{ order + 1 }}
-          </span>
-          <div class="combatant-item__body">
-            <div class="combatant-item__heading">
-              <strong>{{ combatant.name }}</strong>
-              <span class="combatant-item__type">
-                {{ combatant.type === COMBATANT_TYPE.PLAYER ? 'Игрок' : 'Существо' }}
-              </span>
-              @if (currentEnemy()?.id === combatant.id) {
-                <span class="combatant-item__current">⚔️ Сейчас ходит</span>
-              }
-            </div>
-            <div class="combatant-item__stats">
-              <b>HP {{ combatant.currentHp }}/{{ combatant.maxHp }}</b>
-              @if ((combatant.temporaryHp ?? 0) > 0) {
-                <span>🛡️ {{ combatant.temporaryHp }}</span>
-              }
-              <span>КД {{ combatant.ac }}</span>
-              <span>Инициатива {{ combatant.initiative }}</span>
-              <span [class]="'combatant-item__life combatant-item__life--' + combatant.status">
-                {{ lifeStatusLabel(combatant) }}
-              </span>
-              @if (
-                combatant.type === COMBATANT_TYPE.PLAYER &&
-                (combatant.status === COMBATANT_STATUS.DOWNED ||
-                  combatant.status === COMBATANT_STATUS.STABLE ||
-                  combatant.status === COMBATANT_STATUS.DEAD)
-              ) {
-                <span class="combatant-item__death-saves">
-                  ✓ {{ combatant.deathSaves?.successes ?? 0 }}/3 ·
-                  ✕ {{ combatant.deathSaves?.failures ?? 0 }}/3
-                </span>
-              }
-            </div>
-          </div>
-          <div class="combatant-item__actions">
-            <button
-              class="dm-btn dm-btn--small"
-              title="Сделать текущим ходом"
-              [attr.aria-label]="'Передать ход: ' + combatant.name"
-              (click)="setCurrentTurn(combatant.id)"
-            >▶</button>
-            <button
-              class="dm-btn dm-btn--small"
-              title="Выше в инициативе"
-              [attr.aria-label]="'Поднять в инициативе: ' + combatant.name"
-              (click)="moveCombatant(combatant.id, -1)"
-            >↑</button>
-            <button
-              class="dm-btn dm-btn--small"
-              title="Ниже в инициативе"
-              [attr.aria-label]="'Опустить в инициативе: ' + combatant.name"
-              (click)="moveCombatant(combatant.id, 1)"
-            >↓</button>
-            @if (
-              combatant.type === COMBATANT_TYPE.PLAYER &&
-              combatant.status === COMBATANT_STATUS.DOWNED
-            ) {
-              <button
-                class="dm-btn dm-btn--small dm-btn--success"
-                (click)="recordDeathSave(combatant.id, DEATH_SAVE_RESULT.SUCCESS)"
-              >✓ Успех</button>
-              <button
-                class="dm-btn dm-btn--small dm-btn--danger"
-                (click)="recordDeathSave(combatant.id, DEATH_SAVE_RESULT.FAILURE)"
-              >✕ Провал</button>
-              <button
-                class="dm-btn dm-btn--small"
-                title="Натуральная 20: подняться с 1 HP"
-                (click)="recordDeathSave(combatant.id, DEATH_SAVE_RESULT.CRITICAL_SUCCESS)"
-              >20</button>
-              <button
-                class="dm-btn dm-btn--small"
-                title="Натуральная 1: два провала"
-                (click)="recordDeathSave(combatant.id, DEATH_SAVE_RESULT.CRITICAL_FAILURE)"
-              >1</button>
-            }
-            @if (
-              (combatant.type === COMBATANT_TYPE.ENEMY &&
-                combatant.status === COMBATANT_STATUS.DEAD) ||
-              (combatant.type === COMBATANT_TYPE.PLAYER &&
-                combatant.status !== COMBATANT_STATUS.ALIVE)
-            ) {
-              <button
-                class="dm-btn dm-btn--small dm-btn--success"
-                (click)="reviveCombatant(combatant.id)"
-              >Вернуть в бой</button>
-            }
-            <button
-              class="dm-btn dm-btn--small dm-btn--secondary"
-              [attr.aria-label]="'Убрать из боя: ' + combatant.name"
-              (click)="removeCombatant(combatant)"
-            >✕</button>
-          </div>
-        </article>
-      } @empty {
-        <div class="empty-hint">
-          Участников пока нет. Игроки загрузятся из базы автоматически, существ добавьте из сцены.
-        </div>
-      }
-    </div>
-  </details>
-
-  <!-- ===== ПАНЕЛЬ ИЗМЕНЕНИЯ HP ===== -->
-  <details class="dm-section dm-section--damage" open>
-    <summary class="dm-section__title">❤️ Изменить HP</summary>
-    <div class="dm-damage-panel">
-      <div class="dm-hp-tabs" role="group" aria-label="Режим изменения HP">
-        <button
-          type="button"
-          [class.dm-hp-tabs__button--active]="hpOperation() === 'damage'"
-          (click)="setHpOperation('damage')"
-        >
-          💥 Нанести урон
-        </button>
-        <button
-          type="button"
-          [class.dm-hp-tabs__button--active]="hpOperation() === 'heal'"
-          (click)="setHpOperation('heal')"
-        >
-          ❤️ Добавить HP
-        </button>
-        <button
-          type="button"
-          [class.dm-hp-tabs__button--active]="hpOperation() === 'temporary'"
-          (click)="setHpOperation('temporary')"
-        >
-          🛡️ Временные HP
-        </button>
-      </div>
-
-      <div class="dm-damage__target-type">
-        <label class="dm-damage__radio">
-          <input
-            type="radio"
-            [value]="'enemies'"
-            [checked]="targetType() === 'enemies'"
-            (change)="setHpTargetType('enemies')"
-          />
-          Враги
-        </label>
-        <label class="dm-damage__radio">
-          <input
-            type="radio"
-            [value]="'players'"
-            [checked]="targetType() === 'players'"
-            (change)="setHpTargetType('players')"
-          />
-          Игроки
-        </label>
-        @if (hpOperation() === 'damage') {
-          <label class="dm-damage__radio">
-            <input
-              type="radio"
-              [value]="'all'"
-              [checked]="targetType() === 'all'"
-              (change)="setHpTargetType('all')"
-            />
-            Все враги (массовый урон)
-          </label>
-        }
-        @if (hpOperation() !== 'temporary') {
-          <label class="dm-damage__radio">
-            <input
-              type="radio"
-              [value]="'selected'"
-              [checked]="targetType() === 'selected'"
-              (change)="setHpTargetType('selected')"
-            />
-            Выбрать несколько
-          </label>
-        }
-      </div>
-
-      @if (targetType() !== 'all' && targetType() !== 'selected') {
-        <div class="dm-damage__target-select">
-          <label class="field__label">Цель</label>
-          <select
-            class="field__input"
-            [value]="damageTargetId() || ''"
-            (change)="onDamageTargetChange($event)"
-          >
-            <option value="" disabled selected>Выберите цель</option>
-            @for (target of availableTargets(); track target.id) {
-              <option [value]="target.id">
-                {{ target.name }} (HP: {{ target.currentHp }}/{{ target.maxHp }})
-              </option>
-            }
-          </select>
-        </div>
-      }
-
-      @if (targetType() === 'selected') {
-        <div class="dm-multi-targets" aria-label="Выбор нескольких целей">
-          @for (target of availableTargets(); track target.id) {
-            <label class="dm-damage__radio">
-              <input
-                type="checkbox"
-                [checked]="selectedCombatantIds().includes(target.id)"
-                (change)="toggleHpTarget(target.id, $any($event.target).checked)"
-              />
-              {{ target.name }} · {{ target.currentHp }}/{{ target.maxHp }} HP
-            </label>
-          }
-        </div>
-      }
-
-      <div class="dm-damage__controls">
-        <div class="field">
-          <label class="field__label">
-            {{ hpOperation() === 'damage' ? 'Урон' : hpOperation() === 'heal' ? 'Лечение' : 'Временные HP' }}
-          </label>
-          <input
-            class="field__input"
-            type="number"
-            min="0"
-            [attr.max]="hpOperation() === 'heal' ? maxHealingAmount() : null"
-            [value]="damageAmount()"
-            (input)="onDamageAmountInput($event)"
-          />
-          @if (hpOperation() === 'heal' && maxHealingAmount() !== null) {
-            <small class="field__hint">Можно восстановить не больше {{ maxHealingAmount() }} HP.</small>
-          }
-        </div>
-        @if (hpOperation() === 'damage') {
-          <button
-            class="dm-btn dm-btn--danger"
-            [disabled]="!canApplyDamage()"
-            (click)="applyDamage()"
-          >
-            💥 Нанести урон
-          </button>
-        } @else if (hpOperation() === 'heal') {
-          <button
-            class="dm-btn dm-btn--success"
-            [disabled]="!canApplyHealing()"
-            (click)="applyHealing()"
-          >
-            ❤️ Добавить HP
-          </button>
-        } @else {
-          <button
-            class="dm-btn dm-btn--success"
-            [disabled]="!canApplyTemporaryHp()"
-            (click)="applyTemporaryHp()"
-          >
-            🛡️ Установить временные HP
-          </button>
-        }
-        <button class="dm-btn dm-btn--secondary" (click)="cancelDamage()">✕ Сбросить</button>
-      </div>
-    </div>
-  </details>
-
-  <details class="dm-section dm-section--effects" open>
-    <summary class="dm-section__title">✨ Статус-эффекты</summary>
-    <div class="dm-effects-panel">
-      <label class="field">
-        <span class="field__label">Участник боя</span>
-        <select
-          class="field__input"
-          [value]="selectedStatusTargetId() || ''"
-          (change)="onStatusTargetChange($event)"
-        >
-          <option value="">Выберите игрока или существо</option>
-          @for (combatant of sortedByInitiative(); track combatant.id) {
-            <option [value]="combatant.id">
-              {{ combatant.name }} · {{ combatant.type | uppercase }}
-            </option>
-          }
-        </select>
-      </label>
-
-      <div class="dm-effect-picker" aria-label="Выберите статус-эффект">
-        @for (effect of STATUS_EFFECT_DEFINITIONS; track effect.type) {
-          <button
-            type="button"
-            class="dm-effect-option"
-            [class.dm-effect-option--selected]="selectedStatusEffect() === effect.type"
-            [class.dm-effect-option--beneficial]="effect.beneficial"
-            (click)="selectStatusEffect(effect.type)"
-          >
-            <span aria-hidden="true">{{ effect.icon }}</span>
-            <strong>{{ effect.label }}</strong>
-          </button>
-        }
-      </div>
-
-      <p class="dm-effect-description">
-        {{ statusEffectDefinition(selectedStatusEffect()).description }}
-      </p>
-
-      <div class="dm-effect-rules">
-        @if (selectedStatusDefinition().damageCapable) {
-          <label class="field">
-            <span class="field__label">Урон при срабатывании</span>
-            <input
-              class="field__input"
-              type="number"
-              min="0"
-              [value]="statusDamage()"
-              (input)="onStatusDamageInput($event)"
-            />
-          </label>
-        }
-        <label class="field">
-          <span class="field__label">Количество срабатываний</span>
-          <input
-            class="field__input"
-            type="number"
-            min="0"
-            [value]="statusDuration()"
-            (input)="onStatusDurationInput($event)"
-          />
-          <small>0 — пока ДМ не снимет эффект</small>
-        </label>
-        @if (hasTurnStatusConfig()) {
-          <label class="field">
-            <span class="field__label">Когда срабатывает</span>
-            <select
-              class="field__input"
-              [value]="statusTrigger()"
-              (change)="onStatusTriggerChange($event)"
-            >
-              <option value="turn-start">В начале хода цели</option>
-              <option value="turn-end">В конце хода цели</option>
-            </select>
-          </label>
-        }
-        <label class="field">
-          <span class="field__label">Источник</span>
-          <input
-            class="field__input"
-            type="text"
-            placeholder="Заклинание или способность"
-            [value]="statusSource()"
-            (input)="statusSource.set($any($event.target).value)"
-          />
-        </label>
-        <label class="field">
-          <span class="field__label">Концентрация</span>
-          <select
-            class="field__input"
-            [value]="statusConcentrationSourceId()"
-            (change)="statusConcentrationSourceId.set($any($event.target).value)"
-          >
-            <option value="">Не требуется</option>
-            @for (combatant of sortedByInitiative(); track combatant.id) {
-              <option [value]="combatant.id">Концентрируется: {{ combatant.name }}</option>
-            }
-          </select>
-        </label>
-        <label class="field">
-          <span class="field__label">Спасбросок</span>
-          <input
-            class="field__input"
-            type="text"
-            placeholder="ЛОВ, ТЕЛ, МДР…"
-            [value]="statusSaveAbility()"
-            (input)="statusSaveAbility.set($any($event.target).value)"
-          />
-        </label>
-        <label class="field">
-          <span class="field__label">Сложность</span>
-          <input
-            class="field__input"
-            type="number"
-            min="0"
-            [value]="statusSaveDc()"
-            (input)="statusSaveDc.set(+$any($event.target).value || 0)"
-          />
-        </label>
-        <label class="field">
-          <span class="field__label">Заметка</span>
-          <input
-            class="field__input"
-            type="text"
-            placeholder="Повторить спасбросок в конце хода"
-            [value]="statusNotes()"
-            (input)="statusNotes.set($any($event.target).value)"
-          />
-        </label>
-      </div>
-
-      <button
-        type="button"
-        class="dm-btn"
-        [disabled]="!canApplyStatus() || applyingStatus()"
-        (click)="applyStatusEffect()"
-      >
-        {{ applyingStatus() ? 'Назначаем…' : '✨ Назначить эффект' }}
-      </button>
-
-      @if (statusError()) {
-        <p class="dm-effect-error" role="alert">{{ statusError() }}</p>
-      }
-
-      <div class="dm-active-effects">
-        <h3>Активные эффекты</h3>
-        @for (combatant of combatantsWithEffects(); track combatant.id) {
-          <div class="dm-active-effects__combatant">
-            <strong>{{ combatant.name }}</strong>
-            <div class="dm-active-effects__list">
-              @for (effect of combatant.activeEffects ?? []; track effect.id) {
-                <span [class]="'dm-active-effect dm-active-effect--' + effect.type">
-                  <span aria-hidden="true">{{ effect.customIcon || statusEffectDefinition(effect.type).icon }}</span>
-                  {{ effect.customLabel || statusEffectDefinition(effect.type).label }}
-                  @if (effect.damagePerTrigger) {
-                    <small>−{{ effect.damagePerTrigger }} HP</small>
-                  }
-                  @if (effect.durationLabel) {
-                    <small>{{ effect.durationLabel }}</small>
-                  } @else if (effect.remainingTriggers) {
-                    <small>×{{ effect.remainingTriggers }}</small>
-                  }
-                  @if (effect.source) {
-                    <small>{{ effect.source }}</small>
-                  }
-                  @if (effect.concentrationSourceId) {
-                    <small>Концентрация</small>
-                  }
-                  @if (effect.saveAbility) {
-                    <small>{{ effect.saveAbility }} СЛ {{ effect.saveDc || '—' }}</small>
-                  }
-                  <button
-                    type="button"
-                    [disabled]="removingEffectId() !== null"
-                    (click)="removeStatusEffect(combatant.id, effect.id)"
-                    [attr.aria-label]="'Снять эффект ' + (effect.customLabel || statusEffectDefinition(effect.type).label)"
-                  >
-                    ×
-                  </button>
-                </span>
-              }
-            </div>
-          </div>
-        } @empty {
-          <p class="empty-hint">На участниках пока нет активных эффектов.</p>
-        }
-      </div>
-    </div>
-  </details>
-
-  <details class="dm-section dm-section--history">
-    <summary class="dm-section__title">📜 Журнал боя ({{ battleHistory().length }})</summary>
-    <div class="dm-history">
-      @for (entry of battleHistory().slice().reverse(); track entry.id) {
-        <div class="dm-history__entry">
-          <span>{{ entry.description }}</span>
-          <time>{{ entry.timestamp | date: 'HH:mm:ss' }}</time>
-        </div>
-      } @empty {
-        <p class="empty-hint">Действия появятся после изменения боя.</p>
-      }
-    </div>
-  </details>
-
-  <!-- ===== РЕДАКТОР ИНИЦИАТИВЫ ===== -->
-  @if (showInitiativeRolls()) {
-    <details class="dm-section dm-section--initiative" open>
-      <summary class="dm-section__title">🎲 Инициатива</summary>
-      <div class="initiative-editor">
-        @for (combatant of allCombatants(); track combatant.id) {
-          <div class="initiative-editor__row">
-            <span>{{ combatant.name }} ({{ combatant.type | uppercase }})</span>
-            <input
-              type="number"
-              class="field__input field__input--sm"
-              [value]="combatant.initiative || 0"
-              (input)="onInitiativeInput(combatant.id, $event)"
-            />
-          </div>
-        }
-      </div>
-    </details>
-  }
-
-    </div>
-  }
+  <div class="dm-workspace-grid" [hidden]="activePanel() !== 'battle'">
+    <app-dm-battle-controls
+      (initiativeRequested)="openInitiative($event)"
+      (initiativeClosed)="closeInitiative()"
+      (sceneFinished)="returnToScenes()"
+    />
+    <app-dm-combatant-roster />
+    <app-dm-hp-control />
+    <app-dm-status-effects />
+    <app-dm-battle-history />
+    <app-dm-initiative
+      [visible]="initiativeVisible()"
+      [rolls]="initiativeRolls()"
+      (closed)="closeInitiative()"
+    />
+  </div>
 
   @if (activePanel() === 'rewards') {
     <div class="dm-rewards-grid">
-  <app-dm-character-resources />
-  <app-dm-item-library />
-
-  <!-- ===== ВЫДАЧА ПРЕДМЕТОВ ===== -->
-  <details class="dm-section dm-section--inventory" open>
-    <summary class="dm-section__title">🎒 Выдать разовый предмет</summary>
-    <div class="dm-inventory-form">
-      <div class="field-row">
-        <div class="field">
-          <label class="field__label">Игрок</label>
-          <select
-            class="field__input"
-            [value]="selectedPlayerIdForItem() || ''"
-            (change)="onSelectPlayerForItem($event)"
-          >
-            <option value="" disabled selected>Выберите игрока</option>
-            @for (player of playersInBattle() | keyvalue; track player.value.id) {
-              <option [value]="player.value.id">{{ player.value.name }}</option>
-            }
-          </select>
-        </div>
-        <div class="field">
-          <label class="field__label">Предмет</label>
-          <input
-            class="field__input"
-            type="text"
-            placeholder="Зелье здоровья"
-            [value]="itemName()"
-            (input)="itemName.set($any($event.target).value)"
-          />
-        </div>
-        <div class="field">
-          <label class="field__label">Описание</label>
-          <input
-            class="field__input"
-            type="text"
-            placeholder="Зелье восстанавливает 2d4+2 HP"
-            [value]="itemDescription()"
-            (input)="itemDescription.set($any($event.target).value)"
-          />
-        </div>
-        <div class="field-row">
-          <div class="field" style="grid-column: 1 / -1">
-            <label class="field__label">Редкость</label>
-            <select
-              class="field__input"
-              [value]="itemRarity()"
-              (change)="itemRarity.set($any($event.target).value)"
-            >
-              <option value="common">Обычный</option>
-              <option value="uncommon">Необычный</option>
-              <option value="rare">Редкий</option>
-              <option value="epic">Эпический</option>
-              <option value="legendary">Легендарный</option>
-            </select>
-          </div>
-        </div>
-        <div class="field">
-          <label class="field__label">Количество</label>
-          <input
-            class="field__input"
-            type="number"
-            min="1"
-            [value]="itemQuantity()"
-            (input)="onItemQuantityInput($event)"
-          />
-        </div>
-      </div>
-      <button
-        class="dm-btn"
-        (click)="giveItem()"
-        [disabled]="!selectedPlayerIdForItem() || !itemName() || itemQuantity() < 1"
-      >
-        🎒 Выдать предмет
-      </button>
-    </div>
-  </details>
-
-  <details class="dm-section dm-section--spells" open>
-    <summary class="dm-section__title">🔮 Выдать заклинание игроку</summary>
-    <div class="dm-spell-form">
-      <div class="field-row">
-        <div class="field">
-          <label class="field__label">Игрок</label>
-          <select
-            class="field__input"
-            [value]="selectedPlayerIdForSpell() || ''"
-            (change)="onSelectPlayerForSpell($event)"
-          >
-            <option value="" disabled selected>Выберите игрока</option>
-            @for (player of playersInBattle() | keyvalue; track player.value.id) {
-              <option [value]="player.value.id">{{ player.value.name }}</option>
-            }
-          </select>
-        </div>
-        <div class="field">
-          <label class="field__label">Название заклинания</label>
-          <input
-            class="field__input"
-            type="text"
-            placeholder="Например: Огненный шар"
-            [value]="spellName()"
-            (input)="spellName.set($any($event.target).value)"
-          />
-        </div>
-        <div class="field">
-          <label class="field__label">Уровень (0 = заговор)</label>
-          <input
-            class="field__input"
-            type="number"
-            min="0"
-            max="9"
-            [value]="spellLevel()"
-            (input)="onSpellLevelInput($event)"
-          />
-        </div>
-      </div>
-      <div class="field-row">
-        <div class="field">
-          <label class="field__label">Школа (необязательно)</label>
-          <input
-            class="field__input"
-            type="text"
-            placeholder="Воплощение"
-            [value]="spellSchool()"
-            (input)="spellSchool.set($any($event.target).value)"
-          />
-        </div>
-        <div class="field">
-          <label class="field__label">Урон (необязательно)</label>
-          <input
-            class="field__input"
-            type="text"
-            placeholder="8d6"
-            [value]="spellDamageFormula()"
-            (input)="spellDamageFormula.set($any($event.target).value)"
-          />
-        </div>
-        <div class="field">
-          <label class="field__label">Тип урона (необязательно)</label>
-          <input
-            class="field__input"
-            type="text"
-            placeholder="огонь"
-            [value]="spellDamageType()"
-            (input)="spellDamageType.set($any($event.target).value)"
-          />
-        </div>
-      </div>
-      <div class="field-row">
-        <div class="field" style="grid-column: 1 / -1">
-          <label class="field__label">Описание (необязательно)</label>
-          <input
-            class="field__input"
-            type="text"
-            placeholder="Взрыв пламени, все в радиусе 20 футов"
-            [value]="spellDescription()"
-            (input)="spellDescription.set($any($event.target).value)"
-          />
-        </div>
-      </div>
-      <div class="dm-spell-actions">
-        <button
-          class="dm-btn"
-          (click)="giveSpell()"
-          [disabled]="!selectedPlayerIdForSpell() || !spellName()"
-        >
-          🔮 Выдать заклинание
-        </button>
-        <button
-          class="dm-btn dm-btn--secondary"
-          (click)="restoreSpells()"
-          [disabled]="!selectedPlayerIdForSpell()"
-        >
-          ↻ Восстановить ячейки
-        </button>
-      </div>
-    </div>
-  </details>
-
+      <app-dm-character-resources />
+      <app-dm-item-library />
+      <app-dm-item-grant />
+      <app-dm-spell-grant />
     </div>
   }
 
-  <!-- ===== ТЕКУЩИЙ ХОД ===== -->
-  @if (currentEnemy(); as current) {
+  @if (currentCombatant(); as current) {
     <footer class="dm-footer">
       <span class="dm-footer__label">Текущий ход:</span>
       <span class="dm-footer__name">{{ current.name }}</span>

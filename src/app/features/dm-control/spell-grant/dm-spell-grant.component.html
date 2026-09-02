@@ -1,0 +1,83 @@
+<details class="dm-section dm-section--spells" open>
+  <summary class="dm-section__title">🔮 Выдать заклинание игроку</summary>
+  <div class="dm-spell-form">
+    <div class="field-row">
+      <div class="field">
+        <label class="field__label" for="dm-spell-player">Игрок</label>
+        <select
+          id="dm-spell-player"
+          class="field__input"
+          [value]="selectedPlayerId() || ''"
+          (change)="onPlayerChange($event)"
+        >
+          <option value="" disabled>Выберите игрока</option>
+          @for (player of players() | keyvalue; track player.value.id) {
+            <option [value]="player.value.id">{{ player.value.name }}</option>
+          }
+        </select>
+      </div>
+      <div class="field">
+        <label class="field__label" for="dm-spell-name">Название заклинания</label>
+        <input
+          id="dm-spell-name"
+          class="field__input"
+          type="text"
+          placeholder="Например: Огненный шар"
+          [value]="spellName()"
+          (input)="setText(spellName, $event)"
+        />
+      </div>
+      <div class="field">
+        <label class="field__label" for="dm-spell-level">Уровень (0 = заговор)</label>
+        <input
+          id="dm-spell-level"
+          class="field__input"
+          type="number"
+          min="0"
+          max="9"
+          [value]="spellLevel()"
+          (input)="onLevelInput($event)"
+        />
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label class="field__label" for="dm-spell-school">Школа</label>
+        <input id="dm-spell-school" class="field__input" type="text" [value]="school()" (input)="setText(school, $event)" />
+      </div>
+      <div class="field">
+        <label class="field__label" for="dm-spell-damage">Урон</label>
+        <input id="dm-spell-damage" class="field__input" type="text" placeholder="8d6" [value]="damageFormula()" (input)="setText(damageFormula, $event)" />
+      </div>
+      <div class="field">
+        <label class="field__label" for="dm-spell-damage-type">Тип урона</label>
+        <input id="dm-spell-damage-type" class="field__input" type="text" placeholder="огонь" [value]="damageType()" (input)="setText(damageType, $event)" />
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field field--wide">
+        <label class="field__label" for="dm-spell-description">Описание</label>
+        <input
+          id="dm-spell-description"
+          class="field__input"
+          type="text"
+          placeholder="Взрыв пламени в радиусе 20 футов"
+          [value]="description()"
+          (input)="setText(description, $event)"
+        />
+      </div>
+    </div>
+    <div class="dm-spell-actions">
+      <button
+        class="dm-btn"
+        [disabled]="!selectedPlayerId() || !spellName().trim() || saving()"
+        (click)="giveSpell()"
+      >{{ saving() ? '⏳ Выдаём…' : '🔮 Выдать заклинание' }}</button>
+      <button
+        class="dm-btn dm-btn--secondary"
+        [disabled]="!selectedPlayerId()"
+        (click)="restoreSpells()"
+      >↻ Восстановить ячейки</button>
+    </div>
+  </div>
+</details>

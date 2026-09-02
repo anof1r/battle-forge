@@ -1,6 +1,6 @@
 @use '../../../styles/mixins' as *;
 
-:host {
+app-dm-control {
   display: block;
   height: 100vh;
   background: radial-gradient(ellipse at 50% 12%, #332414, #090704 72%);
@@ -15,7 +15,6 @@
   padding: var(--bf-space-4);
   font-family: var(--bf-font-body);
   color: var(--bf-text-primary);
-}
 
 .dm-container {
   width: min(1800px, 100%);
@@ -92,6 +91,17 @@
     background: linear-gradient(180deg, rgba(132, 101, 32, 0.42), rgba(76, 58, 21, 0.34));
     color: #f0db97;
   }
+}
+
+app-dm-battle-controls,
+app-dm-battle-history,
+app-dm-combatant-roster,
+app-dm-hp-control,
+app-dm-initiative,
+app-dm-item-grant,
+app-dm-spell-grant,
+app-dm-status-effects {
+  display: contents;
 }
 
 .dm-presentation-bar {
@@ -187,6 +197,10 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: start;
   gap: var(--bf-space-4);
+}
+
+.dm-workspace-grid[hidden] {
+  display: none;
 }
 
 .dm-multi-targets,
@@ -487,6 +501,10 @@
   max-height: min(48vh, 34rem);
   overflow-y: auto;
   padding-right: var(--bf-space-1);
+}
+
+.field--wide {
+  grid-column: 1 / -1;
 }
 
 .combatant-item {
@@ -1026,4 +1044,5 @@
     flex-direction: column;
     text-align: center;
   }
+}
 }

@@ -1,0 +1,142 @@
+<details class="dm-section dm-section--effects" open>
+  <summary class="dm-section__title">✨ Статус-эффекты</summary>
+  <div class="dm-effects-panel">
+    <label class="field">
+      <span class="field__label">Участник боя</span>
+      <select class="field__input" [value]="selectedTargetId() || ''" (change)="onTargetChange($event)">
+        <option value="">Выберите игрока или существо</option>
+        @for (combatant of combatants(); track combatant.id) {
+          <option [value]="combatant.id">{{ combatant.name }} · {{ combatant.type | uppercase }}</option>
+        }
+      </select>
+    </label>
+
+    <div class="dm-effect-picker" aria-label="Выберите статус-эффект">
+      @for (effect of effectDefinitions; track effect.type) {
+        <button
+          type="button"
+          class="dm-effect-option"
+          [class.dm-effect-option--selected]="selectedEffect() === effect.type"
+          [class.dm-effect-option--beneficial]="effect.beneficial"
+          (click)="selectEffect(effect.type)"
+        >
+          <span aria-hidden="true">{{ effect.icon }}</span>
+          <strong>{{ effect.label }}</strong>
+        </button>
+      }
+    </div>
+
+    <p class="dm-effect-description">{{ selectedDefinition().description }}</p>
+
+    <div class="dm-effect-rules">
+      @if (selectedDefinition().damageCapable) {
+        <label class="field">
+          <span class="field__label">Урон при срабатывании</span>
+          <input class="field__input" type="number" min="0" [value]="damage()" (input)="onDamageInput($event)" />
+        </label>
+      }
+      <label class="field">
+        <span class="field__label">Количество срабатываний</span>
+        <input class="field__input" type="number" min="0" [value]="duration()" (input)="onDurationInput($event)" />
+        <small>0 — пока ДМ не снимет эффект</small>
+      </label>
+      @if (hasTurnConfig()) {
+        <label class="field">
+          <span class="field__label">Когда срабатывает</span>
+          <select class="field__input" [value]="trigger()" (change)="onTriggerChange($event)">
+            <option value="turn-start">В начале хода цели</option>
+            <option value="turn-end">В конце хода цели</option>
+          </select>
+        </label>
+      }
+      <label class="field">
+        <span class="field__label">Источник</span>
+        <input
+          class="field__input"
+          type="text"
+          placeholder="Заклинание или способность"
+          [value]="source()"
+          (input)="setText(source, $event)"
+        />
+      </label>
+      <label class="field">
+        <span class="field__label">Концентрация</span>
+        <select
+          class="field__input"
+          [value]="concentrationSourceId()"
+          (change)="setText(concentrationSourceId, $event)"
+        >
+          <option value="">Не требуется</option>
+          @for (combatant of combatants(); track combatant.id) {
+            <option [value]="combatant.id">Концентрируется: {{ combatant.name }}</option>
+          }
+        </select>
+      </label>
+      <label class="field">
+        <span class="field__label">Спасбросок</span>
+        <input
+          class="field__input"
+          type="text"
+          placeholder="ЛОВ, ТЕЛ, МДР…"
+          [value]="saveAbility()"
+          (input)="setText(saveAbility, $event)"
+        />
+      </label>
+      <label class="field">
+        <span class="field__label">Сложность</span>
+        <input class="field__input" type="number" min="0" [value]="saveDc()" (input)="onSaveDcInput($event)" />
+      </label>
+      <label class="field">
+        <span class="field__label">Заметка</span>
+        <input
+          class="field__input"
+          type="text"
+          placeholder="Повторить спасбросок в конце хода"
+          [value]="notes()"
+          (input)="setText(notes, $event)"
+        />
+      </label>
+    </div>
+
+    <button class="dm-btn" [disabled]="!canApply() || applying()" (click)="applyEffect()">
+      {{ applying() ? 'Назначаем…' : '✨ Назначить эффект' }}
+    </button>
+    @if (error()) {
+      <p class="dm-effect-error" role="alert">{{ error() }}</p>
+    }
+
+    <div class="dm-active-effects">
+      <h3>Активные эффекты</h3>
+      @for (combatant of combatantsWithEffects(); track combatant.id) {
+        <div class="dm-active-effects__combatant">
+          <strong>{{ combatant.name }}</strong>
+          <div class="dm-active-effects__list">
+            @for (effect of combatant.activeEffects ?? []; track effect.id) {
+              <span [class]="'dm-active-effect dm-active-effect--' + effect.type">
+                <span aria-hidden="true">{{ effect.customIcon || effectDefinition(effect.type).icon }}</span>
+                {{ effect.customLabel || effectDefinition(effect.type).label }}
+                @if (effect.damagePerTrigger) { <small>−{{ effect.damagePerTrigger }} HP</small> }
+                @if (effect.durationLabel) {
+                  <small>{{ effect.durationLabel }}</small>
+                } @else if (effect.remainingTriggers) {
+                  <small>×{{ effect.remainingTriggers }}</small>
+                }
+                @if (effect.source) { <small>{{ effect.source }}</small> }
+                @if (effect.concentrationSourceId) { <small>Концентрация</small> }
+                @if (effect.saveAbility) { <small>{{ effect.saveAbility }} СЛ {{ effect.saveDc || '—' }}</small> }
+                <button
+                  type="button"
+                  [disabled]="removingEffectId() !== null"
+                  (click)="removeEffect(combatant.id, effect.id)"
+                  [attr.aria-label]="'Снять эффект ' + (effect.customLabel || effectDefinition(effect.type).label)"
+                >×</button>
+              </span>
+            }
+          </div>
+        </div>
+      } @empty {
+        <p class="empty-hint">На участниках пока нет активных эффектов.</p>
+      }
+    </div>
+  </div>
+</details>

@@ -1,0 +1,13 @@
+<details class="dm-section dm-section--history">
+  <summary class="dm-section__title">📜 Журнал боя ({{ history().length }})</summary>
+  <div class="dm-history">
+    @for (entry of history().slice().reverse(); track entry.id) {
+      <div class="dm-history__entry">
+        <span>{{ entry.description }}</span>
+        <time>{{ entry.timestamp | date: 'HH:mm:ss' }}</time>
+      </div>
+    } @empty {
+      <p class="empty-hint">Действия появятся после изменения боя.</p>
+    }
+  </div>
+</details>

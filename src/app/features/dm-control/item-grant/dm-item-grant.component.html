@@ -1,0 +1,69 @@
+<details class="dm-section dm-section--inventory" open>
+  <summary class="dm-section__title">🎒 Выдать разовый предмет</summary>
+  <div class="dm-inventory-form">
+    <div class="field-row">
+      <div class="field">
+        <label class="field__label" for="dm-item-player">Игрок</label>
+        <select
+          id="dm-item-player"
+          class="field__input"
+          [value]="selectedPlayerId() || ''"
+          (change)="onPlayerChange($event)"
+        >
+          <option value="" disabled>Выберите игрока</option>
+          @for (player of players() | keyvalue; track player.value.id) {
+            <option [value]="player.value.id">{{ player.value.name }}</option>
+          }
+        </select>
+      </div>
+      <div class="field">
+        <label class="field__label" for="dm-item-name">Предмет</label>
+        <input
+          id="dm-item-name"
+          class="field__input"
+          type="text"
+          placeholder="Зелье здоровья"
+          [value]="itemName()"
+          (input)="setText(itemName, $event)"
+        />
+      </div>
+      <div class="field">
+        <label class="field__label" for="dm-item-description">Описание</label>
+        <input
+          id="dm-item-description"
+          class="field__input"
+          type="text"
+          placeholder="Зелье восстанавливает 2d4+2 HP"
+          [value]="description()"
+          (input)="setText(description, $event)"
+        />
+      </div>
+      <div class="field field--wide">
+        <label class="field__label" for="dm-item-rarity">Редкость</label>
+        <select id="dm-item-rarity" class="field__input" [value]="rarity()" (change)="onRarityChange($event)">
+          <option value="common">Обычный</option>
+          <option value="uncommon">Необычный</option>
+          <option value="rare">Редкий</option>
+          <option value="epic">Эпический</option>
+          <option value="legendary">Легендарный</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="field__label" for="dm-item-quantity">Количество</label>
+        <input
+          id="dm-item-quantity"
+          class="field__input"
+          type="number"
+          min="1"
+          [value]="quantity()"
+          (input)="onQuantityInput($event)"
+        />
+      </div>
+    </div>
+    <button
+      class="dm-btn"
+      [disabled]="!selectedPlayerId() || !itemName().trim() || quantity() < 1 || saving()"
+      (click)="giveItem()"
+    >{{ saving() ? '⏳ Выдаём…' : '🎒 Выдать предмет' }}</button>
+  </div>
+</details>

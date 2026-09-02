@@ -1,0 +1,135 @@
+<details class="dm-section dm-section--damage" open>
+  <summary class="dm-section__title">❤️ Изменить HP</summary>
+  <div class="dm-damage-panel">
+    <div class="dm-hp-tabs" role="group" aria-label="Режим изменения HP">
+      <button
+        type="button"
+        [class.dm-hp-tabs__button--active]="hpOperation() === 'damage'"
+        (click)="setOperation('damage')"
+      >💥 Нанести урон</button>
+      <button
+        type="button"
+        [class.dm-hp-tabs__button--active]="hpOperation() === 'heal'"
+        (click)="setOperation('heal')"
+      >❤️ Добавить HP</button>
+      <button
+        type="button"
+        [class.dm-hp-tabs__button--active]="hpOperation() === 'temporary'"
+        (click)="setOperation('temporary')"
+      >🛡️ Временные HP</button>
+    </div>
+
+    <div class="dm-damage__target-type">
+      <label class="dm-damage__radio">
+        <input
+          type="radio"
+          value="enemies"
+          [checked]="targetType() === 'enemies'"
+          (change)="setTargetType('enemies')"
+        />
+        Враги
+      </label>
+      <label class="dm-damage__radio">
+        <input
+          type="radio"
+          value="players"
+          [checked]="targetType() === 'players'"
+          (change)="setTargetType('players')"
+        />
+        Игроки
+      </label>
+      @if (hpOperation() === 'damage') {
+        <label class="dm-damage__radio">
+          <input
+            type="radio"
+            value="all"
+            [checked]="targetType() === 'all'"
+            (change)="setTargetType('all')"
+          />
+          Все враги
+        </label>
+      }
+      @if (hpOperation() !== 'temporary') {
+        <label class="dm-damage__radio">
+          <input
+            type="radio"
+            value="selected"
+            [checked]="targetType() === 'selected'"
+            (change)="setTargetType('selected')"
+          />
+          Выбрать несколько
+        </label>
+      }
+    </div>
+
+    @if (targetType() !== 'all' && targetType() !== 'selected') {
+      <div class="dm-damage__target-select">
+        <label class="field__label" for="dm-hp-target">Цель</label>
+        <select
+          id="dm-hp-target"
+          class="field__input"
+          [value]="targetId() || ''"
+          (change)="onTargetChange($event)"
+        >
+          <option value="" disabled>Выберите цель</option>
+          @for (target of availableTargets(); track target.id) {
+            <option [value]="target.id">
+              {{ target.name }} (HP: {{ target.currentHp }}/{{ target.maxHp }})
+            </option>
+          }
+        </select>
+      </div>
+    }
+
+    @if (targetType() === 'selected') {
+      <div class="dm-multi-targets" aria-label="Выбор нескольких целей">
+        @for (target of availableTargets(); track target.id) {
+          <label class="dm-damage__radio">
+            <input
+              type="checkbox"
+              [checked]="selectedCombatantIds().includes(target.id)"
+              (change)="onTargetToggle(target.id, $event)"
+            />
+            {{ target.name }} · {{ target.currentHp }}/{{ target.maxHp }} HP
+          </label>
+        }
+      </div>
+    }
+
+    <div class="dm-damage__controls">
+      <div class="field">
+        <label class="field__label" for="dm-hp-amount">
+          {{ hpOperation() === 'damage' ? 'Урон' : hpOperation() === 'heal' ? 'Лечение' : 'Временные HP' }}
+        </label>
+        <input
+          id="dm-hp-amount"
+          class="field__input"
+          type="number"
+          min="0"
+          [attr.max]="hpOperation() === 'heal' ? maxHealingAmount() : null"
+          [value]="amount()"
+          (input)="onAmountInput($event)"
+        />
+        @if (hpOperation() === 'heal' && maxHealingAmount() !== null) {
+          <small class="field__hint">Можно восстановить не больше {{ maxHealingAmount() }} HP.</small>
+        }
+      </div>
+      @if (hpOperation() === 'damage') {
+        <button class="dm-btn dm-btn--danger" [disabled]="!canApplyDamage()" (click)="applyDamage()">
+          💥 Нанести урон
+        </button>
+      } @else if (hpOperation() === 'heal') {
+        <button class="dm-btn dm-btn--success" [disabled]="!canApplyHealing()" (click)="applyHealing()">
+          ❤️ Добавить HP
+        </button>
+      } @else {
+        <button
+          class="dm-btn dm-btn--success"
+          [disabled]="!canApplyTemporaryHp()"
+          (click)="applyTemporaryHp()"
+        >🛡️ Установить временные HP</button>
+      }
+      <button class="dm-btn dm-btn--secondary" (click)="resetForm()">✕ Сбросить</button>
+    </div>
+  </div>
+</details>
