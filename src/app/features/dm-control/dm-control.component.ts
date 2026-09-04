@@ -6,7 +6,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { UpperCasePipe } from '@angular/common';
+import { TranslocoPipe } from '@jsverse/transloco';
 import { BATTLE_STATUS } from '../../core/constants/battle-status.constants';
 import { BattleService } from '../../core/services/battle.service';
 import { StoryPresentationService } from '../../core/services/story-presentation.service';
@@ -29,7 +29,7 @@ import { DmWorkspacePanel } from './dm-control.model';
   selector: 'app-dm-control',
   standalone: true,
   imports: [
-    UpperCasePipe,
+    TranslocoPipe,
     DmBattleControlsComponent,
     DmBattleHistoryComponent,
     DmCharacterResourcesComponent,

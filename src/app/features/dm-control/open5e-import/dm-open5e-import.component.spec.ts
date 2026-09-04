@@ -12,6 +12,7 @@ import { Open5eService } from './open5e.service';
 import { SceneLibraryService } from '../scene-library/scene-library.service';
 import { SpellLibraryService } from './spell-library.service';
 import { DmOpen5eImportComponent } from './dm-open5e-import.component';
+import { LanguageService } from '../../../core/i18n/language.service';
 
 describe('DmOpen5eImportComponent', () => {
   let fixture: ComponentFixture<DmOpen5eImportComponent>;
@@ -89,6 +90,7 @@ describe('DmOpen5eImportComponent', () => {
     });
     fixture = TestBed.createComponent(DmOpen5eImportComponent);
     component = fixture.componentInstance;
+    TestBed.inject(LanguageService).setLanguage('ru');
   });
 
   it('searches the selected Open5e collection and keeps the source filter', async () => {
@@ -124,5 +126,25 @@ describe('DmOpen5eImportComponent', () => {
       }),
     );
     expect(component.feedback()).toContain('сохранено и выдано');
+  });
+  it('saves the untouched Open5e original when English is active', async () => {
+    TestBed.inject(LanguageService).setLanguage('en');
+    component.selectEntry(magicMissile);
+    component.spellName.set('Этот черновик не должен сохраниться');
+
+    component.saveSelected();
+
+    await vi.waitFor(() => expect(spellLibrary.saveSpell).toHaveBeenCalled());
+    expect(spellLibrary.saveSpell).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'Magic Missile',
+        description: 'Three glowing darts strike targets.',
+        school: 'Evocation',
+        source: expect.objectContaining({
+          originalName: 'Magic Missile',
+          contentLanguage: 'en',
+        }),
+      }),
+    );
   });
 });

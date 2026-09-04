@@ -1,34 +1,34 @@
 <details class="dm-section dm-section--spells" open>
-  <summary class="dm-section__title">🔮 Выдать заклинание игроку</summary>
+  <summary class="dm-section__title">🔮 {{ 'spellGrant.title' | transloco }}</summary>
   <div class="dm-spell-form">
     <div class="field-row">
       <div class="field">
-        <label class="field__label" for="dm-spell-player">Игрок</label>
+        <label class="field__label" for="dm-spell-player">{{ 'common.player' | transloco }}</label>
         <select
           id="dm-spell-player"
           class="field__input"
           [value]="selectedPlayerId() || ''"
           (change)="onPlayerChange($event)"
         >
-          <option value="" disabled>Выберите игрока</option>
+          <option value="" disabled>{{ 'common.selectPlayer' | transloco }}</option>
           @for (player of players() | keyvalue; track player.value.id) {
             <option [value]="player.value.id">{{ player.value.name }}</option>
           }
         </select>
       </div>
       <div class="field">
-        <label class="field__label" for="dm-spell-name">Название заклинания</label>
+        <label class="field__label" for="dm-spell-name">{{ 'spellGrant.name' | transloco }}</label>
         <input
           id="dm-spell-name"
           class="field__input"
           type="text"
-          placeholder="Например: Огненный шар"
+          [placeholder]="'spellGrant.namePlaceholder' | transloco"
           [value]="spellName()"
           (input)="setText(spellName, $event)"
         />
       </div>
       <div class="field">
-        <label class="field__label" for="dm-spell-level">Уровень (0 = заговор)</label>
+        <label class="field__label" for="dm-spell-level">{{ 'spellGrant.level' | transloco }}</label>
         <input
           id="dm-spell-level"
           class="field__input"
@@ -42,26 +42,26 @@
     </div>
     <div class="field-row">
       <div class="field">
-        <label class="field__label" for="dm-spell-school">Школа</label>
+        <label class="field__label" for="dm-spell-school">{{ 'open5e.fields.school' | transloco }}</label>
         <input id="dm-spell-school" class="field__input" type="text" [value]="school()" (input)="setText(school, $event)" />
       </div>
       <div class="field">
-        <label class="field__label" for="dm-spell-damage">Урон</label>
+        <label class="field__label" for="dm-spell-damage">{{ 'common.damage' | transloco }}</label>
         <input id="dm-spell-damage" class="field__input" type="text" placeholder="8d6" [value]="damageFormula()" (input)="setText(damageFormula, $event)" />
       </div>
       <div class="field">
-        <label class="field__label" for="dm-spell-damage-type">Тип урона</label>
-        <input id="dm-spell-damage-type" class="field__input" type="text" placeholder="огонь" [value]="damageType()" (input)="setText(damageType, $event)" />
+        <label class="field__label" for="dm-spell-damage-type">{{ 'open5e.fields.damageType' | transloco }}</label>
+        <input id="dm-spell-damage-type" class="field__input" type="text" [placeholder]="'spellGrant.damageTypePlaceholder' | transloco" [value]="damageType()" (input)="setText(damageType, $event)" />
       </div>
     </div>
     <div class="field-row">
       <div class="field field--wide">
-        <label class="field__label" for="dm-spell-description">Описание</label>
+        <label class="field__label" for="dm-spell-description">{{ 'common.description' | transloco }}</label>
         <input
           id="dm-spell-description"
           class="field__input"
           type="text"
-          placeholder="Взрыв пламени в радиусе 20 футов"
+          [placeholder]="'spellGrant.descriptionPlaceholder' | transloco"
           [value]="description()"
           (input)="setText(description, $event)"
         />
@@ -72,12 +72,12 @@
         class="dm-btn"
         [disabled]="!selectedPlayerId() || !spellName().trim() || saving()"
         (click)="giveSpell()"
-      >{{ saving() ? '⏳ Выдаём…' : '🔮 Выдать заклинание' }}</button>
+      >{{ (saving() ? 'common.giving' : 'spellGrant.submit') | transloco }}</button>
       <button
         class="dm-btn dm-btn--secondary"
         [disabled]="!selectedPlayerId()"
         (click)="restoreSpells()"
-      >↻ Восстановить ячейки</button>
+      >↻ {{ 'spellGrant.restoreSlots' | transloco }}</button>
     </div>
   </div>
 </details>

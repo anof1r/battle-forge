@@ -1,11 +1,11 @@
 <div [class]="'life-state life-state--' + status()" role="status">
   <strong>
     <span aria-hidden="true">{{ state().icon }}</span>
-    {{ state().label }}
+    {{ state().labelKey | transloco }}
   </strong>
   @if (status() !== 'alive') {
     <span class="life-state__saves">
-      Спасброски: ✓ {{ deathSaves()?.successes ?? 0 }}/3 · ✕
+      {{ 'lifeState.deathSaves' | transloco }}: ✓ {{ deathSaves()?.successes ?? 0 }}/3 · ✕
       {{ deathSaves()?.failures ?? 0 }}/3
     </span>
   }

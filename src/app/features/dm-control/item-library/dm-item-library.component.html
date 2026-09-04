@@ -1,34 +1,34 @@
 <details class="item-library" open>
-  <summary class="item-library__title">📚 Библиотека предметов</summary>
+  <summary class="item-library__title">📚 {{ 'itemLibrary.title' | transloco }}</summary>
 
   <div class="item-library__content">
     <section class="quick-give" aria-labelledby="quick-give-title">
-      <h3 id="quick-give-title">Быстрая выдача</h3>
+      <h3 id="quick-give-title">{{ 'itemLibrary.quickGive' | transloco }}</h3>
       <div class="item-library__fields">
         <label>
-          <span>Игрок</span>
+          <span>{{ 'common.player' | transloco }}</span>
           <select [value]="selectedPlayerId()" (change)="selectPlayer($event)">
-            <option value="">Выберите игрока</option>
+            <option value="">{{ 'common.selectPlayer' | transloco }}</option>
             @for (player of players(); track player.id) {
               <option [value]="player.id">{{ player.name }}</option>
             }
           </select>
         </label>
         <label>
-          <span>Предмет</span>
+          <span>{{ 'common.item' | transloco }}</span>
           <select [value]="selectedTemplateId()" (change)="selectTemplate($event)">
-            <option value="">Выберите шаблон</option>
+            <option value="">{{ 'itemLibrary.selectTemplate' | transloco }}</option>
             @for (item of items(); track item.id) {
               <option [value]="item.id">{{ item.icon }} {{ item.name }}</option>
             }
           </select>
         </label>
         <label>
-          <span>Количество</span>
+          <span>{{ 'common.quantity' | transloco }}</span>
           <input type="number" min="1" [value]="giveQuantity()" (input)="setGiveQuantity($event)" />
         </label>
         <button type="button" [disabled]="!canGive() || giving()" (click)="giveItem()">
-          {{ giving() ? 'Выдаём…' : '🎒 Выдать' }}
+          {{ (giving() ? 'common.giving' : 'itemLibrary.give') | transloco }}
         </button>
       </div>
 
@@ -38,80 +38,80 @@
           @if (item.effectFormula) {
             <span>🎲 {{ item.effectFormula }}</span>
           }
-          <span>{{ item.description || 'Без описания' }}</span>
+          <span>{{ item.description || ('common.noDescription' | transloco) }}</span>
         </div>
       }
     </section>
 
     <div class="item-library__workspace">
       <section class="item-editor">
-        <h3>{{ itemId() ? 'Редактирование шаблона' : 'Новый шаблон' }}</h3>
+        <h3>{{ (itemId() ? 'itemLibrary.editTemplate' : 'itemLibrary.newTemplate') | transloco }}</h3>
         <div class="item-library__fields item-library__fields--editor">
           <label>
-            <span>Название</span>
-            <input type="text" [value]="itemName()" (input)="setName($event)" placeholder="Зелье лечения" />
+            <span>{{ 'common.name' | transloco }}</span>
+            <input type="text" [value]="itemName()" (input)="setName($event)" [placeholder]="'itemLibrary.namePlaceholder' | transloco" />
           </label>
           <label>
-            <span>Формула эффекта</span>
+            <span>{{ 'itemLibrary.effectFormula' | transloco }}</span>
             <input type="text" [value]="itemEffectFormula()" (input)="setEffectFormula($event)" placeholder="1d4" />
           </label>
           <label>
-            <span>Количество по умолчанию</span>
+            <span>{{ 'itemLibrary.defaultQuantity' | transloco }}</span>
             <input type="number" min="1" [value]="itemDefaultQuantity()" (input)="setDefaultQuantity($event)" />
           </label>
           <label>
-            <span>Редкость</span>
+            <span>{{ 'common.rarity' | transloco }}</span>
             <select [value]="itemRarity()" (change)="setRarity($event)">
-              <option value="common">Обычный</option>
-              <option value="uncommon">Необычный</option>
-              <option value="rare">Редкий</option>
-              <option value="epic">Эпический</option>
-              <option value="legendary">Легендарный</option>
+              <option value="common">{{ 'item.rarity.common' | transloco }}</option>
+              <option value="uncommon">{{ 'item.rarity.uncommon' | transloco }}</option>
+              <option value="rare">{{ 'item.rarity.rare' | transloco }}</option>
+              <option value="epic">{{ 'item.rarity.epic' | transloco }}</option>
+              <option value="legendary">{{ 'item.rarity.legendary' | transloco }}</option>
             </select>
           </label>
           <label>
-            <span>Иконка</span>
+            <span>{{ 'itemLibrary.icon' | transloco }}</span>
             <input type="text" [value]="itemIcon()" (input)="setIcon($event)" placeholder="🧪" />
           </label>
           <label class="item-editor__description">
-            <span>Описание</span>
-            <textarea rows="3" [value]="itemDescription()" (input)="setDescription($event)" placeholder="Восстанавливает HP"></textarea>
+            <span>{{ 'common.description' | transloco }}</span>
+            <textarea rows="3" [value]="itemDescription()" (input)="setDescription($event)" [placeholder]="'itemLibrary.descriptionPlaceholder' | transloco"></textarea>
           </label>
         </div>
         <div class="item-editor__checks">
-          <label><input type="checkbox" [checked]="itemStackable()" (change)="setStackable($event)" /> Складывается в стопку</label>
-          <label><input type="checkbox" [checked]="itemConsumable()" (change)="setConsumable($event)" /> Расходуется</label>
+          <label><input type="checkbox" [checked]="itemStackable()" (change)="setStackable($event)" /> {{ 'itemLibrary.stackable' | transloco }}</label>
+          <label><input type="checkbox" [checked]="itemConsumable()" (change)="setConsumable($event)" /> {{ 'itemLibrary.consumable' | transloco }}</label>
         </div>
         <div class="item-library__actions">
           <button type="button" [disabled]="!canSave() || saving()" (click)="saveItem()">
-            {{ saving() ? 'Сохраняем…' : '💾 Сохранить шаблон' }}
+            {{ (saving() ? 'common.saving' : 'itemLibrary.saveTemplate') | transloco }}
           </button>
           @if (itemId()) {
-            <button type="button" class="secondary" (click)="resetEditor()">Отмена</button>
+            <button type="button" class="secondary" (click)="resetEditor()">{{ 'common.cancel' | transloco }}</button>
           }
         </div>
       </section>
 
       <section class="saved-items">
-        <h3>Сохранённые предметы ({{ items().length }})</h3>
+        <h3>{{ 'itemLibrary.savedItems' | transloco: { count: items().length } }}</h3>
         <div class="saved-items__list">
           @for (item of items(); track item.id) {
             <article class="saved-item">
               <div>
                 <strong>{{ item.icon || '📦' }} {{ item.name }}</strong>
-                <span>{{ item.rarity }} · по {{ item.defaultQuantity }} шт.</span>
+                <span>{{ ('item.rarity.' + item.rarity) | transloco }} · {{ 'itemLibrary.perUnits' | transloco: { count: item.defaultQuantity } }}</span>
                 @if (item.effectFormula) {
                   <span>🎲 {{ item.effectFormula }}</span>
                 }
-                <p>{{ item.description || 'Без описания' }}</p>
+                <p>{{ item.description || ('common.noDescription' | transloco) }}</p>
               </div>
               <div class="item-library__actions">
-                <button type="button" class="secondary" (click)="editItem(item)">Изменить</button>
-                <button type="button" class="danger" (click)="deleteItem(item)">Удалить</button>
+                <button type="button" class="secondary" (click)="editItem(item)">{{ 'common.edit' | transloco }}</button>
+                <button type="button" class="danger" (click)="deleteItem(item)">{{ 'common.delete' | transloco }}</button>
               </div>
             </article>
           } @empty {
-            <p class="item-library__empty">Сохраните первый предмет — после этого его можно будет быстро выдавать любому игроку.</p>
+            <p class="item-library__empty">{{ 'itemLibrary.empty' | transloco }}</p>
           }
         </div>
       </section>

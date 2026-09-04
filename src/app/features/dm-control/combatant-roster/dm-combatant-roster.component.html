@@ -1,5 +1,5 @@
 <details class="dm-section dm-section--combatants" open>
-  <summary class="dm-section__title">👥 Участники боя ({{ combatants().length }})</summary>
+  <summary class="dm-section__title">👥 {{ 'roster.title' | transloco: { count: combatants().length } }}</summary>
   <div class="combatant-list">
     @for (combatant of combatants(); track combatant.id; let order = $index) {
       <article
@@ -9,17 +9,17 @@
         [class.combatant-item--downed]="combatant.status === COMBATANT_STATUS.DOWNED"
         [class.combatant-item--dead]="combatant.status === COMBATANT_STATUS.DEAD"
       >
-        <span class="combatant-item__order" [attr.aria-label]="'Позиция ' + (order + 1)">
+        <span class="combatant-item__order" [attr.aria-label]="'roster.position' | transloco: { position: order + 1 }">
           {{ order + 1 }}
         </span>
         <div class="combatant-item__body">
           <div class="combatant-item__heading">
             <strong>{{ combatant.name }}</strong>
             <span class="combatant-item__type">
-              {{ combatant.type === COMBATANT_TYPE.PLAYER ? 'Игрок' : 'Существо' }}
+              {{ (combatant.type === COMBATANT_TYPE.PLAYER ? 'combatant.type.player' : 'combatant.type.enemy') | transloco }}
             </span>
             @if (currentCombatant()?.id === combatant.id) {
-              <span class="combatant-item__current">⚔️ Сейчас ходит</span>
+              <span class="combatant-item__current">⚔️ {{ 'roster.current' | transloco }}</span>
             }
           </div>
           <div class="combatant-item__stats">
@@ -27,8 +27,8 @@
             @if ((combatant.temporaryHp ?? 0) > 0) {
               <span>🛡️ {{ combatant.temporaryHp }}</span>
             }
-            <span>КД {{ combatant.ac }}</span>
-            <span>Инициатива {{ combatant.initiative }}</span>
+            <span>{{ 'common.ac' | transloco }} {{ combatant.ac }}</span>
+            <span>{{ 'common.initiative' | transloco }} {{ combatant.initiative }}</span>
             <span [class]="'combatant-item__life combatant-item__life--' + combatant.status">
               {{ lifeStatusLabel(combatant) }}
             </span>
@@ -46,20 +46,20 @@
         <div class="combatant-item__actions">
           <button
             class="dm-btn dm-btn--small"
-            title="Сделать текущим ходом"
-            [attr.aria-label]="'Передать ход: ' + combatant.name"
+            [title]="'roster.makeCurrent' | transloco"
+            [attr.aria-label]="'roster.passTurn' | transloco: { name: combatant.name }"
             (click)="setCurrentTurn(combatant.id)"
           >▶</button>
           <button
             class="dm-btn dm-btn--small"
-            title="Выше в инициативе"
-            [attr.aria-label]="'Поднять в инициативе: ' + combatant.name"
+            [title]="'roster.moveUp' | transloco"
+            [attr.aria-label]="'roster.moveUpName' | transloco: { name: combatant.name }"
             (click)="moveCombatant(combatant.id, -1)"
           >↑</button>
           <button
             class="dm-btn dm-btn--small"
-            title="Ниже в инициативе"
-            [attr.aria-label]="'Опустить в инициативе: ' + combatant.name"
+            [title]="'roster.moveDown' | transloco"
+            [attr.aria-label]="'roster.moveDownName' | transloco: { name: combatant.name }"
             (click)="moveCombatant(combatant.id, 1)"
           >↓</button>
           @if (
@@ -69,19 +69,19 @@
             <button
               class="dm-btn dm-btn--small dm-btn--success"
               (click)="recordDeathSave(combatant.id, DEATH_SAVE_RESULT.SUCCESS)"
-            >✓ Успех</button>
+            >✓ {{ 'roster.success' | transloco }}</button>
             <button
               class="dm-btn dm-btn--small dm-btn--danger"
               (click)="recordDeathSave(combatant.id, DEATH_SAVE_RESULT.FAILURE)"
-            >✕ Провал</button>
+            >✕ {{ 'roster.failure' | transloco }}</button>
             <button
               class="dm-btn dm-btn--small"
-              title="Натуральная 20: подняться с 1 HP"
+              [title]="'roster.natural20' | transloco"
               (click)="recordDeathSave(combatant.id, DEATH_SAVE_RESULT.CRITICAL_SUCCESS)"
             >20</button>
             <button
               class="dm-btn dm-btn--small"
-              title="Натуральная 1: два провала"
+              [title]="'roster.natural1' | transloco"
               (click)="recordDeathSave(combatant.id, DEATH_SAVE_RESULT.CRITICAL_FAILURE)"
             >1</button>
           }
@@ -94,18 +94,18 @@
             <button
               class="dm-btn dm-btn--small dm-btn--success"
               (click)="reviveCombatant(combatant.id)"
-            >Вернуть в бой</button>
+            >{{ 'roster.revive' | transloco }}</button>
           }
           <button
             class="dm-btn dm-btn--small dm-btn--secondary"
-            [attr.aria-label]="'Убрать из боя: ' + combatant.name"
+            [attr.aria-label]="'roster.remove' | transloco: { name: combatant.name }"
             (click)="removeCombatant(combatant)"
           >✕</button>
         </div>
       </article>
     } @empty {
       <div class="empty-hint">
-        Участников пока нет. Игроки загрузятся из базы автоматически, существ добавьте из сцены.
+        {{ 'roster.empty' | transloco }}
       </div>
     }
   </div>

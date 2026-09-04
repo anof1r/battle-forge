@@ -6,7 +6,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { UpperCasePipe } from '@angular/common';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { COMBATANT_STATUS } from '../../../core/constants/combatant.constants';
 import {
   getStatusEffectDefinition,
@@ -22,13 +22,14 @@ import { LoggerService } from '../../../core/services/logger.service';
 @Component({
   selector: 'app-dm-status-effects',
   standalone: true,
-  imports: [UpperCasePipe],
+  imports: [TranslocoPipe],
   templateUrl: './dm-status-effects.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DmStatusEffectsComponent {
   private readonly battleService = inject(BattleService);
   private readonly logger = inject(LoggerService);
+  private readonly i18n = inject(TranslocoService);
 
   readonly effectDefinitions = STATUS_EFFECT_DEFINITIONS.filter(
     (effect) => effect.type !== STATUS_EFFECT_TYPE.RESOURCE_ACTIVE,
@@ -130,14 +131,14 @@ export class DmStatusEffectsComponent {
       })
       .then((added) => {
         if (!added) {
-          this.error.set('Эффект уже назначен или участник больше недоступен.');
+          this.error.set(this.i18n.translate('statusEffects.error.alreadyApplied'));
           return;
         }
         this.resetOptionalFields();
       })
       .catch((error: unknown) => {
         this.logger.error('DmStatusEffectsComponent.applyEffect', error);
-        this.error.set('Не удалось назначить эффект.');
+        this.error.set(this.i18n.translate('statusEffects.error.apply'));
       })
       .finally(() => this.applying.set(false));
   }
@@ -149,11 +150,13 @@ export class DmStatusEffectsComponent {
     this.battleService
       .removeStatusEffect(combatantId, effectId)
       .then((removed) => {
-        if (!removed) this.error.set('Эффект уже снят или участник больше недоступен.');
+        if (!removed) {
+          this.error.set(this.i18n.translate('statusEffects.error.alreadyRemoved'));
+        }
       })
       .catch((error: unknown) => {
         this.logger.error('DmStatusEffectsComponent.removeEffect', error);
-        this.error.set('Не удалось снять эффект.');
+        this.error.set(this.i18n.translate('statusEffects.error.remove'));
       })
       .finally(() => this.removingEffectId.set(null));
   }

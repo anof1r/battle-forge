@@ -7,6 +7,7 @@ import {
   output,
   signal,
 } from '@angular/core';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { BATTLE_STATUS } from '../../../core/constants/battle-status.constants';
 import { SceneTransitionMode } from '../../../core/models';
 import { BattleService } from '../../../core/services/battle.service';
@@ -16,6 +17,7 @@ import { LoggerService } from '../../../core/services/logger.service';
 @Component({
   selector: 'app-dm-battle-controls',
   standalone: true,
+  imports: [TranslocoPipe],
   templateUrl: './dm-battle-controls.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -23,6 +25,7 @@ export class DmBattleControlsComponent implements OnInit {
   private readonly battleService = inject(BattleService);
   private readonly characterService = inject(CharacterService);
   private readonly logger = inject(LoggerService);
+  private readonly i18n = inject(TranslocoService);
 
   readonly initiativeRequested = output<Record<string, number>>();
   readonly initiativeClosed = output<void>();
@@ -80,13 +83,13 @@ export class DmBattleControlsComponent implements OnInit {
 
   finishScene(mode: SceneTransitionMode): void {
     if (this.transitioningScene()) return;
-    const message =
+    const messageKey =
       mode === 'long-rest'
-        ? 'Завершить сцену, убрать врагов и полностью восстановить живых игроков?'
+        ? 'longRest'
         : mode === 'short-rest'
-          ? 'Завершить сцену с коротким отдыхом? HP не изменится.'
-          : 'Завершить сцену, убрать врагов и сохранить текущее HP игроков?';
-    if (!globalThis.confirm(message)) return;
+          ? 'shortRest'
+          : 'keepHp';
+    if (!globalThis.confirm(this.i18n.translate('battleControls.confirmFinish.' + messageKey))) return;
 
     this.transitioningScene.set(true);
     this.battleService
@@ -102,7 +105,7 @@ export class DmBattleControlsComponent implements OnInit {
   }
 
   resetScene(): void {
-    if (!globalThis.confirm('Are you sure you want to reset the entire battle?')) return;
+    if (!globalThis.confirm(this.i18n.translate('battleControls.confirmReset'))) return;
     this.battleService
       .resetScene()
       .then(() => this.initiativeClosed.emit())
@@ -121,15 +124,13 @@ export class DmBattleControlsComponent implements OnInit {
       if (showFeedback) {
         this.playerSyncMessage.set(
           players.length > 0
-            ? `Список игроков обновлён: ${players.length}.`
-            : 'В базе пока нет сохранённых игроков.',
+            ? this.i18n.translate('battleControls.feedback.playersUpdated', { count: players.length })
+            : this.i18n.translate('battleControls.feedback.noPlayers'),
         );
       }
     } catch (error) {
       this.logger.error('DmBattleControlsComponent.loadPlayersToBattle', error);
-      this.playerSyncError.set(
-        'Не удалось загрузить игроков из базы. Попробуйте обновить список.',
-      );
+      this.playerSyncError.set(this.i18n.translate('battleControls.error.loadPlayers'));
     } finally {
       this.playersLoading.set(false);
     }

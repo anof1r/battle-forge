@@ -1,0 +1,12 @@
+<label class="language-switcher">
+  <span class="language-switcher__label">{{ 'language.label' | transloco }}</span>
+  <select
+    class="language-switcher__select"
+    [value]="language.activeLanguage()"
+    (change)="setLanguage($event)"
+  >
+    @for (option of language.languages; track option.code) {
+      <option [value]="option.code">{{ option.label }}</option>
+    }
+  </select>
+</label>

@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { TranslocoPipe } from '@jsverse/transloco';
 import { COMBATANT_STATUS } from '../../../core/constants/combatant.constants';
 import { BattleService } from '../../../core/services/battle.service';
 import { LoggerService } from '../../../core/services/logger.service';
@@ -7,6 +8,7 @@ import { DmHpOperation, DmHpTargetType } from './dm-hp-control.model';
 @Component({
   selector: 'app-dm-hp-control',
   standalone: true,
+  imports: [TranslocoPipe],
   templateUrl: './dm-hp-control.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

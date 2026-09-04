@@ -6,6 +6,7 @@ import {
   computed,
   OnDestroy,
 } from '@angular/core';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { CharacterService } from '../../core/services/character.service';
 import { BattleService } from '../../core/services/battle.service';
 import { InventoryService } from '../../core/services/inventory.service';
@@ -50,7 +51,7 @@ import {
 @Component({
   selector: 'app-player',
   standalone: true,
-  imports: [StatusEffectListComponent, CombatantLifeStateComponent],
+  imports: [TranslocoPipe, StatusEffectListComponent, CombatantLifeStateComponent],
   templateUrl: './player.component.html',
   styleUrl: './player.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -62,6 +63,7 @@ export class PlayerComponent implements OnDestroy {
   private readonly battleService = inject(BattleService);
   private readonly inventoryService = inject(InventoryService);
   private readonly logger = inject(LoggerService);
+  private readonly i18n = inject(TranslocoService);
 
   // --- Внутреннее состояние ---
   private characterSubscription?: Subscription;
@@ -196,14 +198,14 @@ export class PlayerComponent implements OnDestroy {
   login(): void {
     const name = this.loginName().trim();
     if (!name) {
-      this.loginError.set('Введите имя персонажа');
+      this.loginError.set(this.i18n.translate('player.error.enterName'));
       return;
     }
     this.characterService
       .characterExists(name)
       .then((exists) => {
         if (!exists) {
-          this.loginError.set('Персонаж не найден. Загрузите JSON-файл.');
+          this.loginError.set(this.i18n.translate('player.error.notFound'));
           this.showUploadPrompt.set(true);
           return;
         }
@@ -220,7 +222,7 @@ export class PlayerComponent implements OnDestroy {
       })
       .catch((error: unknown) => {
         this.logger.error('PlayerComponent.login', error);
-        this.loginError.set('Ошибка при входе. Попробуйте позже.');
+        this.loginError.set(this.i18n.translate('player.error.login'));
       });
   }
 
@@ -244,7 +246,7 @@ export class PlayerComponent implements OnDestroy {
         );
         parsed = this.parser.parseCharacter(rawJson);
       } catch (error) {
-        this.error.set('Не удалось распарсить файл. Убедитесь, что это JSON с LSS.');
+        this.error.set(this.i18n.translate('player.error.parseJson'));
         this.logger.error('PlayerComponent.onFileSelected', error);
         return;
       }
@@ -347,7 +349,7 @@ export class PlayerComponent implements OnDestroy {
   }
 
   getSkillProficiencyLabel(skill: CharacterSkill): string {
-    return skill.proficiency === 'expertise' ? 'Экспертиза' : 'Владение';
+    return this.i18n.translate('player.proficiency.' + skill.proficiency);
   }
 
   getSpellMaxUses(spell: SpellData): number {
@@ -416,7 +418,7 @@ export class PlayerComponent implements OnDestroy {
       .usePlayerSpell(character.name, spell.id, selectedSlotLevel)
       .then((success) => {
         if (!success) {
-          this.spellUseError.set('Заклинание сейчас нельзя использовать. Обновите персонажа.');
+          this.spellUseError.set(this.i18n.translate('player.error.spellUnavailable'));
           return;
         }
 
@@ -428,7 +430,7 @@ export class PlayerComponent implements OnDestroy {
       })
       .catch((error: unknown) => {
         this.logger.error('PlayerComponent.useSpell', error);
-        this.spellUseError.set('Не удалось отметить использование заклинания. Попробуйте ещё раз.');
+        this.spellUseError.set(this.i18n.translate('player.error.spellUse'));
       })
       .finally(() => this.usingSpellId.set(null));
   }
@@ -454,7 +456,7 @@ export class PlayerComponent implements OnDestroy {
       .useResource(character.name, resource.id, amount)
       .then((success) => {
         if (!success) {
-          this.spellUseError.set('Бесплатное применение уже израсходовано.');
+          this.spellUseError.set(this.i18n.translate('player.error.freeUseSpent'));
           return;
         }
         this.spellUseConfirmation.set({
@@ -466,7 +468,7 @@ export class PlayerComponent implements OnDestroy {
       })
       .catch((error: unknown) => {
         this.logger.error('PlayerComponent.useSpellWithResource', error);
-        this.spellUseError.set('Не удалось отметить бесплатное применение заклинания.');
+        this.spellUseError.set(this.i18n.translate('player.error.freeUse'));
       })
       .finally(() => this.usingSpellId.set(null));
   }
@@ -530,7 +532,7 @@ export class PlayerComponent implements OnDestroy {
       .refreshStatusEffect(combatant.id, effect.id, duration.triggers, duration.label)
       .then((success) => {
         if (!success) {
-          this.resourceUseError.set('Не удалось продлить активный ресурс.');
+          this.resourceUseError.set(this.i18n.translate('player.error.extendResource'));
           return;
         }
         this.resourceEffectConfirmation.set({
@@ -541,7 +543,7 @@ export class PlayerComponent implements OnDestroy {
       })
       .catch((error: unknown) => {
         this.logger.error('PlayerComponent.extendResourceEffect', error);
-        this.resourceUseError.set('Не удалось продлить активный ресурс.');
+        this.resourceUseError.set(this.i18n.translate('player.error.extendResource'));
       })
       .finally(() => this.updatingResourceEffectId.set(null));
   }
@@ -571,7 +573,7 @@ export class PlayerComponent implements OnDestroy {
       .useResource(playerName, resource.id, amount)
       .then(async (success) => {
         if (!success) {
-          this.resourceUseError.set('Ресурс уже исчерпан или был изменён.');
+          this.resourceUseError.set(this.i18n.translate('player.error.resourceDepleted'));
           return;
         }
         const activated = await this.activateResourceEffect(resource);
@@ -587,7 +589,7 @@ export class PlayerComponent implements OnDestroy {
       })
       .catch((error: unknown) => {
         this.logger.error('PlayerComponent.useResource', error);
-        this.resourceUseError.set('Не удалось списать ресурс.');
+        this.resourceUseError.set(this.i18n.translate('player.error.spendResource'));
       })
       .finally(() => this.usingResourceId.set(null));
   }
@@ -622,8 +624,8 @@ export class PlayerComponent implements OnDestroy {
     return {
       triggers: rounds + (ownTurnIsActive ? 1 : 0),
       label: effect.duration === 'until-next-turn-end'
-        ? 'до конца следующего хода'
-        : `${rounds} раунд${rounds === 1 ? '' : rounds < 5 ? 'а' : 'ов'}`,
+        ? this.i18n.translate('player.duration.untilNextTurnEnd')
+        : this.i18n.translate('player.duration.rounds', { rounds }),
     };
   }
 
@@ -686,7 +688,7 @@ export class PlayerComponent implements OnDestroy {
       .consumeItem(char.name, item.id, quantity)
       .then((success) => {
         if (!success) {
-          alert('Недостаточно предметов');
+          alert(this.i18n.translate('player.error.notEnoughItems'));
           return;
         }
         this.closeUseModal();

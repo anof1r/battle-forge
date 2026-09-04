@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { ITEM_RARITY, ItemRarity } from '../../../core/constants/item-rarity.constants';
 import { ItemTemplate } from '../../../core/models';
 import { BattleService } from '../../../core/services/battle.service';
@@ -9,6 +10,7 @@ import { LoggerService } from '../../../core/services/logger.service';
 @Component({
   selector: 'app-dm-item-library',
   standalone: true,
+  imports: [TranslocoPipe],
   templateUrl: './dm-item-library.component.html',
   styleUrl: './dm-item-library.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -18,6 +20,7 @@ export class DmItemLibraryComponent {
   private readonly inventory = inject(InventoryService);
   private readonly battle = inject(BattleService);
   private readonly logger = inject(LoggerService);
+  private readonly i18n = inject(TranslocoService);
 
   readonly items = this.library.items;
   readonly players = computed(() =>
@@ -116,12 +119,16 @@ export class DmItemLibraryComponent {
         icon: this.itemIcon().trim(),
       })
       .then(() => {
-        this.feedback.set(this.itemId() ? 'Шаблон предмета обновлён.' : 'Предмет сохранён в библиотеку.');
+        this.feedback.set(
+          this.i18n.translate(
+            this.itemId() ? 'itemLibrary.feedback.updated' : 'itemLibrary.feedback.saved',
+          ),
+        );
         this.resetEditor();
       })
       .catch((error: unknown) => {
         this.logger.error('DmItemLibraryComponent.saveItem', error);
-        this.error.set('Не удалось сохранить предмет. Данные формы не потеряны.');
+        this.error.set(this.i18n.translate('itemLibrary.error.save'));
       })
       .finally(() => this.saving.set(false));
   }
@@ -140,18 +147,18 @@ export class DmItemLibraryComponent {
   }
 
   deleteItem(item: ItemTemplate): void {
-    if (!confirm(`Удалить шаблон «${item.name}»?`)) return;
+    if (!confirm(this.i18n.translate('itemLibrary.confirmDelete', { name: item.name }))) return;
     this.clearMessages();
     this.library
       .deleteItem(item.id)
       .then(() => {
         if (this.itemId() === item.id) this.resetEditor();
         if (this.selectedTemplateId() === item.id) this.selectedTemplateId.set('');
-        this.feedback.set('Шаблон предмета удалён.');
+        this.feedback.set(this.i18n.translate('itemLibrary.feedback.deleted'));
       })
       .catch((error: unknown) => {
         this.logger.error('DmItemLibraryComponent.deleteItem', error);
-        this.error.set('Не удалось удалить предмет.');
+        this.error.set(this.i18n.translate('itemLibrary.error.delete'));
       });
   }
 
@@ -173,10 +180,17 @@ export class DmItemLibraryComponent {
         isConsumable: template.isConsumable,
         icon: template.icon,
       })
-      .then(() => this.feedback.set(`${template.name} выдан персонажу ${player.name}.`))
+      .then(() =>
+        this.feedback.set(
+          this.i18n.translate('itemLibrary.feedback.given', {
+            item: template.name,
+            player: player.name,
+          }),
+        ),
+      )
       .catch((error: unknown) => {
         this.logger.error('DmItemLibraryComponent.giveItem', error);
-        this.error.set('Не удалось выдать предмет. Выбор сохранён.');
+        this.error.set(this.i18n.translate('itemLibrary.error.give'));
       })
       .finally(() => this.giving.set(false));
   }

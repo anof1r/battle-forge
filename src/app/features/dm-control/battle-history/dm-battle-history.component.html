@@ -1,5 +1,5 @@
 <details class="dm-section dm-section--history">
-  <summary class="dm-section__title">📜 Журнал боя ({{ history().length }})</summary>
+  <summary class="dm-section__title">📜 {{ 'battleHistory.title' | transloco: { count: history().length } }}</summary>
   <div class="dm-history">
     @for (entry of history().slice().reverse(); track entry.id) {
       <div class="dm-history__entry">
@@ -7,7 +7,7 @@
         <time>{{ entry.timestamp | date: 'HH:mm:ss' }}</time>
       </div>
     } @empty {
-      <p class="empty-hint">Действия появятся после изменения боя.</p>
+      <p class="empty-hint">{{ 'battleHistory.empty' | transloco }}</p>
     }
   </div>
 </details>

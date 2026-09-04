@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import {
   CharacterResource,
   ResourceEffectDuration,
@@ -14,6 +15,7 @@ import { CHARACTER_RESOURCE_PRESETS } from './dm-character-resources.constants';
 @Component({
   selector: 'app-dm-character-resources',
   standalone: true,
+  imports: [TranslocoPipe],
   templateUrl: './dm-character-resources.component.html',
   styleUrl: './dm-character-resources.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -22,6 +24,7 @@ export class DmCharacterResourcesComponent {
   private readonly battle = inject(BattleService);
   private readonly characters = inject(CharacterService);
   private readonly logger = inject(LoggerService);
+  private readonly i18n = inject(TranslocoService);
 
   readonly players = computed(() =>
     Object.values(this.battle.playersInBattle()).sort((a, b) => a.name.localeCompare(b.name)),
@@ -92,7 +95,7 @@ export class DmCharacterResourcesComponent {
         recovery: this.slotRecovery(),
       })
       .then(() => this.reloadCharacter())
-      .then(() => this.message.set('Ячейки заклинаний сохранены.'))
+      .then(() => this.message.set(this.i18n.translate('resourceManager.feedback.slotsSaved')))
       .catch((error: unknown) => this.handleError('saveSlot', error))
       .finally(() => this.saving.set(false));
   }
@@ -160,7 +163,7 @@ export class DmCharacterResourcesComponent {
       })
       .then(() => this.reloadCharacter())
       .then(() => {
-        this.message.set('Ресурс сохранён.');
+        this.message.set(this.i18n.translate('resourceManager.feedback.resourceSaved'));
         this.resetResourceEditor();
       })
       .catch((error: unknown) => this.handleError('saveResource', error))
@@ -170,7 +173,9 @@ export class DmCharacterResourcesComponent {
   deleteResource(resource: CharacterResource): void {
     const playerName = this.selectedPlayerName();
     if (!playerName || this.saving()) return;
-    if (!window.confirm(`Удалить ресурс «${resource.name}» у героя?`)) return;
+    if (!window.confirm(
+      this.i18n.translate('resourceManager.confirmDelete', { name: resource.name }),
+    )) return;
 
     this.saving.set(true);
     this.clearMessages();
@@ -179,7 +184,7 @@ export class DmCharacterResourcesComponent {
       .then(() => this.reloadCharacter())
       .then(() => {
         if (this.resourceId() === resource.id) this.resetResourceEditor();
-        this.message.set('Ресурс удалён.');
+        this.message.set(this.i18n.translate('resourceManager.feedback.resourceDeleted'));
       })
       .catch((error: unknown) => this.handleError('deleteResource', error))
       .finally(() => this.saving.set(false));
@@ -285,11 +290,9 @@ export class DmCharacterResourcesComponent {
     this.resetResourceEditor();
     switch (presetId) {
       case 'rage':
-        this.resourceName.set('Ярость');
+        this.resourceName.set(this.presetText('rage', 'name'));
         this.resourceIcon.set('🔥');
-        this.resourceDescription.set(
-          'Сопротивление дробящему, колющему и рубящему урону; +2 к урону атакой через СИЛ; преимущество на проверки и спасброски СИЛ. Нельзя колдовать и поддерживать концентрацию.',
-        );
+        this.resourceDescription.set(this.presetText('rage', 'description'));
         this.resourceCurrent.set(
           level >= 17 ? 6 : level >= 12 ? 5 : level >= 6 ? 4 : level >= 3 ? 3 : 2,
         );
@@ -300,46 +303,44 @@ export class DmCharacterResourcesComponent {
         this.resourceEffectDuration.set('until-next-turn-end');
         break;
       case 'lay-on-hands':
-        this.resourceName.set('Наложение рук');
+        this.resourceName.set(this.presetText('lay-on-hands', 'name'));
         this.resourceIcon.set('✋');
-        this.resourceDescription.set(
-          'Потратьте выбранное количество очков и восстановите столько же HP. За 5 очков можно снять состояние «Отравлен», не восстанавливая HP.',
-        );
+        this.resourceDescription.set(this.presetText('lay-on-hands', 'description'));
         this.resourceCurrent.set(level * 5);
         this.resourceMax.set(level * 5);
         this.resourceSpendMode.set('variable');
         this.resourceRecovery.set('long-rest');
         break;
       case 'channel-divinity':
-        this.resourceName.set('Божественный канал');
+        this.resourceName.set(this.presetText('channel-divinity', 'name'));
         this.resourceIcon.set('✨');
-        this.resourceDescription.set('Выберите доступный классу или подклассу эффект Божественного канала.');
+        this.resourceDescription.set(this.presetText('channel-divinity', 'description'));
         this.resourceCurrent.set(level >= 11 ? 3 : 2);
         this.resourceMax.set(this.resourceCurrent());
         this.resourceRecovery.set('long-rest');
         this.resourceShortRestRestore.set(1);
         break;
       case 'focus-points':
-        this.resourceName.set('Очки фокуса');
+        this.resourceName.set(this.presetText('focus-points', 'name'));
         this.resourceIcon.set('☯️');
-        this.resourceDescription.set('Расходуются на способности монаха.');
+        this.resourceDescription.set(this.presetText('focus-points', 'description'));
         this.resourceCurrent.set(level);
         this.resourceMax.set(level);
         this.resourceSpendMode.set('variable');
         this.resourceRecovery.set('short-rest');
         break;
       case 'heroic-inspiration':
-        this.resourceName.set('Вдохновение героя');
+        this.resourceName.set(this.presetText('heroic-inspiration', 'name'));
         this.resourceIcon.set('⭐');
-        this.resourceDescription.set('Можно потратить, чтобы перебросить любую кость сразу после броска.');
+        this.resourceDescription.set(this.presetText('heroic-inspiration', 'description'));
         this.resourceCurrent.set(1);
         this.resourceMax.set(1);
         this.resourceRecovery.set('long-rest');
         break;
       case 'free-spell':
-        this.resourceName.set('Бесплатное применение заклинания');
+        this.resourceName.set(this.presetText('free-spell', 'name'));
         this.resourceIcon.set('🔮');
-        this.resourceDescription.set('Одно применение связанного заклинания без траты ячейки.');
+        this.resourceDescription.set(this.presetText('free-spell', 'description'));
         this.resourceCurrent.set(1);
         this.resourceMax.set(1);
         this.resourceRecovery.set('long-rest');
@@ -375,7 +376,14 @@ export class DmCharacterResourcesComponent {
 
   private handleError(method: string, error: unknown): void {
     this.logger.error(`DmCharacterResourcesComponent.${method}`, error);
-    this.error.set('Не удалось сохранить ресурсы. Данные формы сохранены.');
+    this.error.set(this.i18n.translate('resourceManager.error.save'));
+  }
+
+  private presetText(
+    presetId: (typeof CHARACTER_RESOURCE_PRESETS)[number]['id'],
+    field: 'name' | 'description',
+  ): string {
+    return this.i18n.translate(`resourceManager.presetData.${presetId}.${field}`);
   }
 
   private clearMessages(): void {

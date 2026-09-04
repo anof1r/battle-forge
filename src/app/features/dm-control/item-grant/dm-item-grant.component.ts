@@ -5,6 +5,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { TranslocoPipe } from '@jsverse/transloco';
 import { KeyValuePipe } from '@angular/common';
 import { ITEM_RARITY, ItemRarity } from '../../../core/constants/item-rarity.constants';
 import { BattleService } from '../../../core/services/battle.service';
@@ -14,7 +15,7 @@ import { LoggerService } from '../../../core/services/logger.service';
 @Component({
   selector: 'app-dm-item-grant',
   standalone: true,
-  imports: [KeyValuePipe],
+  imports: [KeyValuePipe, TranslocoPipe],
   templateUrl: './dm-item-grant.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

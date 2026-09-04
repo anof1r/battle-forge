@@ -1,10 +1,10 @@
 <details class="resource-manager" open>
-  <summary>🎲 Ячейки и ресурсы персонажей</summary>
+  <summary>🎲 {{ 'resourceManager.title' | transloco }}</summary>
   <div class="resource-manager__content">
     <label>
-      <span>Игрок</span>
+      <span>{{ 'common.player' | transloco }}</span>
       <select [value]="selectedPlayerId()" (change)="selectPlayer($event)">
-        <option value="">Выберите игрока</option>
+        <option value="">{{ 'common.selectPlayer' | transloco }}</option>
         @for (player of players(); track player.id) {
           <option [value]="player.id">{{ player.name }}</option>
         }
@@ -12,11 +12,11 @@
     </label>
 
     @if (loading()) {
-      <p>Загружаем лист персонажа…</p>
+      <p>{{ 'resourceManager.loading' | transloco }}</p>
     } @else if (character(); as char) {
       <section>
-        <h3>Ячейки заклинаний</h3>
-        <p class="resource-manager__hint">Выберите уровень ячейки, затем измените остаток или максимум.</p>
+        <h3>{{ 'player.spells.slots' | transloco }}</h3>
+        <p class="resource-manager__hint">{{ 'resourceManager.slotHint' | transloco }}</p>
         <div class="resource-manager__slots">
           @for (level of [1, 2, 3, 4, 5, 6, 7, 8, 9]; track level) {
             <button
@@ -26,34 +26,34 @@
               [class.resource-manager__slot--configured]="slotAt(level).max > 0"
               (click)="editSlot(level)"
             >
-              <span>{{ level }} уровень</span>
+              <span>{{ 'common.levelValue' | transloco: { level } }}</span>
               <strong>{{ slotAt(level).current }}/{{ slotAt(level).max }}</strong>
             </button>
           }
         </div>
         <div class="resource-manager__form">
-          <label><span>Уровень</span><input type="number" min="1" max="9" [value]="slotLevel()" (input)="setNumber('slotLevel', $event)" /></label>
-          <label><span>Осталось</span><input type="number" min="0" [value]="slotCurrent()" (input)="setNumber('slotCurrent', $event)" /></label>
-          <label><span>Максимум</span><input type="number" min="0" [value]="slotMax()" (input)="setNumber('slotMax', $event)" /></label>
+          <label><span>{{ 'common.level' | transloco }}</span><input type="number" min="1" max="9" [value]="slotLevel()" (input)="setNumber('slotLevel', $event)" /></label>
+          <label><span>{{ 'common.remaining' | transloco }}</span><input type="number" min="0" [value]="slotCurrent()" (input)="setNumber('slotCurrent', $event)" /></label>
+          <label><span>{{ 'common.maximum' | transloco }}</span><input type="number" min="0" [value]="slotMax()" (input)="setNumber('slotMax', $event)" /></label>
           <label>
-            <span>Восстановление</span>
+            <span>{{ 'resourceManager.recovery' | transloco }}</span>
             <select [value]="slotRecovery()" (change)="setSlotRecovery($event)">
-              <option value="long-rest">Долгий отдых</option>
-              <option value="short-rest">Короткий отдых (магия договора)</option>
+              <option value="long-rest">{{ 'recovery.longRest' | transloco }}</option>
+              <option value="short-rest">{{ 'resourceManager.pactShortRest' | transloco }}</option>
             </select>
           </label>
-          <button type="button" [disabled]="saving()" (click)="saveSlot()">Сохранить ячейки</button>
+          <button type="button" [disabled]="saving()" (click)="saveSlot()">{{ 'resourceManager.saveSlots' | transloco }}</button>
         </div>
       </section>
 
       <section>
         <div class="resource-manager__section-heading">
           <div>
-            <h3>Ресурсы героя</h3>
-            <p class="resource-manager__hint">Добавьте только нужные герою счётчики: ярость, ци, кости превосходства и другие.</p>
+            <h3>{{ 'resourceManager.heroResources' | transloco }}</h3>
+            <p class="resource-manager__hint">{{ 'resourceManager.resourcesHint' | transloco }}</p>
           </div>
           @if (resourceId()) {
-            <button type="button" class="secondary" (click)="resetResourceEditor()">+ Новый ресурс</button>
+            <button type="button" class="secondary" (click)="resetResourceEditor()">+ {{ 'resourceManager.newResource' | transloco }}</button>
           }
         </div>
 
@@ -66,7 +66,7 @@
               <button
                 type="button"
                 class="resource-manager__resource-main"
-                [attr.aria-label]="'Редактировать ресурс ' + resource.name"
+                [attr.aria-label]="'resourceManager.editNamed' | transloco: { name: resource.name }"
                 (click)="editResource(resource)"
               >
                 <span class="resource-manager__resource-title">
@@ -78,58 +78,58 @@
                 }
                 <span class="resource-manager__resource-recovery">
                   @if (resource.isUnlimited) {
-                    Не расходуется
+                    {{ 'resourceManager.notConsumed' | transloco }}
                   } @else {
                     @switch (resource.recovery) {
-                      @case ('short-rest') { Короткий отдых }
-                      @case ('long-rest') { Долгий отдых }
-                      @default { Только вручную }
+                      @case ('short-rest') { {{ 'recovery.shortRest' | transloco }} }
+                      @case ('long-rest') { {{ 'recovery.longRest' | transloco }} }
+                      @default { {{ 'resourceManager.manualOnly' | transloco }} }
                     }
                   }
                   @if ((resource.shortRestRestore ?? 0) > 0) {
-                    · короткий отдых +{{ resource.shortRestRestore }}
+                    · {{ 'recovery.shortRest' | transloco }} +{{ resource.shortRestRestore }}
                   }
                   @if (resource.spendMode === 'variable') {
-                    · произвольный расход
+                    · {{ 'resourceManager.variableSpend' | transloco }}
                   }
                   @if (resource.activeEffect) {
-                    · активируемый эффект
+                    · {{ 'resourceManager.activatedEffect' | transloco }}
                   }
-                  · нажмите для редактирования
+                  · {{ 'resourceManager.clickToEdit' | transloco }}
                 </span>
               </button>
               <button
                 type="button"
                 class="resource-manager__delete"
                 [disabled]="saving()"
-                [attr.aria-label]="'Удалить ресурс ' + resource.name"
-                title="Удалить ресурс"
+                [attr.aria-label]="'resourceManager.deleteNamed' | transloco: { name: resource.name }"
+                [title]="'resourceManager.deleteResource' | transloco"
                 (click)="deleteResource(resource)"
               >
-                Удалить
+                {{ 'common.delete' | transloco }}
               </button>
             </article>
           } @empty {
-            <p class="resource-manager__empty">Пока нет ресурсов. Создайте первый счётчик ниже.</p>
+            <p class="resource-manager__empty">{{ 'resourceManager.empty' | transloco }}</p>
           }
         </div>
 
         <div class="resource-manager__form resource-manager__form--resource">
-          <h4>{{ resourceId() ? 'Редактирование ресурса' : 'Новый ресурс' }}</h4>
-          <div class="resource-manager__presets" aria-label="Готовые шаблоны ресурсов">
-            <span>Быстрые шаблоны</span>
+          <h4>{{ (resourceId() ? 'resourceManager.editResource' : 'resourceManager.newResource') | transloco }}</h4>
+          <div class="resource-manager__presets" [attr.aria-label]="'resourceManager.presets' | transloco">
+            <span>{{ 'resourceManager.quickPresets' | transloco }}</span>
             @for (preset of resourcePresets; track preset.id) {
               <button type="button" class="secondary" (click)="applyResourcePreset(preset.id)">
-                {{ preset.label }}
+                {{ ('resourceManager.preset.' + preset.id) | transloco }}
               </button>
             }
           </div>
           <label class="resource-manager__field--name">
-            <span>Название</span>
-            <input type="text" [value]="resourceName()" (input)="setResourceName($event)" placeholder="Например: Ярость" />
+            <span>{{ 'common.name' | transloco }}</span>
+            <input type="text" [value]="resourceName()" (input)="setResourceName($event)" [placeholder]="'resourceManager.namePlaceholder' | transloco" />
           </label>
           <label class="resource-manager__field--icon">
-            <span>Иконка</span>
+            <span>{{ 'resourceManager.icon' | transloco }}</span>
             <input
               type="text"
               maxlength="4"
@@ -139,12 +139,12 @@
             />
           </label>
           <label class="resource-manager__field--description">
-            <span>Описание</span>
+            <span>{{ 'common.description' | transloco }}</span>
             <textarea
               rows="3"
               [value]="resourceDescription()"
               (input)="setResourceDescription($event)"
-              placeholder="Что даёт ресурс и когда его можно использовать"
+              [placeholder]="'resourceManager.descriptionPlaceholder' | transloco"
             ></textarea>
           </label>
           <label class="resource-manager__unlimited">
@@ -155,36 +155,36 @@
             />
             <span class="resource-manager__unlimited-icon" aria-hidden="true">∞</span>
             <span class="resource-manager__unlimited-copy">
-              <strong>Бесконечно</strong>
-              <small>Ресурс можно применять без списания зарядов</small>
+              <strong>{{ 'resourceManager.unlimited' | transloco }}</strong>
+              <small>{{ 'resourceManager.unlimitedHint' | transloco }}</small>
             </span>
           </label>
           @if (!resourceUnlimited()) {
-            <label><span>Максимум</span><input type="number" min="0" [value]="resourceMax()" (input)="setNumber('resourceMax', $event)" /></label>
-            <label><span>Осталось</span><input type="number" min="0" [max]="resourceMax()" [value]="resourceCurrent()" (input)="setNumber('resourceCurrent', $event)" /></label>
+            <label><span>{{ 'common.maximum' | transloco }}</span><input type="number" min="0" [value]="resourceMax()" (input)="setNumber('resourceMax', $event)" /></label>
+            <label><span>{{ 'common.remaining' | transloco }}</span><input type="number" min="0" [max]="resourceMax()" [value]="resourceCurrent()" (input)="setNumber('resourceCurrent', $event)" /></label>
             <label>
-              <span>Восстановление</span>
+              <span>{{ 'resourceManager.recovery' | transloco }}</span>
               <select [value]="resourceRecovery()" (change)="setRecovery($event)">
-                <option value="short-rest">Короткий отдых</option>
-                <option value="long-rest">Долгий отдых</option>
-                <option value="manual">Только вручную</option>
+                <option value="short-rest">{{ 'recovery.shortRest' | transloco }}</option>
+                <option value="long-rest">{{ 'recovery.longRest' | transloco }}</option>
+                <option value="manual">{{ 'resourceManager.manualOnly' | transloco }}</option>
               </select>
             </label>
           }
           <details class="resource-manager__advanced">
-            <summary>Дополнительные настройки</summary>
+            <summary>{{ 'resourceManager.advanced' | transloco }}</summary>
             <div class="resource-manager__advanced-grid">
               @if (!resourceUnlimited()) {
                 <label>
-                  <span>Способ расхода</span>
+                  <span>{{ 'resourceManager.spendMode' | transloco }}</span>
                   <select [value]="resourceSpendMode()" (change)="setSpendMode($event)">
-                    <option value="fixed">Фиксированное количество</option>
-                    <option value="variable">Игрок выбирает количество</option>
+                    <option value="fixed">{{ 'resourceManager.fixed' | transloco }}</option>
+                    <option value="variable">{{ 'resourceManager.variable' | transloco }}</option>
                   </select>
                 </label>
                 @if (resourceSpendMode() === 'fixed') {
                   <label>
-                    <span>Списывать за применение</span>
+                    <span>{{ 'resourceManager.spendPerUse' | transloco }}</span>
                     <input
                       type="number"
                       min="1"
@@ -195,7 +195,7 @@
                   </label>
                 }
                 <label>
-                  <span>Вернуть после короткого отдыха</span>
+                  <span>{{ 'resourceManager.shortRestRestore' | transloco }}</span>
                   <input
                     type="number"
                     min="0"
@@ -203,19 +203,19 @@
                     [value]="resourceShortRestRestore()"
                     (input)="setNumber('resourceShortRestRestore', $event)"
                   />
-                  <small>0 — ничего. Для Ярости укажите 1.</small>
+                  <small>{{ 'resourceManager.shortRestRestoreHint' | transloco }}</small>
                 </label>
               }
 
               <label>
-                <span>Связанное заклинание</span>
+                <span>{{ 'resourceManager.linkedSpell' | transloco }}</span>
                 <select [value]="resourceLinkedSpellId()" (change)="setLinkedSpell($event)">
-                  <option value="">Не связано</option>
+                  <option value="">{{ 'resourceManager.notLinked' | transloco }}</option>
                   @for (spell of char.spells ?? []; track spell.id) {
                     <option [value]="spell.id">{{ spell.name }}</option>
                   }
                 </select>
-                <small>Даёт бесплатный способ применения вместо ячейки.</small>
+                <small>{{ 'resourceManager.linkedSpellHint' | transloco }}</small>
               </label>
 
               <label class="resource-manager__effect-toggle">
@@ -225,23 +225,23 @@
                   (change)="setActivatesEffect($event)"
                 />
                 <span>
-                  <strong>Создавать активный эффект</strong>
-                  <small>После использования эффект появится у персонажа и в бою.</small>
+                  <strong>{{ 'resourceManager.createEffect' | transloco }}</strong>
+                  <small>{{ 'resourceManager.createEffectHint' | transloco }}</small>
                 </span>
               </label>
 
               @if (resourceActivatesEffect()) {
                 <label>
-                  <span>Длительность</span>
+                  <span>{{ 'open5e.fields.duration' | transloco }}</span>
                   <select [value]="resourceEffectDuration()" (change)="setEffectDuration($event)">
-                    <option value="manual">До ручного завершения</option>
-                    <option value="until-next-turn-end">До конца следующего хода</option>
-                    <option value="rounds">Количество раундов</option>
+                    <option value="manual">{{ 'resourceManager.untilManual' | transloco }}</option>
+                    <option value="until-next-turn-end">{{ 'resourceManager.untilNextTurn' | transloco }}</option>
+                    <option value="rounds">{{ 'resourceManager.roundCount' | transloco }}</option>
                   </select>
                 </label>
                 @if (resourceEffectDuration() === 'rounds') {
                   <label>
-                    <span>Раундов</span>
+                    <span>{{ 'resourceManager.rounds' | transloco }}</span>
                     <input
                       type="number"
                       min="1"
@@ -256,14 +256,14 @@
           <div class="resource-manager__form-actions">
             @if (!resourceUnlimited()) {
               <button type="button" class="secondary" [disabled]="resourceMax() <= 0" (click)="fillResourceToMax()">
-                Заполнить до максимума
+                {{ 'resourceManager.fillMaximum' | transloco }}
               </button>
             }
             <button type="button" [disabled]="saving() || !resourceName().trim()" (click)="saveResource()">
-              {{ resourceId() ? 'Сохранить изменения' : 'Добавить ресурс' }}
+              {{ (resourceId() ? 'common.saveChanges' : 'resourceManager.addResource') | transloco }}
             </button>
             @if (resourceId()) {
-              <button type="button" class="secondary" (click)="resetResourceEditor()">Отмена</button>
+              <button type="button" class="secondary" (click)="resetResourceEditor()">{{ 'common.cancel' | transloco }}</button>
             }
           </div>
         </div>

@@ -6,6 +6,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { BattleService } from '../../../core/services/battle.service';
 import { LoggerService } from '../../../core/services/logger.service';
 import { SceneLibraryService } from './scene-library.service';
@@ -21,6 +22,7 @@ import {
 @Component({
   selector: 'app-dm-scene-library',
   standalone: true,
+  imports: [TranslocoPipe],
   templateUrl: './dm-scene-library.component.html',
   styleUrl: './dm-scene-library.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -30,6 +32,7 @@ export class DmSceneLibraryComponent {
   private readonly battle = inject(BattleService);
   private readonly logger = inject(LoggerService);
   private readonly actionLibrary = inject(EnemyActionLibraryService);
+  private readonly i18n = inject(TranslocoService);
 
   readonly creatures = this.library.creatures;
   readonly scenes = this.library.scenes;
@@ -172,12 +175,16 @@ export class DmSceneLibraryComponent {
         statuses: this.parseList(this.creatureStatuses()),
       })
       .then(() => {
-        this.feedback.set(this.creatureId() ? 'Шаблон существа обновлён.' : 'Существо сохранено в библиотеку.');
+        this.feedback.set(
+          this.i18n.translate(
+            this.creatureId() ? 'sceneLibrary.feedback.creatureUpdated' : 'sceneLibrary.feedback.creatureSaved',
+          ),
+        );
         this.resetCreatureEditor();
       })
       .catch((error: unknown) => {
         this.logger.error('DmSceneLibraryComponent.saveCreature', error);
-        this.error.set('Не удалось сохранить существо. Данные формы сохранены.');
+        this.error.set(this.i18n.translate('sceneLibrary.error.saveCreature'));
       })
       .finally(() => this.savingCreature.set(false));
   }
@@ -196,21 +203,21 @@ export class DmSceneLibraryComponent {
   }
 
   deleteCreature(creature: CreatureTemplate): void {
-    if (!confirm(`Удалить шаблон «${creature.name}»?`)) return;
+    if (!confirm(this.i18n.translate('sceneLibrary.confirmDeleteCreature', { name: creature.name }))) return;
     this.clearMessages();
     this.library
       .deleteCreature(creature.id)
       .then((deleted) => {
         if (!deleted) {
-          this.error.set('Существо используется в сохранённой сцене. Сначала удалите его из набора.');
+          this.error.set(this.i18n.translate('sceneLibrary.error.creatureInUse'));
           return;
         }
         if (this.creatureId() === creature.id) this.resetCreatureEditor();
-        this.feedback.set('Шаблон существа удалён.');
+        this.feedback.set(this.i18n.translate('sceneLibrary.feedback.creatureDeleted'));
       })
       .catch((error: unknown) => {
         this.logger.error('DmSceneLibraryComponent.deleteCreature', error);
-        this.error.set('Не удалось удалить существо.');
+        this.error.set(this.i18n.translate('sceneLibrary.error.deleteCreature'));
       });
   }
 
@@ -218,10 +225,14 @@ export class DmSceneLibraryComponent {
     this.clearMessages();
     this.battle
       .addCreatureStacks([{ template: creature, quantity: 1 }])
-      .then(() => this.feedback.set(`${creature.name} добавлен в текущий бой.`))
+      .then(() =>
+        this.feedback.set(
+          this.i18n.translate('sceneLibrary.feedback.creatureAdded', { name: creature.name }),
+        ),
+      )
       .catch((error: unknown) => {
         this.logger.error('DmSceneLibraryComponent.addCreatureToBattle', error);
-        this.error.set('Не удалось добавить существо в бой.');
+        this.error.set(this.i18n.translate('sceneLibrary.error.addCreature'));
       });
   }
 
@@ -259,12 +270,16 @@ export class DmSceneLibraryComponent {
         entries: this.sceneEntries(),
       })
       .then(() => {
-        this.feedback.set(this.sceneId() ? 'Набор сцены обновлён.' : 'Набор сцены сохранён.');
+        this.feedback.set(
+          this.i18n.translate(
+            this.sceneId() ? 'sceneLibrary.feedback.sceneUpdated' : 'sceneLibrary.feedback.sceneSaved',
+          ),
+        );
         this.resetSceneEditor();
       })
       .catch((error: unknown) => {
         this.logger.error('DmSceneLibraryComponent.saveScene', error);
-        this.error.set('Не удалось сохранить набор. Данные формы сохранены.');
+        this.error.set(this.i18n.translate('sceneLibrary.error.saveScene'));
       })
       .finally(() => this.savingScene.set(false));
   }
@@ -281,38 +296,48 @@ export class DmSceneLibraryComponent {
     if (this.launchingSceneId()) return;
     const stacks = this.library.resolveScene(scene.id);
     if (!stacks || stacks.length !== scene.entries.length) {
-      this.error.set('В наборе отсутствует один или несколько шаблонов существ.');
+      this.error.set(this.i18n.translate('sceneLibrary.error.missingCreatures'));
       return;
     }
     this.launchingSceneId.set(scene.id);
     this.clearMessages();
     this.battle
       .addCreatureStacks(stacks)
-      .then((ids) => this.feedback.set(`Сцена «${scene.name}» добавлена: ${ids.length} существ.`))
+      .then((ids) =>
+        this.feedback.set(
+          this.i18n.translate('sceneLibrary.feedback.sceneAdded', {
+            name: scene.name,
+            count: ids.length,
+          }),
+        ),
+      )
       .catch((error: unknown) => {
         this.logger.error('DmSceneLibraryComponent.launchScene', error);
-        this.error.set('Не удалось добавить сцену в бой.');
+        this.error.set(this.i18n.translate('sceneLibrary.error.addScene'));
       })
       .finally(() => this.launchingSceneId.set(null));
   }
 
   deleteScene(scene: ScenePreset): void {
-    if (!confirm(`Удалить набор «${scene.name}»?`)) return;
+    if (!confirm(this.i18n.translate('sceneLibrary.confirmDeleteScene', { name: scene.name }))) return;
     this.clearMessages();
     this.library
       .deleteScene(scene.id)
       .then(() => {
         if (this.sceneId() === scene.id) this.resetSceneEditor();
-        this.feedback.set('Набор сцены удалён.');
+        this.feedback.set(this.i18n.translate('sceneLibrary.feedback.sceneDeleted'));
       })
       .catch((error: unknown) => {
         this.logger.error('DmSceneLibraryComponent.deleteScene', error);
-        this.error.set('Не удалось удалить набор сцены.');
+        this.error.set(this.i18n.translate('sceneLibrary.error.deleteScene'));
       });
   }
 
   creatureNameFor(templateId: string): string {
-    return this.creatures().find((creature) => creature.id === templateId)?.name ?? 'Шаблон удалён';
+    return (
+      this.creatures().find((creature) => creature.id === templateId)?.name ??
+      this.i18n.translate('sceneLibrary.deletedTemplate')
+    );
   }
 
   sceneCreatureCount(scene: ScenePreset): number {

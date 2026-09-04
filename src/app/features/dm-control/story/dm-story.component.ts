@@ -6,6 +6,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { renderStoryMarkdown, storySectionIdFromFileName } from '../../../core/utils';
 import { LoggerService } from '../../../core/services/logger.service';
 import { StoryPresentationService } from '../../../core/services/story-presentation.service';
@@ -14,6 +15,7 @@ import { StoryScriptService } from './story-script.service';
 @Component({
   selector: 'app-dm-story',
   standalone: true,
+  imports: [TranslocoPipe],
   templateUrl: './dm-story.component.html',
   styleUrl: './dm-story.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -22,6 +24,7 @@ export class DmStoryComponent {
   readonly story = inject(StoryPresentationService);
   readonly scripts = inject(StoryScriptService);
   private readonly logger = inject(LoggerService);
+  private readonly i18n = inject(TranslocoService);
   private loadedSectionVersion = '';
 
   readonly draggedSlideId = signal<string | null>(null);
@@ -75,8 +78,8 @@ export class DmStoryComponent {
     if (added > 0) this.insertBeforeSlideId.set(null);
     this.uploadMessage.set(
       added > 0
-        ? `Добавлено изображений: ${added}`
-        : 'Подходящие изображения не найдены.',
+        ? this.i18n.translate('story.feedback.imagesAdded', { count: added })
+        : this.i18n.translate('story.feedback.noImages'),
     );
   }
 
@@ -149,10 +152,10 @@ export class DmStoryComponent {
     try {
       await this.scripts.saveSection(sectionId, this.scriptDraft());
       this.scriptEditing.set(false);
-      this.scriptMessage.set(`Сюжет «${sectionId}» сохранён.`);
+      this.scriptMessage.set(this.i18n.translate('story.feedback.saved', { section: sectionId }));
     } catch (error) {
       this.logger.error('DmStoryComponent.saveScript', error);
-      this.scriptError.set('Не удалось сохранить сюжет. Текст оставлен в редакторе — попробуйте ещё раз.');
+      this.scriptError.set(this.i18n.translate('story.error.save'));
     } finally {
       this.scriptSaving.set(false);
     }

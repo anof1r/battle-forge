@@ -7,6 +7,7 @@ import { Combatant } from '../../core/models/combatant.model';
 import { BattleService } from '../../core/services/battle.service';
 import { StorySlide } from '../../core/models/story-presentation.model';
 import { StoryPresentationService } from '../../core/services/story-presentation.service';
+import { TranslocoService } from '@jsverse/transloco';
 import { DisplayComponent } from './display.component';
 
 describe('DisplayComponent', () => {
@@ -63,6 +64,7 @@ describe('DisplayComponent', () => {
         },
       ],
     });
+    TestBed.inject(TranslocoService).setActiveLang('en');
   });
 
   it('renders the correct waiting message for each non-battle state', () => {
@@ -107,7 +109,7 @@ describe('DisplayComponent', () => {
       'Nimble Escape',
     );
     expect(fixture.nativeElement.querySelector('.bestiary-card__abilities-wrapper')).toHaveTextContent(
-      'Способности',
+      'Abilities',
     );
   });
 
@@ -138,12 +140,12 @@ describe('DisplayComponent', () => {
       'bestiary-card--burning',
     );
     expect(fixture.nativeElement.querySelector('.bestiary-card__active-effects')).toHaveTextContent(
-      'Горение',
+      'Burning',
     );
     expect(fixture.nativeElement.querySelector('.arena__party-effects')).toHaveTextContent('Aria');
-    expect(fixture.nativeElement.querySelector('.arena__party-effects')).toHaveTextContent('Страх');
+    expect(fixture.nativeElement.querySelector('.arena__party-effects')).toHaveTextContent('Frightened');
     expect(fixture.nativeElement.querySelector('.arena__party-effects')).toHaveTextContent(
-      'Без сознания',
+      'Unconscious',
     );
   });
 

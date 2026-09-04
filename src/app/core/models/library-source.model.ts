@@ -6,5 +6,6 @@ export interface LibrarySource {
   permalink: string;
   originalName: string;
   originalDescription: string;
+  contentLanguage?: 'en' | 'ru';
   importedAt: number;
 }

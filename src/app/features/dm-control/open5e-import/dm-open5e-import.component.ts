@@ -6,6 +6,8 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
+import { LanguageService } from '../../../core/i18n/language.service';
 import { Observable, firstValueFrom } from 'rxjs';
 import {
   EnemyAbility,
@@ -29,6 +31,7 @@ import { SpellLibraryService } from './spell-library.service';
 @Component({
   selector: 'app-dm-open5e-import',
   standalone: true,
+  imports: [TranslocoPipe],
   templateUrl: './dm-open5e-import.component.html',
   styleUrl: './dm-open5e-import.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -41,6 +44,8 @@ export class DmOpen5eImportComponent {
   private readonly characterService = inject(CharacterService);
   private readonly battle = inject(BattleService);
   private readonly logger = inject(LoggerService);
+  private readonly i18n = inject(TranslocoService);
+  private readonly language = inject(LanguageService);
   private searchSequence = 0;
 
   readonly kind = signal<Open5eContentKind>('spell');
@@ -83,6 +88,7 @@ export class DmOpen5eImportComponent {
   readonly selectedPlayerId = signal('');
   readonly selectedSavedSpellId = signal('');
 
+  readonly translationMode = computed(() => this.language.activeLanguage() === 'ru');
   readonly savedSpells = this.spellLibrary.spells;
   readonly savedActions = this.actionLibrary.actions;
   readonly savedCreatures = this.sceneLibrary.creatures;
@@ -161,12 +167,12 @@ export class DmOpen5eImportComponent {
         if (sequence !== this.searchSequence) return;
         this.results.set(results);
         this.selected.set(null);
-        if (results.length === 0) this.feedback.set('Ничего не найдено. Попробуйте английское название или другой источник.');
+        if (results.length === 0) this.feedback.set(this.i18n.translate('open5e.feedback.notFound'));
       })
       .catch((error: unknown) => {
         if (sequence !== this.searchSequence) return;
         this.logger.error('DmOpen5eImportComponent.search', error);
-        this.error.set('Open5e сейчас недоступен или заблокировал запрос. Сохранённая библиотека продолжает работать.');
+        this.error.set(this.i18n.translate('open5e.error.unavailable'));
       })
       .finally(() => {
         if (sequence === this.searchSequence) this.searching.set(false);
@@ -211,13 +217,9 @@ export class DmOpen5eImportComponent {
         ? this.saveWeapon(entry)
         : this.saveCreature(entry);
     save
-      .then(() => {
-        const label = entry.kind === 'spell' ? 'Заклинание' : entry.kind === 'weapon' ? 'Оружие' : 'Существо';
-        this.feedback.set(`${label} сохранено в личную библиотеку.`);
-      })
-      .catch((error: unknown) => {
+      .then(() => this.feedback.set(this.i18n.translate('open5e.feedback.saved.' + entry.kind))).catch((error: unknown) => {
         this.logger.error('DmOpen5eImportComponent.saveSelected', error);
-        this.error.set('Не удалось сохранить перевод. Поля не очищены — можно повторить попытку.');
+        this.error.set(this.i18n.translate('open5e.error.save'));
       })
       .finally(() => this.saving.set(false));
   }
@@ -230,10 +232,10 @@ export class DmOpen5eImportComponent {
     this.clearMessages();
     this.saveSpell(spell)
       .then((template) => this.giveTemplate(template))
-      .then(() => this.feedback.set('Заклинание сохранено и выдано игроку.'))
+      .then(() => this.feedback.set(this.i18n.translate('open5e.feedback.savedAndGiven')))
       .catch((error: unknown) => {
         this.logger.error('DmOpen5eImportComponent.saveAndGiveSpell', error);
-        this.error.set('Не удалось сохранить или выдать заклинание. Перевод не потерян.');
+        this.error.set(this.i18n.translate('open5e.error.saveAndGive'));
       })
       .finally(() => {
         this.saving.set(false);
@@ -247,18 +249,33 @@ export class DmOpen5eImportComponent {
     this.giving.set(true);
     this.clearMessages();
     this.giveTemplate(template)
-      .then(() => this.feedback.set(`${template.name} выдано игроку.`))
+      .then(() =>
+        this.feedback.set(this.i18n.translate('open5e.feedback.given', { name: template.name })),
+      )
       .catch((error: unknown) => {
         this.logger.error('DmOpen5eImportComponent.giveSavedSpell', error);
-        this.error.set('Не удалось выдать заклинание. Выбор сохранён.');
+        this.error.set(this.i18n.translate('open5e.error.give'));
       })
       .finally(() => this.giving.set(false));
   }
 
   resultMeta(entry: Open5eEntry): string {
-    if (entry.kind === 'spell') return entry.level === 0 ? 'Заговор' : `${entry.level} уровень`;
-    if (entry.kind === 'creature') return `ПО ${entry.challengeRating} · ${entry.maxHp} HP · КД ${entry.ac}`;
-    return `${entry.damageFormula || 'без кости'} ${entry.damageType}`.trim();
+    if (entry.kind === 'spell') {
+      return entry.level === 0
+        ? this.i18n.translate('open5e.meta.cantrip')
+        : this.i18n.translate('open5e.meta.level', { level: entry.level });
+    }
+    if (entry.kind === 'creature') {
+      return this.i18n.translate('open5e.meta.creature', {
+        challenge: entry.challengeRating,
+        hp: entry.maxHp,
+        ac: entry.ac,
+      });
+    }
+    return this.i18n.translate('open5e.meta.weapon', {
+      damage: entry.damageFormula || this.i18n.translate('open5e.meta.noDie'),
+      type: entry.damageType,
+    });
   }
 
   isSaved(entry: Open5eEntry): boolean {
@@ -303,17 +320,17 @@ export class DmOpen5eImportComponent {
   private async saveSpell(spell: Open5eSpell): Promise<SpellTemplate> {
     const template: SpellTemplate = {
       id: this.libraryId('spell', spell.document.key, spell.key),
-      name: this.spellName().trim(),
+      name: this.localizedValue(spell.name, this.spellName()),
       level: spell.level,
-      school: this.spellSchool().trim(),
-      description: this.spellDescription().trim(),
-      higherLevel: this.spellHigherLevel().trim(),
-      damageFormula: this.spellDamageFormula().trim(),
-      damageType: this.spellDamageType().trim(),
-      castingTime: this.spellCastingTime().trim(),
-      range: this.spellRange().trim(),
-      duration: this.spellDuration().trim(),
-      components: this.spellComponents().trim(),
+      school: this.localizedValue(spell.school, this.spellSchool()),
+      description: this.localizedValue(spell.description, this.spellDescription()),
+      higherLevel: this.localizedValue(spell.higherLevel, this.spellHigherLevel()),
+      damageFormula: this.localizedValue(spell.damageFormula, this.spellDamageFormula()),
+      damageType: this.localizedValue(spell.damageTypes.join(', '), this.spellDamageType()),
+      castingTime: this.localizedValue(spell.castingTime, this.spellCastingTime()),
+      range: this.localizedValue(spell.range, this.spellRange()),
+      duration: this.localizedValue(spell.duration, this.spellDuration()),
+      components: this.localizedValue(spell.components, this.spellComponents()),
       isCantrip: spell.level === 0,
       isRitual: spell.ritual,
       requiresConcentration: spell.concentration,
@@ -328,12 +345,12 @@ export class DmOpen5eImportComponent {
   private saveWeapon(weapon: Open5eWeapon): Promise<string> {
     return this.actionLibrary.saveAction({
       id: this.libraryId('weapon', weapon.document.key, weapon.key),
-      name: this.weaponName().trim(),
-      description: this.weaponDescription().trim(),
+      name: this.localizedValue(weapon.name, this.weaponName()),
+      description: this.localizedValue(weapon.properties.join(', '), this.weaponDescription()),
       toHit: this.weaponToHit().trim(),
-      damage: this.weaponDamage().trim(),
-      damageType: this.weaponDamageType().trim(),
-      fullText: this.weaponFullText().trim(),
+      damage: this.localizedValue(weapon.damageFormula, this.weaponDamage()),
+      damageType: this.localizedValue(weapon.damageType, this.weaponDamageType()),
+      fullText: this.localizedValue([weapon.description, weapon.range ? `Range: ${weapon.range}` : ''].filter(Boolean).join('\n'), this.weaponFullText()),
       source: this.source(weapon),
     });
   }
@@ -341,13 +358,15 @@ export class DmOpen5eImportComponent {
   private saveCreature(creature: Open5eCreature): Promise<string> {
     return this.sceneLibrary.saveCreature({
       id: this.libraryId('creature', creature.document.key, creature.key),
-      name: this.creatureName().trim(),
-      subtype: this.creatureSubtype().trim(),
+      name: this.localizedValue(creature.name, this.creatureName()),
+      subtype: this.localizedValue(creature.subtype, this.creatureSubtype()),
       maxHp: this.creatureMaxHp(),
       ac: this.creatureAc(),
-      actions: this.creatureActions().map((action) => ({ ...action })),
-      abilities: this.creatureAbilities().map((ability) => ({ ...ability })),
-      resistances: this.parseList(this.creatureResistances()),
+      actions: (this.translationMode() ? this.creatureActions() : creature.actions).map((action) => ({ ...action })),
+      abilities: (this.translationMode() ? this.creatureAbilities() : creature.abilities).map((ability) => ({ ...ability })),
+      resistances: this.translationMode()
+        ? this.parseList(this.creatureResistances())
+        : [...creature.resistances],
       statuses: [],
       source: this.source(creature),
     });
@@ -388,6 +407,7 @@ export class DmOpen5eImportComponent {
       permalink: entry.document.permalink,
       originalName: entry.name,
       originalDescription: entry.description,
+      contentLanguage: this.language.activeLanguage(),
       importedAt: Date.now(),
     };
   }
@@ -395,6 +415,10 @@ export class DmOpen5eImportComponent {
   private libraryId(kind: Open5eContentKind, documentKey: string, key: string): string {
     const safe = `${documentKey}_${key}`.replace(/[^a-zA-Z0-9_-]+/g, '_').replace(/^_+|_+$/g, '');
     return `${kind}_open5e_${safe || 'unknown'}`;
+  }
+
+  private localizedValue(original: string, draft: string): string {
+    return this.translationMode() ? draft.trim() : original.trim();
   }
 
   private parseList(value: string): string[] {

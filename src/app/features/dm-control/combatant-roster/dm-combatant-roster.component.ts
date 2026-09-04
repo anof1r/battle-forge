@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import {
   COMBATANT_STATUS,
   COMBATANT_TYPE,
@@ -12,12 +13,14 @@ import { LoggerService } from '../../../core/services/logger.service';
 @Component({
   selector: 'app-dm-combatant-roster',
   standalone: true,
+  imports: [TranslocoPipe],
   templateUrl: './dm-combatant-roster.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DmCombatantRosterComponent {
   private readonly battleService = inject(BattleService);
   private readonly logger = inject(LoggerService);
+  private readonly i18n = inject(TranslocoService);
 
   readonly COMBATANT_STATUS = COMBATANT_STATUS;
   readonly COMBATANT_TYPE = COMBATANT_TYPE;
@@ -67,15 +70,20 @@ export class DmCombatantRosterComponent {
   }
 
   lifeStatusLabel(combatant: Combatant): string {
+    let statusKey: string;
     switch (combatant.status) {
       case COMBATANT_STATUS.DOWNED:
-        return 'Без сознания';
+        statusKey = 'downed';
+        break;
       case COMBATANT_STATUS.STABLE:
-        return 'Стабилен';
+        statusKey = 'stable';
+        break;
       case COMBATANT_STATUS.DEAD:
-        return 'Погиб';
+        statusKey = 'dead';
+        break;
       default:
-        return 'В строю';
+        statusKey = 'alive';
     }
+    return this.i18n.translate('roster.lifeStatus.' + statusKey);
   }
 }

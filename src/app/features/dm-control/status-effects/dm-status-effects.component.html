@@ -1,17 +1,17 @@
 <details class="dm-section dm-section--effects" open>
-  <summary class="dm-section__title">✨ Статус-эффекты</summary>
+  <summary class="dm-section__title">✨ {{ 'statusEffects.title' | transloco }}</summary>
   <div class="dm-effects-panel">
     <label class="field">
-      <span class="field__label">Участник боя</span>
+      <span class="field__label">{{ 'statusEffects.combatant' | transloco }}</span>
       <select class="field__input" [value]="selectedTargetId() || ''" (change)="onTargetChange($event)">
-        <option value="">Выберите игрока или существо</option>
+        <option value="">{{ 'statusEffects.selectCombatant' | transloco }}</option>
         @for (combatant of combatants(); track combatant.id) {
-          <option [value]="combatant.id">{{ combatant.name }} · {{ combatant.type | uppercase }}</option>
+          <option [value]="combatant.id">{{ combatant.name }} · {{ ('combatant.type.' + combatant.type) | transloco }}</option>
         }
       </select>
     </label>
 
-    <div class="dm-effect-picker" aria-label="Выберите статус-эффект">
+    <div class="dm-effect-picker" [attr.aria-label]="'statusEffects.select' | transloco">
       @for (effect of effectDefinitions; track effect.type) {
         <button
           type="button"
@@ -21,77 +21,77 @@
           (click)="selectEffect(effect.type)"
         >
           <span aria-hidden="true">{{ effect.icon }}</span>
-          <strong>{{ effect.label }}</strong>
+          <strong>{{ ('statusEffects.effects.' + effect.type + '.label') | transloco }}</strong>
         </button>
       }
     </div>
 
-    <p class="dm-effect-description">{{ selectedDefinition().description }}</p>
+    <p class="dm-effect-description">{{ ('statusEffects.effects.' + selectedDefinition().type + '.description') | transloco }}</p>
 
     <div class="dm-effect-rules">
       @if (selectedDefinition().damageCapable) {
         <label class="field">
-          <span class="field__label">Урон при срабатывании</span>
+          <span class="field__label">{{ 'statusEffects.damagePerTrigger' | transloco }}</span>
           <input class="field__input" type="number" min="0" [value]="damage()" (input)="onDamageInput($event)" />
         </label>
       }
       <label class="field">
-        <span class="field__label">Количество срабатываний</span>
+        <span class="field__label">{{ 'statusEffects.triggerCount' | transloco }}</span>
         <input class="field__input" type="number" min="0" [value]="duration()" (input)="onDurationInput($event)" />
-        <small>0 — пока ДМ не снимет эффект</small>
+        <small>{{ 'statusEffects.untilRemoved' | transloco }}</small>
       </label>
       @if (hasTurnConfig()) {
         <label class="field">
-          <span class="field__label">Когда срабатывает</span>
+          <span class="field__label">{{ 'statusEffects.triggerWhen' | transloco }}</span>
           <select class="field__input" [value]="trigger()" (change)="onTriggerChange($event)">
-            <option value="turn-start">В начале хода цели</option>
-            <option value="turn-end">В конце хода цели</option>
+            <option value="turn-start">{{ 'statusEffects.turnStart' | transloco }}</option>
+            <option value="turn-end">{{ 'statusEffects.turnEnd' | transloco }}</option>
           </select>
         </label>
       }
       <label class="field">
-        <span class="field__label">Источник</span>
+        <span class="field__label">{{ 'common.source' | transloco }}</span>
         <input
           class="field__input"
           type="text"
-          placeholder="Заклинание или способность"
+          [placeholder]="'statusEffects.sourcePlaceholder' | transloco"
           [value]="source()"
           (input)="setText(source, $event)"
         />
       </label>
       <label class="field">
-        <span class="field__label">Концентрация</span>
+        <span class="field__label">{{ 'statusEffects.concentration' | transloco }}</span>
         <select
           class="field__input"
           [value]="concentrationSourceId()"
           (change)="setText(concentrationSourceId, $event)"
         >
-          <option value="">Не требуется</option>
+          <option value="">{{ 'statusEffects.notRequired' | transloco }}</option>
           @for (combatant of combatants(); track combatant.id) {
-            <option [value]="combatant.id">Концентрируется: {{ combatant.name }}</option>
+            <option [value]="combatant.id">{{ 'statusEffects.concentrating' | transloco: { name: combatant.name } }}</option>
           }
         </select>
       </label>
       <label class="field">
-        <span class="field__label">Спасбросок</span>
+        <span class="field__label">{{ 'statusEffects.save' | transloco }}</span>
         <input
           class="field__input"
           type="text"
-          placeholder="ЛОВ, ТЕЛ, МДР…"
+          [placeholder]="'statusEffects.savePlaceholder' | transloco"
           [value]="saveAbility()"
           (input)="setText(saveAbility, $event)"
         />
       </label>
       <label class="field">
-        <span class="field__label">Сложность</span>
+        <span class="field__label">{{ 'statusEffects.dc' | transloco }}</span>
         <input class="field__input" type="number" min="0" [value]="saveDc()" (input)="onSaveDcInput($event)" />
       </label>
       <label class="field">
-        <span class="field__label">Заметка</span>
+        <span class="field__label">{{ 'statusEffects.note' | transloco }}</span>
         <input
           class="field__input"
           type="text"
-          placeholder="Повторить спасбросок в конце хода"
+          [placeholder]="'statusEffects.notePlaceholder' | transloco"
           [value]="notes()"
           (input)="setText(notes, $event)"
         />
@@ -99,14 +99,14 @@
     </div>
 
     <button class="dm-btn" [disabled]="!canApply() || applying()" (click)="applyEffect()">
-      {{ applying() ? 'Назначаем…' : '✨ Назначить эффект' }}
+      {{ (applying() ? 'statusEffects.applying' : 'statusEffects.apply') | transloco }}
     </button>
     @if (error()) {
       <p class="dm-effect-error" role="alert">{{ error() }}</p>
     }
 
     <div class="dm-active-effects">
-      <h3>Активные эффекты</h3>
+      <h3>{{ 'statusEffects.active' | transloco }}</h3>
       @for (combatant of combatantsWithEffects(); track combatant.id) {
         <div class="dm-active-effects__combatant">
           <strong>{{ combatant.name }}</strong>
@@ -114,7 +114,7 @@
             @for (effect of combatant.activeEffects ?? []; track effect.id) {
               <span [class]="'dm-active-effect dm-active-effect--' + effect.type">
                 <span aria-hidden="true">{{ effect.customIcon || effectDefinition(effect.type).icon }}</span>
-                {{ effect.customLabel || effectDefinition(effect.type).label }}
+                {{ effect.customLabel || (('statusEffects.effects.' + effect.type + '.label') | transloco) }}
                 @if (effect.damagePerTrigger) { <small>−{{ effect.damagePerTrigger }} HP</small> }
                 @if (effect.durationLabel) {
                   <small>{{ effect.durationLabel }}</small>
@@ -122,20 +122,20 @@
                   <small>×{{ effect.remainingTriggers }}</small>
                 }
                 @if (effect.source) { <small>{{ effect.source }}</small> }
-                @if (effect.concentrationSourceId) { <small>Концентрация</small> }
-                @if (effect.saveAbility) { <small>{{ effect.saveAbility }} СЛ {{ effect.saveDc || '—' }}</small> }
+                @if (effect.concentrationSourceId) { <small>{{ 'statusEffects.concentration' | transloco }}</small> }
+                @if (effect.saveAbility) { <small>{{ effect.saveAbility }} {{ 'statusEffects.dcShort' | transloco }} {{ effect.saveDc || '—' }}</small> }
                 <button
                   type="button"
                   [disabled]="removingEffectId() !== null"
                   (click)="removeEffect(combatant.id, effect.id)"
-                  [attr.aria-label]="'Снять эффект ' + (effect.customLabel || effectDefinition(effect.type).label)"
+                  [attr.aria-label]="'statusEffects.remove' | transloco: { name: effect.customLabel || (('statusEffects.effects.' + effect.type + '.label') | transloco) }"
                 >×</button>
               </span>
             }
           </div>
         </div>
       } @empty {
-        <p class="empty-hint">На участниках пока нет активных эффектов.</p>
+        <p class="empty-hint">{{ 'statusEffects.empty' | transloco }}</p>
       }
     </div>
   </div>

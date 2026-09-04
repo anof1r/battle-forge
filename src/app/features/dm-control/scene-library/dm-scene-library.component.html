@@ -1,11 +1,11 @@
-<section class="scene-library" aria-label="Библиотека сцен и существ">
+<section class="scene-library" [attr.aria-label]="'sceneLibrary.label' | transloco">
   <header class="scene-library__intro">
     <div>
-      <h2>Сцены и библиотека существ</h2>
-      <p>Создайте существо один раз, соберите набор и добавляйте всю сцену в бой одной кнопкой.</p>
+      <h2>{{ 'sceneLibrary.title' | transloco }}</h2>
+      <p>{{ 'sceneLibrary.intro' | transloco }}</p>
     </div>
     <div class="scene-library__legend">
-      <span>1. Существо</span><span>2. Набор</span><span>3. В бой</span>
+      <span>{{ 'sceneLibrary.steps.creature' | transloco }}</span><span>{{ 'sceneLibrary.steps.preset' | transloco }}</span><span>{{ 'sceneLibrary.steps.battle' | transloco }}</span>
     </div>
   </header>
 
@@ -22,8 +22,8 @@
     <section class="library-panel library-panel--scenes">
       <header class="library-panel__header">
         <div>
-          <span class="library-panel__eyebrow">Быстрый запуск</span>
-          <h3>Сохранённые сцены</h3>
+          <span class="library-panel__eyebrow">{{ 'sceneLibrary.quickLaunch' | transloco }}</span>
+          <h3>{{ 'sceneLibrary.savedScenes' | transloco }}</h3>
         </div>
         <span class="library-panel__count">{{ scenes().length }}</span>
       </header>
@@ -34,13 +34,13 @@
             <div class="scene-card__heading">
               <div>
                 <h4>{{ scene.name }}</h4>
-                <span>{{ sceneCreatureCount(scene) }} существ</span>
+                <span>{{ 'sceneLibrary.creatureCount' | transloco: { count: sceneCreatureCount(scene) } }}</span>
               </div>
               <button
                 class="icon-button"
                 type="button"
                 (click)="deleteScene(scene)"
-                aria-label="Удалить набор"
+                [attr.aria-label]="'sceneLibrary.deletePreset' | transloco"
               >
                 ×
               </button>
@@ -60,17 +60,17 @@
                 [disabled]="launchingSceneId() !== null"
                 (click)="launchScene(scene)"
               >
-                {{ launchingSceneId() === scene.id ? 'Добавляем…' : 'Добавить сцену в бой' }}
+                {{ (launchingSceneId() === scene.id ? 'sceneLibrary.launching' : 'sceneLibrary.launch') | transloco }}
               </button>
               <button class="library-button" type="button" (click)="editScene(scene)">
-                Изменить
+                {{ 'common.edit' | transloco }}
               </button>
             </div>
           </article>
         } @empty {
           <div class="library-empty">
-            <strong>Пока нет наборов</strong>
-            <span>Создайте существ, затем соберите первую сцену справа.</span>
+            <strong>{{ 'sceneLibrary.noPresets' | transloco }}</strong>
+            <span>{{ 'sceneLibrary.noPresetsHint' | transloco }}</span>
           </div>
         }
       </div>
@@ -79,26 +79,26 @@
     <section class="library-panel library-panel--builder">
       <header class="library-panel__header">
         <div>
-          <span class="library-panel__eyebrow">Конструктор</span>
-          <h3>{{ sceneId() ? 'Редактирование набора' : 'Новый набор сцены' }}</h3>
+          <span class="library-panel__eyebrow">{{ 'sceneLibrary.builder' | transloco }}</span>
+          <h3>{{ (sceneId() ? 'sceneLibrary.editPreset' : 'sceneLibrary.newPreset') | transloco }}</h3>
         </div>
       </header>
 
       <div class="library-form">
         <label class="library-field">
-          <span>Название сцены</span>
+          <span>{{ 'sceneLibrary.sceneName' | transloco }}</span>
           <input
             type="text"
-            placeholder="Лесная засада"
+            [placeholder]="'sceneLibrary.sceneNamePlaceholder' | transloco"
             [value]="sceneName()"
             (input)="setText(sceneName, $event)"
           />
         </label>
         <label class="library-field">
-          <span>Заметка</span>
+          <span>{{ 'statusEffects.note' | transloco }}</span>
           <textarea
             rows="2"
-            placeholder="Гоблины ждут у поваленного дерева"
+            [placeholder]="'sceneLibrary.notePlaceholder' | transloco"
             [value]="sceneDescription()"
             (input)="setText(sceneDescription, $event)"
           ></textarea>
@@ -106,16 +106,16 @@
 
         <div class="scene-entry-form">
           <label class="library-field">
-            <span>Существо</span>
+            <span>{{ 'sceneLibrary.creature' | transloco }}</span>
             <select [value]="selectedTemplateId()" (change)="setText(selectedTemplateId, $event)">
-              <option value="">Выберите шаблон</option>
+              <option value="">{{ 'itemLibrary.selectTemplate' | transloco }}</option>
               @for (creature of creatures(); track creature.id) {
                 <option [value]="creature.id">{{ creature.name }}</option>
               }
             </select>
           </label>
           <label class="library-field library-field--quantity">
-            <span>Количество</span>
+            <span>{{ 'common.quantity' | transloco }}</span>
             <input
               type="number"
               min="1"
@@ -129,7 +129,7 @@
             [disabled]="!selectedTemplateId()"
             (click)="addSceneEntry()"
           >
-            Добавить
+            {{ 'common.add' | transloco }}
           </button>
         </div>
 
@@ -142,13 +142,13 @@
                 type="button"
                 class="icon-button"
                 (click)="removeSceneEntry(entry.templateId)"
-                aria-label="Убрать из набора"
+                [attr.aria-label]="'sceneLibrary.removeFromPreset' | transloco"
               >
                 ×
               </button>
             </div>
           } @empty {
-            <p class="library-hint">Добавьте в набор хотя бы одно существо.</p>
+            <p class="library-hint">{{ 'sceneLibrary.addCreatureHint' | transloco }}</p>
           }
         </div>
 
@@ -159,13 +159,11 @@
             [disabled]="!canSaveScene() || savingScene()"
             (click)="saveScene()"
           >
-            {{
-              savingScene() ? 'Сохраняем…' : sceneId() ? 'Сохранить изменения' : 'Сохранить набор'
-            }}
+            {{ (savingScene() ? 'common.saving' : sceneId() ? 'common.saveChanges' : 'sceneLibrary.savePreset') | transloco }}
           </button>
           @if (sceneId()) {
             <button class="library-button" type="button" (click)="resetSceneEditor()">
-              Отмена
+              {{ 'common.cancel' | transloco }}
             </button>
           }
         </div>
@@ -175,8 +173,8 @@
     <section class="library-panel library-panel--creatures">
       <header class="library-panel__header">
         <div>
-          <span class="library-panel__eyebrow">Бестиарий ДМа</span>
-          <h3>Существа</h3>
+          <span class="library-panel__eyebrow">{{ 'sceneLibrary.bestiary' | transloco }}</span>
+          <h3>{{ 'sceneLibrary.creatures' | transloco }}</h3>
         </div>
         <span class="library-panel__count">{{ creatures().length }}</span>
       </header>
@@ -187,16 +185,16 @@
             <div class="creature-card__heading">
               <div>
                 <h4>{{ creature.name }}</h4>
-                <span>{{ creature.subtype || 'без типа' }}</span>
+                <span>{{ creature.subtype || ('sceneLibrary.noType' | transloco) }}</span>
               </div>
               <div class="creature-card__stats">
                 <b>HP {{ creature.maxHp }}</b
-                ><b>КД {{ creature.ac }}</b>
+                ><b>{{ 'common.ac' | transloco }} {{ creature.ac }}</b>
               </div>
             </div>
             <div class="creature-card__meta">
-              <span>Атак: {{ creature.actions.length }}</span>
-              <span>Способностей: {{ creature.abilities.length }}</span>
+              <span>{{ 'sceneLibrary.attackCount' | transloco: { count: creature.actions.length } }}</span>
+              <span>{{ 'sceneLibrary.abilityCount' | transloco: { count: creature.abilities.length } }}</span>
             </div>
             <div class="library-actions">
               <button
@@ -204,23 +202,23 @@
                 type="button"
                 (click)="addCreatureToBattle(creature)"
               >
-                В бой
+                {{ 'sceneLibrary.toBattle' | transloco }}
               </button>
               <button class="library-button" type="button" (click)="editCreature(creature)">
-                Изменить
+                {{ 'common.edit' | transloco }}
               </button>
               <button
                 class="library-button library-button--danger"
                 type="button"
                 (click)="deleteCreature(creature)"
               >
-                Удалить
+                {{ 'common.delete' | transloco }}
               </button>
             </div>
           </article>
         } @empty {
           <div class="library-empty">
-            <strong>Библиотека пуста</strong><span>Заполните редактор ниже.</span>
+            <strong>{{ 'sceneLibrary.empty' | transloco }}</strong><span>{{ 'sceneLibrary.emptyHint' | transloco }}</span>
           </div>
         }
       </div>
@@ -229,22 +227,22 @@
 
   <details class="creature-editor" [open]="creatures().length === 0 || creatureId() !== null">
     <summary>
-      <span>{{ creatureId() ? 'Редактировать существо' : 'Создать существо' }}</span>
-      <small>характеристики, оружие, атаки и способности</small>
+      <span>{{ (creatureId() ? 'sceneLibrary.editCreature' : 'sceneLibrary.createCreature') | transloco }}</span>
+      <small>{{ 'sceneLibrary.creatureEditorHint' | transloco }}</small>
     </summary>
 
     <div class="creature-editor__body">
       <div class="creature-editor__basics">
         <label class="library-field"
-          ><span>Имя</span
+          ><span>{{ 'common.name' | transloco }}</span
           ><input
             type="text"
-            placeholder="Гоблин-разведчик"
+            [placeholder]="'sceneLibrary.creatureNamePlaceholder' | transloco"
             [value]="creatureName()"
             (input)="setText(creatureName, $event)"
         /></label>
         <label class="library-field"
-          ><span>Тип</span
+          ><span>{{ 'common.type' | transloco }}</span
           ><input
             type="text"
             placeholder="goblin"
@@ -252,7 +250,7 @@
             (input)="setText(creatureSubtype, $event)"
         /></label>
         <label class="library-field"
-          ><span>Максимум HP</span
+          ><span>{{ 'common.maxHp' | transloco }}</span
           ><input
             type="number"
             min="1"
@@ -260,22 +258,22 @@
             (input)="onCreatureMaxHpInput($event)"
         /></label>
         <label class="library-field"
-          ><span>КД</span
+          ><span>{{ 'common.ac' | transloco }}</span
           ><input type="number" min="1" [value]="creatureAc()" (input)="onCreatureAcInput($event)"
         /></label>
         <label class="library-field"
-          ><span>Сопротивления через запятую</span
+          ><span>{{ 'open5e.fields.resistances' | transloco }}</span
           ><input
             type="text"
-            placeholder="огонь, холод"
+            [placeholder]="'sceneLibrary.resistancesPlaceholder' | transloco"
             [value]="creatureResistances()"
             (input)="setText(creatureResistances, $event)"
         /></label>
         <label class="library-field"
-          ><span>Стартовые состояния через запятую</span
+          ><span>{{ 'sceneLibrary.startingStatuses' | transloco }}</span
           ><input
             type="text"
-            placeholder="невидим"
+            [placeholder]="'sceneLibrary.statusPlaceholder' | transloco"
             [value]="creatureStatuses()"
             (input)="setText(creatureStatuses, $event)"
         /></label>
@@ -284,15 +282,15 @@
       <div class="creature-editor__columns">
         <section class="subeditor">
           <header>
-            <h4>Оружие и атаки</h4>
+            <h4>{{ 'sceneLibrary.weaponsAndAttacks' | transloco }}</h4>
             <span>{{ creatureActions().length }}</span>
           </header>
           @if (savedActions().length > 0) {
             <div class="saved-action-picker">
               <label class="library-field">
-                <span>Добавить оружие из личной базы</span>
+                <span>{{ 'sceneLibrary.addSavedWeapon' | transloco }}</span>
                 <select [value]="selectedActionTemplateId()" (change)="selectActionTemplate($event)">
-                  <option value="">Выберите оружие или атаку</option>
+                  <option value="">{{ 'sceneLibrary.selectWeapon' | transloco }}</option>
                   @for (action of savedActions(); track action.id) {
                     <option [value]="action.id">{{ action.name }} · {{ action.damage }} {{ action.damageType }}</option>
                   }
@@ -304,21 +302,21 @@
                 [disabled]="!selectedActionTemplateId()"
                 (click)="addSavedAction()"
               >
-                Добавить мобу
+                {{ 'sceneLibrary.addToCreature' | transloco }}
               </button>
             </div>
           }
           <div class="subeditor__grid">
             <label class="library-field"
-              ><span>Название</span
+              ><span>{{ 'common.name' | transloco }}</span
               ><input
                 type="text"
-                placeholder="Короткий меч"
+                [placeholder]="'sceneLibrary.weaponNamePlaceholder' | transloco"
                 [value]="actionName()"
                 (input)="setText(actionName, $event)"
             /></label>
             <label class="library-field"
-              ><span>Бонус атаки</span
+              ><span>{{ 'player.attack.bonus' | transloco }}</span
               ><input
                 type="text"
                 placeholder="+4"
@@ -326,7 +324,7 @@
                 (input)="setText(actionToHit, $event)"
             /></label>
             <label class="library-field"
-              ><span>Кости урона</span
+              ><span>{{ 'open5e.fields.damageDie' | transloco }}</span
               ><input
                 type="text"
                 placeholder="1d6 + 2"
@@ -334,26 +332,26 @@
                 (input)="setText(actionDamage, $event)"
             /></label>
             <label class="library-field"
-              ><span>Тип урона</span
+              ><span>{{ 'open5e.fields.damageType' | transloco }}</span
               ><input
                 type="text"
-                placeholder="колющий"
+                [placeholder]="'sceneLibrary.damageTypePlaceholder' | transloco"
                 [value]="actionDamageType()"
                 (input)="setText(actionDamageType, $event)"
             /></label>
             <label class="library-field"
-              ><span>Тип атаки</span
+              ><span>{{ 'player.attack.type' | transloco }}</span
               ><input
                 type="text"
-                placeholder="Ближняя атака"
+                [placeholder]="'sceneLibrary.attackTypePlaceholder' | transloco"
                 [value]="actionDescription()"
                 (input)="setText(actionDescription, $event)"
             /></label>
             <label class="library-field library-field--wide"
-              ><span>Дополнительный текст</span
+              ><span>{{ 'open5e.fields.extraText' | transloco }}</span
               ><textarea
                 rows="2"
-                placeholder="Особые условия атаки"
+                [placeholder]="'sceneLibrary.extraTextPlaceholder' | transloco"
                 [value]="actionFullText()"
                 (input)="setText(actionFullText, $event)"
               ></textarea>
@@ -365,7 +363,7 @@
             [disabled]="!actionName().trim()"
             (click)="addAction()"
           >
-            Добавить атаку
+            {{ 'sceneLibrary.addAttack' | transloco }}
           </button>
           <div class="editor-items">
             @for (action of creatureActions(); track $index) {
@@ -378,7 +376,7 @@
                   class="icon-button"
                   type="button"
                   (click)="removeAction($index)"
-                  aria-label="Удалить атаку"
+                  [attr.aria-label]="'sceneLibrary.deleteAttack' | transloco"
                 >
                   ×
                 </button>
@@ -389,22 +387,22 @@
 
         <section class="subeditor">
           <header>
-            <h4>Способности</h4>
+            <h4>{{ 'common.abilities' | transloco }}</h4>
             <span>{{ creatureAbilities().length }}</span>
           </header>
           <label class="library-field"
-            ><span>Название</span
+            ><span>{{ 'common.name' | transloco }}</span
             ><input
               type="text"
-              placeholder="Тактика стаи"
+              [placeholder]="'sceneLibrary.abilityNamePlaceholder' | transloco"
               [value]="abilityName()"
               (input)="setText(abilityName, $event)"
           /></label>
           <label class="library-field"
-            ><span>Описание</span
+            ><span>{{ 'common.description' | transloco }}</span
             ><textarea
               rows="4"
-              placeholder="Существо получает преимущество, если рядом союзник…"
+              [placeholder]="'sceneLibrary.abilityDescriptionPlaceholder' | transloco"
               [value]="abilityDescription()"
               (input)="setText(abilityDescription, $event)"
             ></textarea>
@@ -415,7 +413,7 @@
             [disabled]="!abilityName().trim() || !abilityDescription().trim()"
             (click)="addAbility()"
           >
-            Добавить способность
+            {{ 'sceneLibrary.addAbility' | transloco }}
           </button>
           <div class="editor-items">
             @for (ability of creatureAbilities(); track $index) {
@@ -428,7 +426,7 @@
                   class="icon-button"
                   type="button"
                   (click)="removeAbility($index)"
-                  aria-label="Удалить способность"
+                  [attr.aria-label]="'sceneLibrary.deleteAbility' | transloco"
                 >
                   ×
                 </button>
@@ -445,17 +443,11 @@
           [disabled]="!canSaveCreature() || savingCreature()"
           (click)="saveCreature()"
         >
-          {{
-            savingCreature()
-              ? 'Сохраняем…'
-              : creatureId()
-                ? 'Сохранить изменения'
-                : 'Сохранить существо'
-          }}
+          {{ (savingCreature() ? 'common.saving' : creatureId() ? 'common.saveChanges' : 'sceneLibrary.saveCreature') | transloco }}
         </button>
         @if (creatureId()) {
           <button class="library-button" type="button" (click)="resetCreatureEditor()">
-            Отмена
+            {{ 'common.cancel' | transloco }}
           </button>
         }
       </div>

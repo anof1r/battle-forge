@@ -1,5 +1,5 @@
 @if (presentationMode() === 'story') {
-  <main class="story-display" aria-label="Иллюстрация истории">
+  <main class="story-display" [attr.aria-label]="'display.storyIllustration' | transloco">
     @if (activeStorySlide(); as slide) {
       <div class="story-display__backdrop" aria-hidden="true">
         <img [src]="slide.objectUrl" alt="" />
@@ -31,13 +31,13 @@
         </div>
 
         @if (battleStatus() === BATTLE_STATUS.PREPARATION) {
-          <p class="stage__subtitle">Awaiting the Dungeon Master&hellip;</p>
+          <p class="stage__subtitle">{{ 'display.awaitingDm' | transloco }}</p>
         }
         @if (battleStatus() === BATTLE_STATUS.INITIATIVE) {
-          <p class="stage__subtitle">Rolling initiative&hellip;</p>
+          <p class="stage__subtitle">{{ 'display.rollingInitiative' | transloco }}</p>
         }
         @if (battleStatus() === BATTLE_STATUS.ENDED) {
-          <p class="stage__subtitle">The battle has ended.</p>
+          <p class="stage__subtitle">{{ 'display.battleEnded' | transloco }}</p>
         }
       </div>
     </div>
@@ -48,18 +48,18 @@
   <div class="arena">
     <header class="arena__header">
       <div class="arena__stat">
-        <span class="arena__stat-label">Round</span>
+        <span class="arena__stat-label">{{ 'common.round' | transloco }}</span>
         <span class="arena__stat-value">{{ currentRound() }}</span>
       </div>
-      <h1 class="arena__title">Battle</h1>
+      <h1 class="arena__title">{{ 'common.battle' | transloco }}</h1>
       <div class="arena__stat">
-        <span class="arena__stat-label">Enemies</span>
+        <span class="arena__stat-label">{{ 'common.enemies' | transloco }}</span>
         <span class="arena__stat-value">{{ aliveEnemies().length }}</span>
       </div>
     </header>
 
     @if (partyAlerts().length > 0) {
-      <section class="arena__party-effects" aria-label="Эффекты игроков">
+      <section class="arena__party-effects" [attr.aria-label]="'display.playerEffects' | transloco">
         @for (player of partyAlerts(); track player.id) {
           <div class="party-effect-row">
             <strong>{{ player.name }}</strong>
@@ -94,7 +94,7 @@
           [class.bestiary-card--blessed]="hasEffect(enemy, 'blessed')"
         >
           @if (currentEnemy() === enemy) {
-            <span class="bestiary-card__turn-flag">⚔ Current Turn</span>
+            <span class="bestiary-card__turn-flag">⚔ {{ 'common.currentTurn' | transloco }}</span>
           }
 
           <div class="bestiary-card__scroll">
@@ -110,7 +110,7 @@
               <div class="bestiary-card__seals">
                 <div class="seal seal--ac">
                   <span class="seal__value">{{ enemy.ac }}</span>
-                  <span class="seal__label">КД</span>
+                  <span class="seal__label">{{ 'common.ac' | transloco }}</span>
                 </div>
                 <div class="seal seal--hp">
                   <span class="seal__value">{{ enemy.currentHp }}</span>
@@ -119,7 +119,7 @@
                 @if ((enemy.temporaryHp ?? 0) > 0) {
                   <div class="seal seal--hp">
                     <span class="seal__value">{{ enemy.temporaryHp }}</span>
-                    <span class="seal__label">ВРЕМ. HP</span>
+                    <span class="seal__label">{{ 'common.temporaryHpShort' | transloco }}</span>
                   </div>
                 }
               </div>
@@ -138,7 +138,7 @@
             <div class="bestiary-card__stats">
               <div class="bestiary-card__stat-box">
                 <span class="bestiary-card__stat-value">{{ enemy.initiative }}</span>
-                <span class="bestiary-card__stat-label">ИНИЦ</span>
+                <span class="bestiary-card__stat-label">{{ 'common.initiativeShort' | transloco }}</span>
               </div>
               <div class="bestiary-card__stat-box">
                 <span class="bestiary-card__stat-value">{{ enemy.maxHp }}</span>
@@ -150,7 +150,7 @@
               <div class="bestiary-card__actions-wrapper">
                 <div class="bestiary-card__actions-header">
                   <span class="bestiary-card__actions-icon">⚔️</span>
-                  <h4 class="bestiary-card__actions-title">Actions</h4>
+                  <h4 class="bestiary-card__actions-title">{{ 'common.actions' | transloco }}</h4>
                 </div>
                 <div class="bestiary-card__actions">
                   @for (action of enemy.actions; track action.name + $index) {
@@ -160,7 +160,7 @@
                         <span class="action__details">{{ action.description }}</span>
                       </div>
                       <div class="action__line">
-                        <span class="action__tohit">To Hit: {{ action.toHit }}</span>
+                        <span class="action__tohit">{{ 'display.toHit' | transloco }}: {{ action.toHit }}</span>
                         <span class="action__damage">{{ action.damage }}</span>
                         <span class="action__type">{{ action.damageType }}</span>
                       </div>
@@ -177,7 +177,7 @@
               <div class="bestiary-card__actions-wrapper bestiary-card__abilities-wrapper">
                 <div class="bestiary-card__actions-header">
                   <span class="bestiary-card__actions-icon" aria-hidden="true">✦</span>
-                  <h4 class="bestiary-card__actions-title">Способности</h4>
+                  <h4 class="bestiary-card__actions-title">{{ 'common.abilities' | transloco }}</h4>
                 </div>
                 <div class="bestiary-card__abilities">
                   @for (ability of enemy.abilities; track ability.name + $index) {
@@ -218,7 +218,7 @@
 
     @if (currentEnemy(); as current) {
       <footer class="arena__footer">
-        <span class="arena__footer-label">Current turn</span>
+        <span class="arena__footer-label">{{ 'common.currentTurn' | transloco }}</span>
         <span class="arena__footer-name">{{ current.name }}</span>
       </footer>
     }

@@ -1,22 +1,22 @@
 <details class="dm-section dm-section--damage" open>
-  <summary class="dm-section__title">❤️ Изменить HP</summary>
+  <summary class="dm-section__title">❤️ {{ 'hpControl.title' | transloco }}</summary>
   <div class="dm-damage-panel">
-    <div class="dm-hp-tabs" role="group" aria-label="Режим изменения HP">
+    <div class="dm-hp-tabs" role="group" [attr.aria-label]="'hpControl.mode' | transloco">
       <button
         type="button"
         [class.dm-hp-tabs__button--active]="hpOperation() === 'damage'"
         (click)="setOperation('damage')"
-      >💥 Нанести урон</button>
+      >💥 {{ 'hpControl.damage' | transloco }}</button>
       <button
         type="button"
         [class.dm-hp-tabs__button--active]="hpOperation() === 'heal'"
         (click)="setOperation('heal')"
-      >❤️ Добавить HP</button>
+      >❤️ {{ 'hpControl.heal' | transloco }}</button>
       <button
         type="button"
         [class.dm-hp-tabs__button--active]="hpOperation() === 'temporary'"
         (click)="setOperation('temporary')"
-      >🛡️ Временные HP</button>
+      >🛡️ {{ 'hpControl.temporary' | transloco }}</button>
     </div>
 
     <div class="dm-damage__target-type">
@@ -27,7 +27,7 @@
           [checked]="targetType() === 'enemies'"
           (change)="setTargetType('enemies')"
         />
-        Враги
+        {{ 'common.enemies' | transloco }}
       </label>
       <label class="dm-damage__radio">
         <input
@@ -36,7 +36,7 @@
           [checked]="targetType() === 'players'"
           (change)="setTargetType('players')"
         />
-        Игроки
+        {{ 'common.players' | transloco }}
       </label>
       @if (hpOperation() === 'damage') {
         <label class="dm-damage__radio">
@@ -46,7 +46,7 @@
             [checked]="targetType() === 'all'"
             (change)="setTargetType('all')"
           />
-          Все враги
+          {{ 'hpControl.allEnemies' | transloco }}
         </label>
       }
       @if (hpOperation() !== 'temporary') {
@@ -57,21 +57,21 @@
             [checked]="targetType() === 'selected'"
             (change)="setTargetType('selected')"
           />
-          Выбрать несколько
+          {{ 'hpControl.selectMultiple' | transloco }}
         </label>
       }
     </div>
 
     @if (targetType() !== 'all' && targetType() !== 'selected') {
       <div class="dm-damage__target-select">
-        <label class="field__label" for="dm-hp-target">Цель</label>
+        <label class="field__label" for="dm-hp-target">{{ 'common.target' | transloco }}</label>
         <select
           id="dm-hp-target"
           class="field__input"
           [value]="targetId() || ''"
           (change)="onTargetChange($event)"
         >
-          <option value="" disabled>Выберите цель</option>
+          <option value="" disabled>{{ 'common.selectTarget' | transloco }}</option>
           @for (target of availableTargets(); track target.id) {
             <option [value]="target.id">
               {{ target.name }} (HP: {{ target.currentHp }}/{{ target.maxHp }})
@@ -82,7 +82,7 @@
     }
 
     @if (targetType() === 'selected') {
-      <div class="dm-multi-targets" aria-label="Выбор нескольких целей">
+      <div class="dm-multi-targets" [attr.aria-label]="'hpControl.multipleTargets' | transloco">
         @for (target of availableTargets(); track target.id) {
           <label class="dm-damage__radio">
             <input
@@ -99,7 +99,7 @@
     <div class="dm-damage__controls">
       <div class="field">
         <label class="field__label" for="dm-hp-amount">
-          {{ hpOperation() === 'damage' ? 'Урон' : hpOperation() === 'heal' ? 'Лечение' : 'Временные HP' }}
+          {{ (hpOperation() === 'damage' ? 'common.damage' : hpOperation() === 'heal' ? 'hpControl.healing' : 'hpControl.temporary') | transloco }}
         </label>
         <input
           id="dm-hp-amount"
@@ -111,25 +111,25 @@
           (input)="onAmountInput($event)"
         />
         @if (hpOperation() === 'heal' && maxHealingAmount() !== null) {
-          <small class="field__hint">Можно восстановить не больше {{ maxHealingAmount() }} HP.</small>
+          <small class="field__hint">{{ 'hpControl.maxHealing' | transloco: { amount: maxHealingAmount() } }}</small>
         }
       </div>
       @if (hpOperation() === 'damage') {
         <button class="dm-btn dm-btn--danger" [disabled]="!canApplyDamage()" (click)="applyDamage()">
-          💥 Нанести урон
+          💥 {{ 'hpControl.damage' | transloco }}
         </button>
       } @else if (hpOperation() === 'heal') {
         <button class="dm-btn dm-btn--success" [disabled]="!canApplyHealing()" (click)="applyHealing()">
-          ❤️ Добавить HP
+          ❤️ {{ 'hpControl.heal' | transloco }}
         </button>
       } @else {
         <button
           class="dm-btn dm-btn--success"
           [disabled]="!canApplyTemporaryHp()"
           (click)="applyTemporaryHp()"
-        >🛡️ Установить временные HP</button>
+        >🛡️ {{ 'hpControl.setTemporary' | transloco }}</button>
       }
-      <button class="dm-btn dm-btn--secondary" (click)="resetForm()">✕ Сбросить</button>
+      <button class="dm-btn dm-btn--secondary" (click)="resetForm()">✕ {{ 'common.reset' | transloco }}</button>
     </div>
   </div>
 </details>

@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { UpperCasePipe } from '@angular/common';
+import { TranslocoPipe } from '@jsverse/transloco';
 import { BattleService } from '../../core/services/battle.service';
 import { HpBarComponent } from '../../shared/ui/hp-bar/hp-bar.component';
 import { EnemyIconComponent } from '../../shared/ui/enemy-icon/enemy-icon.component';
@@ -17,6 +18,7 @@ import { StoryPresentationService } from '../../core/services/story-presentation
   standalone: true,
   imports: [
     UpperCasePipe,
+    TranslocoPipe,
     HpBarComponent,
     EnemyIconComponent,
     StatusEffectListComponent,

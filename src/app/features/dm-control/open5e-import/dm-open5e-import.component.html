@@ -1,18 +1,18 @@
 <section class="open5e-import" aria-labelledby="open5e-title">
   <header class="open5e-import__header">
     <div>
-      <p class="open5e-import__eyebrow">Внешний справочник → личная база</p>
-      <h2 id="open5e-title">📚 Импорт из Open5e</h2>
-      <p>Найдите запись на английском, вставьте перевод из LSS справа и сохраните один раз.</p>
+      <p class="open5e-import__eyebrow">{{ 'open5e.eyebrow' | transloco }}</p>
+      <h2 id="open5e-title">📚 {{ 'open5e.title' | transloco }}</h2>
+      <p>{{ (translationMode() ? 'open5e.intro.translation' : 'open5e.intro.original') | transloco }}</p>
     </div>
-    <div class="open5e-import__counters" aria-label="Размер личной библиотеки">
-      <span>Заклинаний: {{ savedSpells().length }}</span>
-      <span>Атак: {{ savedActions().length }}</span>
-      <span>Существ: {{ savedCreatures().length }}</span>
+    <div class="open5e-import__counters" [attr.aria-label]="'open5e.librarySize' | transloco">
+      <span>{{ 'open5e.counters.spells' | transloco: { count: savedSpells().length } }}</span>
+      <span>{{ 'open5e.counters.actions' | transloco: { count: savedActions().length } }}</span>
+      <span>{{ 'open5e.counters.creatures' | transloco: { count: savedCreatures().length } }}</span>
     </div>
   </header>
 
-  <div class="open5e-import__tabs" role="tablist" aria-label="Тип данных Open5e">
+  <div class="open5e-import__tabs" role="tablist" [attr.aria-label]="'open5e.contentType' | transloco">
     <button
       type="button"
       role="tab"
@@ -20,7 +20,7 @@
       [class.is-active]="kind() === 'spell'"
       (click)="setKind('spell')"
     >
-      🔮 Заклинания
+      🔮 {{ 'open5e.tabs.spells' | transloco }}
     </button>
     <button
       type="button"
@@ -29,7 +29,7 @@
       [class.is-active]="kind() === 'weapon'"
       (click)="setKind('weapon')"
     >
-      🗡️ Оружие мобов
+      🗡️ {{ 'open5e.tabs.weapons' | transloco }}
     </button>
     <button
       type="button"
@@ -38,13 +38,13 @@
       [class.is-active]="kind() === 'creature'"
       (click)="setKind('creature')"
     >
-      👹 Существа
+      👹 {{ 'open5e.tabs.creatures' | transloco }}
     </button>
   </div>
 
   <div class="open5e-search">
     <label class="open5e-field open5e-field--grow">
-      <span>Название на английском</span>
+      <span>{{ 'open5e.search.englishName' | transloco }}</span>
       <input
         type="search"
         placeholder="Magic Missile, Longsword, Goblin…"
@@ -54,11 +54,11 @@
       />
     </label>
     <label class="open5e-field">
-      <span>Источник</span>
+      <span>{{ 'common.source' | transloco }}</span>
       <select [value]="documentKey()" (change)="setDocument($event)">
         <option value="srd-2024">SRD 2024</option>
         <option value="srd-2014">SRD 2014</option>
-        <option value="">Все открытые источники</option>
+        <option value="">{{ 'open5e.search.allSources' | transloco }}</option>
       </select>
     </label>
     <button
@@ -67,7 +67,7 @@
       [disabled]="!query().trim() || searching()"
       (click)="search()"
     >
-      {{ searching() ? 'Ищем…' : 'Найти' }}
+      {{ (searching() ? 'common.searching' : 'common.search') | transloco }}
     </button>
   </div>
 
@@ -79,7 +79,7 @@
   }
 
   @if (results().length > 0) {
-    <div class="open5e-results" aria-label="Результаты поиска">
+    <div class="open5e-results" [attr.aria-label]="'open5e.search.results' | transloco">
       @for (entry of results(); track entry.kind + ':' + entry.document.key + ':' + entry.key) {
         <button
           type="button"
@@ -89,7 +89,7 @@
         >
           <span class="open5e-result__title">
             {{ entry.name }}
-            @if (isSaved(entry)) { <small>✓ в базе</small> }
+            @if (isSaved(entry)) { <small>✓ {{ 'open5e.saved' | transloco }}</small> }
           </span>
           <span>{{ resultMeta(entry) }}</span>
           <span class="open5e-result__source">{{ entry.document.name }}</span>
@@ -101,7 +101,7 @@
   @if (selectedSpell(); as spell) {
     <div class="translation-workspace">
       <section class="translation-column translation-column--original">
-        <header><span>Оригинал Open5e</span><strong>{{ spell.name }}</strong></header>
+        <header><span>{{ 'open5e.original' | transloco }}</span><strong>{{ spell.name }}</strong></header>
         <dl class="original-facts">
           <div><dt>Level</dt><dd>{{ spell.level }}</dd></div>
           <div><dt>School</dt><dd>{{ spell.school || '—' }}</dd></div>
@@ -112,42 +112,42 @@
           <div><dt>Damage</dt><dd>{{ spell.damageFormula || '—' }} {{ spell.damageTypes.join(', ') }}</dd></div>
         </dl>
         <h4>Description</h4>
-        <p class="original-text">{{ spell.description || 'Описание отсутствует.' }}</p>
+        <p class="original-text">{{ spell.description || ('common.noDescription' | transloco) }}</p>
         @if (spell.higherLevel) {
           <h4>At Higher Levels</h4>
           <p class="original-text">{{ spell.higherLevel }}</p>
         }
       </section>
 
-      <section class="translation-column translation-column--editable">
-        <header><span>Твой перевод</span><strong>Можно вставлять из LSS</strong></header>
+      <section class="translation-column translation-column--editable" [class.translation-column--direct]="!translationMode()">
+        <header><span>{{ (translationMode() ? 'open5e.translation.title' : 'open5e.direct.title') | transloco }}</span><strong>{{ (translationMode() ? 'open5e.translation.spellHint' : 'open5e.direct.hint') | transloco }}</strong></header>`n        @if (!translationMode()) { <p class="translation-note">{{ 'open5e.direct.description' | transloco }}</p> }
         <div class="translation-form translation-form--two">
-          <label class="open5e-field"><span>Название</span><input [value]="spellName()" (input)="setText(spellName, $event)" /></label>
-          <label class="open5e-field"><span>Школа</span><input [value]="spellSchool()" (input)="setText(spellSchool, $event)" /></label>
-          <label class="open5e-field"><span>Время накладывания</span><input [value]="spellCastingTime()" (input)="setText(spellCastingTime, $event)" /></label>
-          <label class="open5e-field"><span>Дистанция</span><input [value]="spellRange()" (input)="setText(spellRange, $event)" /></label>
-          <label class="open5e-field"><span>Длительность</span><input [value]="spellDuration()" (input)="setText(spellDuration, $event)" /></label>
-          <label class="open5e-field"><span>Компоненты</span><input [value]="spellComponents()" (input)="setText(spellComponents, $event)" /></label>
-          <label class="open5e-field"><span>Кость урона</span><input [value]="spellDamageFormula()" (input)="setText(spellDamageFormula, $event)" /></label>
-          <label class="open5e-field"><span>Тип урона</span><input [value]="spellDamageType()" (input)="setText(spellDamageType, $event)" /></label>
-          <label class="open5e-field open5e-field--wide"><span>Описание</span><textarea rows="8" [value]="spellDescription()" (input)="setText(spellDescription, $event)"></textarea></label>
-          <label class="open5e-field open5e-field--wide"><span>На больших уровнях</span><textarea rows="4" [value]="spellHigherLevel()" (input)="setText(spellHigherLevel, $event)"></textarea></label>
+          <label class="open5e-field"><span>{{ 'common.name' | transloco }}</span><input [value]="spellName()" (input)="setText(spellName, $event)" /></label>
+          <label class="open5e-field"><span>{{ 'open5e.fields.school' | transloco }}</span><input [value]="spellSchool()" (input)="setText(spellSchool, $event)" /></label>
+          <label class="open5e-field"><span>{{ 'open5e.fields.castingTime' | transloco }}</span><input [value]="spellCastingTime()" (input)="setText(spellCastingTime, $event)" /></label>
+          <label class="open5e-field"><span>{{ 'open5e.fields.range' | transloco }}</span><input [value]="spellRange()" (input)="setText(spellRange, $event)" /></label>
+          <label class="open5e-field"><span>{{ 'open5e.fields.duration' | transloco }}</span><input [value]="spellDuration()" (input)="setText(spellDuration, $event)" /></label>
+          <label class="open5e-field"><span>{{ 'open5e.fields.components' | transloco }}</span><input [value]="spellComponents()" (input)="setText(spellComponents, $event)" /></label>
+          <label class="open5e-field"><span>{{ 'open5e.fields.damageDie' | transloco }}</span><input [value]="spellDamageFormula()" (input)="setText(spellDamageFormula, $event)" /></label>
+          <label class="open5e-field"><span>{{ 'open5e.fields.damageType' | transloco }}</span><input [value]="spellDamageType()" (input)="setText(spellDamageType, $event)" /></label>
+          <label class="open5e-field open5e-field--wide"><span>{{ 'common.description' | transloco }}</span><textarea rows="8" [value]="spellDescription()" (input)="setText(spellDescription, $event)"></textarea></label>
+          <label class="open5e-field open5e-field--wide"><span>{{ 'open5e.fields.higherLevels' | transloco }}</span><textarea rows="4" [value]="spellHigherLevel()" (input)="setText(spellHigherLevel, $event)"></textarea></label>
         </div>
         <div class="translation-actions">
           <button class="open5e-button open5e-button--primary" type="button" [disabled]="!canSave() || saving()" (click)="saveSelected()">
-            {{ saving() ? 'Сохраняем…' : 'Сохранить в базу' }}
+            {{ (saving() ? 'common.saving' : translationMode() ? 'open5e.actions.saveTranslation' : 'open5e.actions.saveOriginal') | transloco }}
           </button>
           <label class="open5e-field open5e-field--player">
-            <span>Игрок</span>
+            <span>{{ 'common.player' | transloco }}</span>
             <select [value]="selectedPlayerId()" (change)="setPlayer($event)">
-              <option value="">Выберите игрока</option>
+              <option value="">{{ 'common.selectPlayer' | transloco }}</option>
               @for (player of players(); track player.id) {
                 <option [value]="player.id">{{ player.name }}</option>
               }
             </select>
           </label>
           <button class="open5e-button" type="button" [disabled]="!canSave() || !selectedPlayerId() || saving() || giving()" (click)="saveAndGiveSpell()">
-            Сохранить и выдать
+            {{ (translationMode() ? 'open5e.actions.saveAndGive' : 'open5e.actions.saveOriginalAndGive') | transloco }}
           </button>
         </div>
       </section>
@@ -157,7 +157,7 @@
   @if (selectedWeapon(); as weapon) {
     <div class="translation-workspace">
       <section class="translation-column translation-column--original">
-        <header><span>Оригинал Open5e</span><strong>{{ weapon.name }}</strong></header>
+        <header><span>{{ 'open5e.original' | transloco }}</span><strong>{{ weapon.name }}</strong></header>
         <dl class="original-facts">
           <div><dt>Damage</dt><dd>{{ weapon.damageFormula || '—' }} {{ weapon.damageType }}</dd></div>
           <div><dt>Range</dt><dd>{{ weapon.range || '—' }}</dd></div>
@@ -165,19 +165,19 @@
         </dl>
         <p class="original-text">{{ weapon.description }}</p>
       </section>
-      <section class="translation-column translation-column--editable">
-        <header><span>Твой шаблон атаки</span><strong>Потом добавляется мобу</strong></header>
+      <section class="translation-column translation-column--editable" [class.translation-column--direct]="!translationMode()">
+        <header><span>{{ (translationMode() ? 'open5e.translation.weaponTitle' : 'open5e.direct.title') | transloco }}</span><strong>{{ (translationMode() ? 'open5e.translation.weaponHint' : 'open5e.direct.hint') | transloco }}</strong></header>`n        @if (!translationMode()) { <p class="translation-note">{{ 'open5e.direct.description' | transloco }}</p> }
         <div class="translation-form translation-form--two">
-          <label class="open5e-field"><span>Название</span><input [value]="weaponName()" (input)="setText(weaponName, $event)" /></label>
-          <label class="open5e-field"><span>Бонус атаки моба</span><input placeholder="+4" [value]="weaponToHit()" (input)="setText(weaponToHit, $event)" /></label>
-          <label class="open5e-field"><span>Кость урона</span><input [value]="weaponDamage()" (input)="setText(weaponDamage, $event)" /></label>
-          <label class="open5e-field"><span>Тип урона</span><input [value]="weaponDamageType()" (input)="setText(weaponDamageType, $event)" /></label>
-          <label class="open5e-field open5e-field--wide"><span>Свойства</span><textarea rows="3" [value]="weaponDescription()" (input)="setText(weaponDescription, $event)"></textarea></label>
-          <label class="open5e-field open5e-field--wide"><span>Дополнительный текст</span><textarea rows="4" [value]="weaponFullText()" (input)="setText(weaponFullText, $event)"></textarea></label>
+          <label class="open5e-field"><span>{{ 'common.name' | transloco }}</span><input [value]="weaponName()" (input)="setText(weaponName, $event)" /></label>
+          <label class="open5e-field"><span>{{ 'open5e.fields.attackBonus' | transloco }}</span><input placeholder="+4" [value]="weaponToHit()" (input)="setText(weaponToHit, $event)" /></label>
+          <label class="open5e-field"><span>{{ 'open5e.fields.damageDie' | transloco }}</span><input [value]="weaponDamage()" (input)="setText(weaponDamage, $event)" /></label>
+          <label class="open5e-field"><span>{{ 'open5e.fields.damageType' | transloco }}</span><input [value]="weaponDamageType()" (input)="setText(weaponDamageType, $event)" /></label>
+          <label class="open5e-field open5e-field--wide"><span>{{ 'open5e.fields.properties' | transloco }}</span><textarea rows="3" [value]="weaponDescription()" (input)="setText(weaponDescription, $event)"></textarea></label>
+          <label class="open5e-field open5e-field--wide"><span>{{ 'open5e.fields.extraText' | transloco }}</span><textarea rows="4" [value]="weaponFullText()" (input)="setText(weaponFullText, $event)"></textarea></label>
         </div>
-        <p class="translation-note">Бонус атаки зависит от характеристик конкретного моба, поэтому его можно задать здесь или поправить после добавления оружия существу.</p>
+        <p class="translation-note">{{ 'open5e.translation.attackBonusNote' | transloco }}</p>
         <button class="open5e-button open5e-button--primary" type="button" [disabled]="!canSave() || saving()" (click)="saveSelected()">
-          {{ saving() ? 'Сохраняем…' : 'Сохранить оружие' }}
+          {{ (saving() ? 'common.saving' : translationMode() ? 'open5e.actions.saveWeapon' : 'open5e.actions.saveOriginal') | transloco }}
         </button>
       </section>
     </div>
@@ -186,7 +186,7 @@
   @if (selectedCreature(); as creature) {
     <div class="translation-workspace">
       <section class="translation-column translation-column--original">
-        <header><span>Оригинал Open5e</span><strong>{{ creature.name }}</strong></header>
+        <header><span>{{ 'open5e.original' | transloco }}</span><strong>{{ creature.name }}</strong></header>
         <dl class="original-facts">
           <div><dt>Type</dt><dd>{{ creature.subtype }}</dd></div>
           <div><dt>CR</dt><dd>{{ creature.challengeRating }}</dd></div>
@@ -203,34 +203,34 @@
           <article class="original-entry"><strong>{{ ability.name }}</strong><p>{{ ability.description }}</p></article>
         }
       </section>
-      <section class="translation-column translation-column--editable">
-        <header><span>Твой перевод</span><strong>Сразу станет шаблоном сцены</strong></header>
+      <section class="translation-column translation-column--editable" [class.translation-column--direct]="!translationMode()">
+        <header><span>{{ (translationMode() ? 'open5e.translation.title' : 'open5e.direct.title') | transloco }}</span><strong>{{ (translationMode() ? 'open5e.translation.creatureHint' : 'open5e.direct.hint') | transloco }}</strong></header>`n        @if (!translationMode()) { <p class="translation-note">{{ 'open5e.direct.description' | transloco }}</p> }
         <div class="translation-form translation-form--two">
-          <label class="open5e-field"><span>Название</span><input [value]="creatureName()" (input)="setText(creatureName, $event)" /></label>
-          <label class="open5e-field"><span>Тип</span><input [value]="creatureSubtype()" (input)="setText(creatureSubtype, $event)" /></label>
-          <label class="open5e-field"><span>Максимум HP</span><input type="number" min="1" [value]="creatureMaxHp()" (input)="onCreatureNumber(creatureMaxHp, $event, 1)" /></label>
-          <label class="open5e-field"><span>КД</span><input type="number" min="1" [value]="creatureAc()" (input)="onCreatureNumber(creatureAc, $event, 10)" /></label>
-          <label class="open5e-field open5e-field--wide"><span>Сопротивления через запятую</span><input [value]="creatureResistances()" (input)="setText(creatureResistances, $event)" /></label>
+          <label class="open5e-field"><span>{{ 'common.name' | transloco }}</span><input [value]="creatureName()" (input)="setText(creatureName, $event)" /></label>
+          <label class="open5e-field"><span>{{ 'common.type' | transloco }}</span><input [value]="creatureSubtype()" (input)="setText(creatureSubtype, $event)" /></label>
+          <label class="open5e-field"><span>{{ 'common.maxHp' | transloco }}</span><input type="number" min="1" [value]="creatureMaxHp()" (input)="onCreatureNumber(creatureMaxHp, $event, 1)" /></label>
+          <label class="open5e-field"><span>{{ 'common.ac' | transloco }}</span><input type="number" min="1" [value]="creatureAc()" (input)="onCreatureNumber(creatureAc, $event, 10)" /></label>
+          <label class="open5e-field open5e-field--wide"><span>{{ 'open5e.fields.resistances' | transloco }}</span><input [value]="creatureResistances()" (input)="setText(creatureResistances, $event)" /></label>
         </div>
-        <h4>Перевод атак и оружия</h4>
+        <h4>{{ 'open5e.translation.attacks' | transloco }}</h4>
         @for (action of creatureActions(); track $index; let actionIndex = $index) {
           <div class="nested-translation">
-            <label class="open5e-field"><span>Название</span><input [value]="action.name" (input)="updateCreatureAction(actionIndex, 'name', $event)" /></label>
-            <label class="open5e-field"><span>Бонус</span><input [value]="action.toHit" (input)="updateCreatureAction(actionIndex, 'toHit', $event)" /></label>
-            <label class="open5e-field"><span>Урон</span><input [value]="action.damage" (input)="updateCreatureAction(actionIndex, 'damage', $event)" /></label>
-            <label class="open5e-field"><span>Тип урона</span><input [value]="action.damageType" (input)="updateCreatureAction(actionIndex, 'damageType', $event)" /></label>
-            <label class="open5e-field open5e-field--wide"><span>Описание</span><textarea rows="3" [value]="action.fullText || ''" (input)="updateCreatureAction(actionIndex, 'fullText', $event)"></textarea></label>
+            <label class="open5e-field"><span>{{ 'common.name' | transloco }}</span><input [value]="action.name" (input)="updateCreatureAction(actionIndex, 'name', $event)" /></label>
+            <label class="open5e-field"><span>{{ 'common.bonus' | transloco }}</span><input [value]="action.toHit" (input)="updateCreatureAction(actionIndex, 'toHit', $event)" /></label>
+            <label class="open5e-field"><span>{{ 'common.damage' | transloco }}</span><input [value]="action.damage" (input)="updateCreatureAction(actionIndex, 'damage', $event)" /></label>
+            <label class="open5e-field"><span>{{ 'open5e.fields.damageType' | transloco }}</span><input [value]="action.damageType" (input)="updateCreatureAction(actionIndex, 'damageType', $event)" /></label>
+            <label class="open5e-field open5e-field--wide"><span>{{ 'common.description' | transloco }}</span><textarea rows="3" [value]="action.fullText || ''" (input)="updateCreatureAction(actionIndex, 'fullText', $event)"></textarea></label>
           </div>
         }
-        <h4>Перевод способностей</h4>
+        <h4>{{ 'open5e.translation.abilities' | transloco }}</h4>
         @for (ability of creatureAbilities(); track $index; let abilityIndex = $index) {
           <div class="nested-translation nested-translation--ability">
-            <label class="open5e-field"><span>Название</span><input [value]="ability.name" (input)="updateCreatureAbility(abilityIndex, 'name', $event)" /></label>
-            <label class="open5e-field open5e-field--wide"><span>Описание</span><textarea rows="4" [value]="ability.description" (input)="updateCreatureAbility(abilityIndex, 'description', $event)"></textarea></label>
+            <label class="open5e-field"><span>{{ 'common.name' | transloco }}</span><input [value]="ability.name" (input)="updateCreatureAbility(abilityIndex, 'name', $event)" /></label>
+            <label class="open5e-field open5e-field--wide"><span>{{ 'common.description' | transloco }}</span><textarea rows="4" [value]="ability.description" (input)="updateCreatureAbility(abilityIndex, 'description', $event)"></textarea></label>
           </div>
         }
         <button class="open5e-button open5e-button--primary" type="button" [disabled]="!canSave() || saving()" (click)="saveSelected()">
-          {{ saving() ? 'Сохраняем…' : 'Сохранить существо' }}
+          {{ (saving() ? 'common.saving' : translationMode() ? 'open5e.actions.saveCreature' : 'open5e.actions.saveOriginal') | transloco }}
         </button>
       </section>
     </div>
@@ -239,34 +239,34 @@
   @if (savedSpells().length > 0) {
     <section class="saved-spell-give">
       <div>
-        <h3>Быстро выдать сохранённое заклинание</h3>
-        <p>Здесь используются уже проверенные русские версии, без обращения к Open5e.</p>
+        <h3>{{ 'open5e.quickGive.title' | transloco }}</h3>
+        <p>{{ 'open5e.quickGive.description' | transloco }}</p>
       </div>
       <label class="open5e-field">
-        <span>Заклинание</span>
+        <span>{{ 'common.spell' | transloco }}</span>
         <select [value]="selectedSavedSpellId()" (change)="setSavedSpell($event)">
-          <option value="">Выберите из базы</option>
+          <option value="">{{ 'open5e.quickGive.select' | transloco }}</option>
           @for (spell of savedSpells(); track spell.id) {
-            <option [value]="spell.id">{{ spell.name }} · {{ spell.isCantrip ? 'заговор' : spell.level + ' ур.' }}</option>
+            <option [value]="spell.id">{{ spell.name }} · {{ spell.isCantrip ? ('open5e.meta.cantrip' | transloco) : ('open5e.meta.level' | transloco: { level: spell.level }) }}</option>
           }
         </select>
       </label>
       <label class="open5e-field">
-        <span>Игрок</span>
+        <span>{{ 'common.player' | transloco }}</span>
         <select [value]="selectedPlayerId()" (change)="setPlayer($event)">
-          <option value="">Выберите игрока</option>
+          <option value="">{{ 'common.selectPlayer' | transloco }}</option>
           @for (player of players(); track player.id) {
             <option [value]="player.id">{{ player.name }}</option>
           }
         </select>
       </label>
       <button class="open5e-button open5e-button--primary" type="button" [disabled]="!selectedSavedSpellId() || !selectedPlayerId() || giving()" (click)="giveSavedSpell()">
-        {{ giving() ? 'Выдаём…' : 'Выдать игроку' }}
+        {{ (giving() ? 'common.giving' : 'open5e.actions.give') | transloco }}
       </button>
     </section>
   }
 
   <footer class="open5e-attribution">
-    Данные импортируются из Open5e. Источник каждой записи сохраняется вместе с переводом; сторонние открытые источники могут отличаться от SRD.
+    {{ 'open5e.attribution' | transloco }}
   </footer>
 </section>

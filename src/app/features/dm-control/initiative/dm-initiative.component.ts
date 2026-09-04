@@ -9,14 +9,14 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import { UpperCasePipe } from '@angular/common';
+import { TranslocoPipe } from '@jsverse/transloco';
 import { BattleService } from '../../../core/services/battle.service';
 import { LoggerService } from '../../../core/services/logger.service';
 
 @Component({
   selector: 'app-dm-initiative',
   standalone: true,
-  imports: [UpperCasePipe],
+  imports: [TranslocoPipe],
   templateUrl: './dm-initiative.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

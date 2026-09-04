@@ -9,7 +9,7 @@
           <span class="player__divider-diamond">✦</span>
           <span class="player__divider-line"></span>
         </div>
-        <p class="player__subtitle">Войдите как игрок</p>
+        <p class="player__subtitle">{{ 'player.login.subtitle' | transloco }}</p>
 
         <div class="player__login-form">
           @if (lastLoginName(); as lastName) {
@@ -18,18 +18,18 @@
               class="player__login-btn player__login-btn--remembered"
               (click)="loginAsLastPlayer()"
             >
-              Войти как {{ lastName }}
+              {{ 'player.login.asLast' | transloco: { name: lastName } }}
             </button>
           }
           <input
             class="player__login-input"
             type="text"
-            placeholder="Имя персонажа"
+            [placeholder]="'player.login.namePlaceholder' | transloco"
             [value]="loginName()"
             (input)="onLoginInput($event)"
             (keyup.enter)="login()"
           />
-          <button type="button" class="player__login-btn" (click)="login()">Войти</button>
+          <button type="button" class="player__login-btn" (click)="login()">{{ 'player.login.submit' | transloco }}</button>
         </div>
 
         @if (loginError()) {
@@ -38,10 +38,10 @@
 
         @if (showUploadPrompt()) {
           <div class="player__upload-section">
-            <p class="player__upload-hint">Или загрузите JSON-файл персонажа</p>
+            <p class="player__upload-hint">{{ 'player.login.uploadHint' | transloco }}</p>
             <label class="player__upload-btn">
               <input type="file" accept=".json" (change)="onFileSelected($event)" hidden />
-              📂 Выбрать файл
+              📂 {{ 'common.chooseFile' | transloco }}
             </label>
           </div>
         }
@@ -57,14 +57,14 @@
           [class.player__tab--active]="activeTab() === 'character'"
           (click)="switchTab('character')"
         >
-          📖 Персонаж
+          📖 {{ 'player.tabs.character' | transloco }}
         </button>
         <button
           class="player__tab"
           [class.player__tab--active]="activeTab() === 'arena'"
           (click)="switchTab('arena')"
         >
-          ⚔️ Арена
+          ⚔️ {{ 'player.tabs.arena' | transloco }}
           <span class="player__tab-badge">{{ aliveEnemies().length }}</span>
         </button>
       </div>
@@ -82,7 +82,7 @@
       @if (playerActiveEffects().length > 0) {
         <bf-status-effect-list
           [effects]="playerActiveEffects()"
-          label="Текущие эффекты"
+          [label]="'player.effects.current' | transloco"
         ></bf-status-effect-list>
       }
 
@@ -93,17 +93,17 @@
             <div class="player__header-info">
               <span class="player__header-tag">{{ char.race }}</span>
               <span class="player__header-tag">{{ char.class }}</span>
-              <span class="player__header-tag">Уровень {{ char.level }}</span>
+              <span class="player__header-tag">{{ 'common.levelValue' | transloco: { level: char.level } }}</span>
             </div>
           </header>
 
           <div class="player__grid">
             <section class="player__stats-panel">
-              <h2 class="player__panel-title">Характеристики</h2>
+              <h2 class="player__panel-title">{{ 'player.sheet.stats' | transloco }}</h2>
               <div class="player__stats-grid">
                 @for (stat of CHARACTER_STATS; track stat.key) {
                   <div class="player__stat-box">
-                    <span class="player__stat-label" [attr.title]="stat.title">{{
+                    <span class="player__stat-label" [attr.title]="('character.stats.' + stat.key + '.name') | transloco">{{
                       stat.label
                     }}</span>
                     <span class="player__stat-value">{{ getStatValue(stat.key) }}</span>
@@ -114,12 +114,12 @@
 
               @if ((char.skills?.length ?? 0) > 0) {
                 <section class="player__skill-bonuses" aria-labelledby="player-skill-bonuses-title">
-                  <h3 id="player-skill-bonuses-title" class="player__panel-title">Бонусы</h3>
+                  <h3 id="player-skill-bonuses-title" class="player__panel-title">{{ 'player.sheet.skillBonuses' | transloco }}</h3>
                   @for (stat of CHARACTER_STATS; track stat.key) {
                     @if (skillsByStat()[stat.key].length > 0) {
                       <div class="player__skill-group">
-                        <h4 class="player__skill-stat" [attr.title]="stat.title">
-                          {{ stat.label }}:
+                        <h4 class="player__skill-stat" [attr.title]="('character.stats.' + stat.key + '.name') | transloco">
+                          {{ ('character.stats.' + stat.key + '.short') | transloco }}:
                         </h4>
                         <ul class="player__skill-list">
                           @for (skill of skillsByStat()[stat.key]; track skill.id) {
@@ -148,24 +148,24 @@
                   >
                 </div>
                 <div class="player__vitality-item">
-                  <span class="player__vitality-label">КД</span>
+                  <span class="player__vitality-label">{{ 'common.ac' | transloco }}</span>
                   <span class="player__vitality-value">{{ char.ac }}</span>
                 </div>
                 @if ((char.temporaryHp ?? 0) > 0) {
                   <div class="player__vitality-item">
-                    <span class="player__vitality-label">🛡️ Врем. HP</span>
+                    <span class="player__vitality-label">🛡️ {{ 'common.temporaryHpShort' | transloco }}</span>
                     <span class="player__vitality-value">{{ char.temporaryHp }}</span>
                   </div>
                 }
                 <div class="player__vitality-item">
-                  <span class="player__vitality-label">Скорость</span>
+                  <span class="player__vitality-label">{{ 'player.sheet.speed' | transloco }}</span>
                   <span class="player__vitality-value">{{ char.speed }}</span>
                 </div>
               </div>
 
               @if (char.resistances?.length) {
                 <div class="player__resistances">
-                  <h3 class="player__panel-title">Сопротивления</h3>
+                  <h3 class="player__panel-title">{{ 'player.sheet.resistances' | transloco }}</h3>
                   <div class="player__resistance-tags">
                     @for (res of char.resistances; track res) {
                       <span class="player__resistance-tag">🛡️ {{ res }}</span>
@@ -174,8 +174,8 @@
                 </div>
               } @else {
                 <div class="player__resistances">
-                  <h3 class="player__panel-title">Сопротивления</h3>
-                  <p>Сопротивления отсутствуют</p>
+                  <h3 class="player__panel-title">{{ 'player.sheet.resistances' | transloco }}</h3>
+                  <p>{{ 'player.sheet.noResistances' | transloco }}</p>
                 </div>
               }
             </section>
@@ -183,7 +183,7 @@
             <section class="player__abilities-panel">
               @if (char.weapons.length > 0) {
                 <div class="player__weapons">
-                  <h2 class="player__panel-title">⚔️ Оружие</h2>
+                  <h2 class="player__panel-title">⚔️ {{ 'player.sheet.weapons' | transloco }}</h2>
                   <ul class="player__weapon-list">
                     @for (entry of weaponCards(); track entry.weapon.name) {
                       <li class="player__weapon-item">
@@ -192,7 +192,7 @@
                         <span class="player__weapon-type">{{ entry.weapon.damageType }}</span>
                         @if (entry.attackBonus; as attackBonus) {
                           <span class="player__weapon-attack">
-                            Бонус к атаке {{ attackBonus }}
+                            {{ 'player.sheet.attackBonus' | transloco: { bonus: attackBonus } }}
                           </span>
                         }
                       </li>
@@ -203,7 +203,7 @@
               <!-- Инвентарь -->
               @if (char.inventory && char.inventory.length > 0) {
                 <div class="player__inventory">
-                  <h2 class="player__panel-title">🎒 Инвентарь</h2>
+                  <h2 class="player__panel-title">🎒 {{ 'player.sheet.inventory' | transloco }}</h2>
                   <div class="player__inventory-grid">
                     @for (item of char.inventory; track item.id) {
                       <div
@@ -220,7 +220,7 @@
                               class="player__inventory-rarity"
                               [class]="'player__inventory-rarity--' + item.rarity"
                             >
-                              {{ item.rarity }}
+                              {{ ('item.rarity.' + item.rarity) | transloco }}
                             </span>
                           }
                         </div>
@@ -229,13 +229,13 @@
                         }
                         <div class="player__inventory-actions">
                           <button class="player__inventory-btn" (click)="useItem(item)">
-                            Использовать
+                            {{ 'common.use' | transloco }}
                           </button>
                           <button
                             class="player__inventory-btn player__inventory-btn--info"
                             (click)="examineItem(item)"
                           >
-                            📖 Изучить
+                            📖 {{ 'common.examine' | transloco }}
                           </button>
                         </div>
                       </div>
@@ -246,7 +246,7 @@
 
               @if ((char.resources?.length ?? 0) > 0) {
                 <div class="player__spells">
-                  <h2 class="player__panel-title">⚡ Ресурсы</h2>
+                  <h2 class="player__panel-title">⚡ {{ 'player.resources.title' | transloco }}</h2>
                   <div class="player__resource-grid">
                     @for (resource of char.resources ?? []; track resource.id) {
                       <div
@@ -275,15 +275,14 @@
                         </div>
                         @if (resource.description) {
                           <details class="player__spell-details">
-                            <summary>Описание ресурса</summary>
+                            <summary>{{ 'player.resources.description' | transloco }}</summary>
                             <p class="player__spell-description">{{ resource.description }}</p>
                           </details>
                         }
                         @if (activeResourceEffect(resource.id); as activeEffect) {
                           <div class="player__resource-active">
                             <span
-                              >{{ resource.icon || resource.activeEffect?.icon || '⚡' }} Эффект
-                              активен</span
+                              >{{ resource.icon || resource.activeEffect?.icon || '⚡' }} {{ 'player.resources.effectActive' | transloco }}</span
                             >
                             <div class="player__resource-active-actions">
                               @if (resource.activeEffect?.duration !== 'manual') {
@@ -293,11 +292,7 @@
                                   [disabled]="updatingResourceEffectId() !== null"
                                   (click)="extendResourceEffect(resource.id)"
                                 >
-                                  {{
-                                    updatingResourceEffectId() === resource.id
-                                      ? 'Продлеваем…'
-                                      : 'Продлить'
-                                  }}
+                                  {{ (updatingResourceEffectId() === resource.id ? 'player.resources.extending' : 'player.resources.extend') | transloco }}
                                 </button>
                               }
                               <button
@@ -306,7 +301,7 @@
                                 [disabled]="updatingResourceEffectId() !== null"
                                 (click)="endResourceEffect(resource.id)"
                               >
-                                Завершить
+                                {{ 'common.finish' | transloco }}
                               </button>
                             </div>
                           </div>
@@ -314,7 +309,7 @@
                           @if (!resource.isUnlimited && resource.current <= 0) {
                             <div class="player__resource-depleted" role="status">
                               <span aria-hidden="true">◇</span>
-                              Ресурс исчерпан
+                              {{ 'player.resources.depleted' | transloco }}
                             </div>
                           }
                           <button
@@ -325,13 +320,7 @@
                             "
                             (click)="useResource(resource.id)"
                           >
-                            {{
-                              usingResourceId() === resource.id
-                                ? 'Применяем…'
-                                : !resource.isUnlimited && resource.current <= 0
-                                  ? 'Исчерпан'
-                                  : 'Использовать'
-                            }}
+                            {{ (usingResourceId() === resource.id ? 'player.resources.using' : !resource.isUnlimited && resource.current <= 0 ? 'player.resources.depletedShort' : 'common.use') | transloco }}
                           </button>
                         }
                       </div>
@@ -345,14 +334,14 @@
 
               @if (char.spells && char.spells.length > 0) {
                 <div class="player__spells">
-                  <h2 class="player__panel-title">🔮 Заклинания</h2>
+                  <h2 class="player__panel-title">🔮 {{ 'player.spells.title' | transloco }}</h2>
                   @if (hasSharedSpellSlots()) {
-                    <div class="player__slot-pools" aria-label="Ячейки заклинаний">
+                    <div class="player__slot-pools" [attr.aria-label]="'player.spells.slots' | transloco">
                       @for (slot of spellSlots(); track slot.level) {
                         <span>
-                          {{ slot.level }} ур.: {{ slot.current }}/{{ slot.max }}
+                          {{ 'player.spells.slotSummary' | transloco: { level: slot.level, current: slot.current, max: slot.max } }}
                           @if (slot.recovery === 'short-rest') {
-                            · короткий отдых
+                            · {{ 'recovery.shortRest' | transloco }}
                           }
                         </span>
                       }
@@ -365,15 +354,15 @@
                           <span class="player__spell-name">{{ spell.name }}</span>
                           <span class="player__spell-level">
                             @if (spell.isCantrip) {
-                              Заговор
+                              {{ 'player.spells.cantrip' | transloco }}
                             } @else {
-                              Уровень {{ spell.level }}
+                              {{ 'common.levelValue' | transloco: { level: spell.level } }}
                             }
                           </span>
                           @if (spell.isPrepared) {
-                            <span class="player__spell-prepared">✔ Подготовлено</span>
+                            <span class="player__spell-prepared">✔ {{ 'player.spells.prepared' | transloco }}</span>
                           } @else {
-                            <span class="player__spell-unprepared">Не подготовлено</span>
+                            <span class="player__spell-unprepared">{{ 'player.spells.notPrepared' | transloco }}</span>
                           }
                         </div>
                         @if (spell.school) {
@@ -387,7 +376,7 @@
                         }
                         @if (spell.description) {
                           <details class="player__spell-details">
-                            <summary>Описание заклинания</summary>
+                            <summary>{{ 'player.spells.description' | transloco }}</summary>
                             <p class="player__spell-description">
                               @for (
                                 part of spellDescriptionParts(spell.description);
@@ -405,22 +394,22 @@
                         <div class="player__spell-actions">
                           <span class="player__spell-uses">
                             @if (spell.isCantrip) {
-                              Использования: ∞
+                              {{ 'player.spells.unlimitedUses' | transloco }}
                             } @else if (hasSharedSpellSlots()) {
                               @if (getAvailableSlotLevels(spell).length > 0) {
                                 <label class="player__slot-selector">
-                                  <span class="player__slot-selector-label">Ячейка заклинания</span>
+                                  <span class="player__slot-selector-label">{{ 'player.spells.slot' | transloco }}</span>
                                   <span class="player__slot-selector-control">
                                     <select
                                       class="player__slot-select"
                                       [attr.aria-label]="
-                                        'Уровень ячейки для заклинания ' + spell.name
+                                        'player.spells.slotForSpell' | transloco: { name: spell.name }
                                       "
                                       [value]="getSelectedSlotLevel(spell)"
                                       (change)="setSpellSlotLevel(spell.id, $event)"
                                     >
                                       @for (level of getAvailableSlotLevels(spell); track level) {
-                                        <option [value]="level">{{ level }} уровень</option>
+                                        <option [value]="level">{{ 'common.levelValue' | transloco: { level } }}</option>
                                       }
                                     </select>
                                     <span
@@ -430,10 +419,10 @@
                                   </span>
                                 </label>
                               } @else {
-                                Нет доступных ячеек
+                                {{ 'player.spells.noSlots' | transloco }}
                               }
                             } @else {
-                              Старый счётчик: {{ getSpellUsesRemaining(spell) }} /
+                              {{ 'player.spells.legacyCounter' | transloco }}: {{ getSpellUsesRemaining(spell) }} /
                               {{ getSpellMaxUses(spell) }}
                             }
                           </span>
@@ -442,7 +431,7 @@
                             [disabled]="!canUseSpell(spell) || usingSpellId() !== null"
                             (click)="useSpell(spell)"
                           >
-                            {{ usingSpellId() === spell.id ? 'Используется…' : 'Использовать' }}
+                            {{ (usingSpellId() === spell.id ? 'player.spells.using' : 'common.use') | transloco }}
                           </button>
                         </div>
                         @if (linkedSpellResources(spell).length > 0) {
@@ -454,7 +443,7 @@
                                 [disabled]="usingSpellId() !== null"
                                 (click)="useSpellWithResource(spell, resource)"
                               >
-                                Без ячейки · {{ resource.current }}/{{ resource.max }}
+                                {{ 'player.spells.withoutSlot' | transloco }} · {{ resource.current }}/{{ resource.max }}
                               </button>
                             }
                           </div>
@@ -470,7 +459,7 @@
 
               @if (char.abilities.length > 0) {
                 <div class="player__abilities">
-                  <h2 class="player__panel-title">📜 Способности</h2>
+                  <h2 class="player__panel-title">📜 {{ 'common.abilities' | transloco }}</h2>
                   <div class="player__ability-list">
                     @for (ability of char.abilities; track ability.name) {
                       <div
@@ -499,13 +488,13 @@
       @if (activeTab() === 'arena') {
         <div class="player__arena-view">
           <div class="player__arena-header">
-            <span class="player__arena-round">Раунд {{ currentRound() }}</span>
+            <span class="player__arena-round">{{ 'common.roundValue' | transloco: { round: currentRound() } }}</span>
             <span class="player__arena-combatants">
-              Участников: {{ combatantsInTurnOrder().length }} · Врагов: {{ aliveEnemies().length }}
+              {{ 'player.arena.counts' | transloco: { combatants: combatantsInTurnOrder().length, enemies: aliveEnemies().length } }}
             </span>
           </div>
 
-          <h2 class="player__turn-order-title">Очередность ходов</h2>
+          <h2 class="player__turn-order-title">{{ 'player.arena.turnOrder' | transloco }}</h2>
 
           <div class="player__combatant-grid">
             @for (
@@ -523,13 +512,13 @@
                 [attr.role]="isSelectableEnemy(combatant) ? 'button' : null"
                 [attr.tabindex]="isSelectableEnemy(combatant) ? 0 : null"
                 [attr.aria-label]="
-                  isSelectableEnemy(combatant) ? 'Выбрать ' + combatant.name + ' целью атаки' : null
+                  isSelectableEnemy(combatant) ? ('player.arena.selectTarget' | transloco: { name: combatant.name }) : null
                 "
                 (click)="selectCombatant(combatant)"
                 (keydown.enter)="selectCombatant(combatant)"
                 (keydown.space)="selectCombatant(combatant); $event.preventDefault()"
               >
-                <span class="player__combatant-order" aria-label="Позиция в очереди">
+                <span class="player__combatant-order" [attr.aria-label]="'player.arena.position' | transloco">
                   {{ turnIndex + 1 }}
                 </span>
                 <div class="player__combatant-header">
@@ -545,7 +534,7 @@
                       combatant.type === COMBATANT_TYPE.PLAYER
                     "
                   >
-                    {{ combatant.type === COMBATANT_TYPE.PLAYER ? 'Игрок' : 'Враг' }}
+                    {{ (combatant.type === COMBATANT_TYPE.PLAYER ? 'combatant.type.player' : 'combatant.type.enemy') | transloco }}
                   </span>
                 </div>
                 <div class="player__combatant-hp">
@@ -560,34 +549,34 @@
                   >
                 </div>
                 <div class="player__combatant-stats">
-                  <span>КД {{ combatant.ac }}</span>
-                  <span>ИНИЦ {{ combatant.initiative }}</span>
+                  <span>{{ 'common.ac' | transloco }} {{ combatant.ac }}</span>
+                  <span>{{ 'common.initiativeShort' | transloco }} {{ combatant.initiative }}</span>
                   @if ((combatant.temporaryHp ?? 0) > 0) {
-                    <span>🛡️ {{ combatant.temporaryHp }} врем. HP</span>
+                    <span>🛡️ {{ combatant.temporaryHp }} {{ 'common.temporaryHpShort' | transloco }}</span>
                   }
                 </div>
                 @if (currentCombatant()?.id === combatant.id) {
-                  <div class="player__combatant-turn">⚔️ Текущий ход</div>
+                  <div class="player__combatant-turn">⚔️ {{ 'common.currentTurn' | transloco }}</div>
                 }
               </div>
             } @empty {
-              <div class="player__combatant-empty">Пока нет участников боя</div>
+              <div class="player__combatant-empty">{{ 'player.arena.empty' | transloco }}</div>
             }
           </div>
 
           @if (selectedEnemy(); as enemy) {
             <div class="player__attack-panel">
               <h3 class="player__attack-title">
-                {{ attackMode() === 'main' ? 'Атака' : 'Дополнительный удар' }}
+                {{ (attackMode() === 'main' ? 'player.attack.main' : 'player.attack.additional') | transloco }}
               </h3>
-              <div class="player__attack-tabs" role="group" aria-label="Тип атаки">
+              <div class="player__attack-tabs" role="group" [attr.aria-label]="'player.attack.type' | transloco">
                 <button
                   type="button"
                   class="player__attack-cancel"
                   [class.player__attack-tab--active]="attackMode() === 'main'"
                   (click)="setAttackMode('main')"
                 >
-                  Основной удар
+                  {{ 'player.attack.mainHit' | transloco }}
                 </button>
                 <button
                   type="button"
@@ -595,14 +584,14 @@
                   [class.player__attack-tab--active]="attackMode() === 'additional'"
                   (click)="setAttackMode('additional')"
                 >
-                  + Доп. удар
+                  + {{ 'player.attack.additionalShort' | transloco }}
                 </button>
               </div>
               <div class="player__attack-row">
-                <span class="player__attack-target"> Цель: {{ enemy.name }} </span>
+                <span class="player__attack-target">{{ 'player.attack.target' | transloco }}: {{ enemy.name }}</span>
               </div>
               <div class="player__attack-row">
-                <label class="player__attack-label">Оружие</label>
+                <label class="player__attack-label">{{ 'player.sheet.weapons' | transloco }}</label>
                 <select
                   class="player__attack-select"
                   [value]="selectedWeaponIndex()"
@@ -616,13 +605,13 @@
                 </select>
                 @if (selectedWeaponAttackBonus(); as attackBonus) {
                   <span class="player__attack-bonus">
-                    Бонус атаки
+                    {{ 'player.attack.bonus' | transloco }}
                     <strong>{{ attackBonus }}</strong>
                   </span>
                 }
               </div>
               <div class="player__attack-row">
-                <label class="player__attack-label">Урон</label>
+                <label class="player__attack-label">{{ 'player.attack.damage' | transloco }}</label>
                 <input
                   type="number"
                   class="player__attack-input"
@@ -633,17 +622,17 @@
               </div>
               <div class="player__attack-row">
                 <button class="player__attack-btn" [disabled]="!canAttack()" (click)="attack()">
-                  ⚔️ Атаковать
+                  ⚔️ {{ 'player.attack.submit' | transloco }}
                 </button>
-                <button class="player__attack-cancel" (click)="clearSelection()">Отмена</button>
+                <button class="player__attack-cancel" (click)="clearSelection()">{{ 'common.cancel' | transloco }}</button>
               </div>
               <p class="player__attack-hint">
-                Урон считается игроками вручную. Ограничения на количество атак нет.
+                {{ 'player.attack.hint' | transloco }}
               </p>
             </div>
           } @else {
             <div class="player__attack-placeholder">
-              <p>Выберите врага для атаки</p>
+              <p>{{ 'player.attack.selectEnemy' | transloco }}</p>
             </div>
           }
         </div>
@@ -658,9 +647,9 @@
             (change)="onFileSelected($event)"
             hidden
           />
-          📂 Обновить JSON
+          📂 {{ 'player.footer.updateJson' | transloco }}
         </label>
-        <button type="button" class="player__reset-btn" (click)="logout()">Выйти</button>
+        <button type="button" class="player__reset-btn" (click)="logout()">{{ 'player.footer.logout' | transloco }}</button>
       </footer>
     </div>
   }
@@ -671,13 +660,13 @@
     <div class="modal-content" (click)="$event.stopPropagation()">
       <h3 class="modal-title">
         @if (modalMode() === 'use') {
-          Использовать {{ selectedItemForUse()?.name }}
+          {{ 'common.use' | transloco }} {{ selectedItemForUse()?.name }}
         } @else {
           📖 {{ selectedItemForUse()?.name }}
         }
       </h3>
       <p class="modal-description">
-        {{ selectedItemForUse()?.description || 'Описание отсутствует' }}
+        {{ selectedItemForUse()?.description || ('common.noDescription' | transloco) }}
       </p>
 
       @if (
@@ -686,7 +675,7 @@
         (selectedItemForUse()?.quantity ?? 0) > 1
       ) {
         <div class="modal-quantity">
-          <label>Количество:</label>
+          <label>{{ 'common.quantity' | transloco }}:</label>
           <input
             type="number"
             min="1"
@@ -701,14 +690,14 @@
       <div class="modal-actions">
         @if (modalMode() === 'use') {
           <button class="modal-btn modal-btn--confirm" (click)="confirmAndUseItem()">
-            Применить
+            {{ 'common.apply' | transloco }}
           </button>
         }
         <button class="modal-btn modal-btn--cancel" (click)="closeUseModal()">
           @if (modalMode() === 'use') {
-            Отмена
+            {{ 'common.cancel' | transloco }}
           } @else {
-            Закрыть
+            {{ 'common.close' | transloco }}
           }
         </button>
       </div>
@@ -729,22 +718,22 @@
       <div class="spell-confirmation__sigil resource-confirmation__sigil" aria-hidden="true">
         {{ confirmation.icon }}
       </div>
-      <p class="spell-confirmation__eyebrow">Ресурс использован</p>
+      <p class="spell-confirmation__eyebrow">{{ 'player.resources.used' | transloco }}</p>
       <h3 id="resource-confirmation-title" class="modal-title spell-confirmation__title">
         {{ confirmation.resourceName }}
       </h3>
 
       <div id="resource-confirmation-result" class="spell-confirmation__result">
         @if (confirmation.isUnlimited) {
-          <span>Ресурс не расходуется</span>
-          <strong>∞ Бесконечно</strong>
+          <span>{{ 'player.resources.notSpent' | transloco }}</span>
+          <strong>∞ {{ 'player.resources.unlimited' | transloco }}</strong>
         } @else {
-          <span>Потрачено {{ confirmation.spent }} · осталось</span>
+          <span>{{ 'player.resources.spentRemaining' | transloco: { spent: confirmation.spent } }}</span>
           <strong>{{ confirmation.remaining }} / {{ confirmation.max }}</strong>
         }
         @if (confirmation.activated) {
-          <span>Эффект активирован</span>
-          <strong>Отображается в текущих эффектах</strong>
+          <span>{{ 'player.resources.effectActivated' | transloco }}</span>
+          <strong>{{ 'player.resources.shownInEffects' | transloco }}</strong>
         }
       </div>
 
@@ -753,7 +742,7 @@
         type="button"
         (click)="closeResourceUseConfirmation()"
       >
-        Продолжить
+        {{ 'common.continue' | transloco }}
       </button>
     </section>
   </div>
@@ -771,10 +760,10 @@
       <div class="spell-confirmation__sigil resource-confirmation__sigil" aria-hidden="true">
         {{ resource.icon || resource.activeEffect?.icon || '⚡' }}
       </div>
-      <p class="spell-confirmation__eyebrow">Использование ресурса</p>
+      <p class="spell-confirmation__eyebrow">{{ 'player.resources.usage' | transloco }}</p>
       <h3 id="resource-spend-title" class="modal-title">{{ resource.name }}</h3>
       <label class="resource-spend-modal__amount">
-        <span>Сколько потратить?</span>
+        <span>{{ 'player.resources.amountPrompt' | transloco }}</span>
         <input
           type="number"
           min="1"
@@ -782,18 +771,18 @@
           [value]="resourceUseAmount()"
           (input)="setResourceUseAmount($event)"
         />
-        <small>Доступно: {{ resource.current }} / {{ resource.max }}</small>
+        <small>{{ 'player.resources.available' | transloco }}: {{ resource.current }} / {{ resource.max }}</small>
       </label>
       <div class="modal-actions">
         <button type="button" class="modal-btn modal-btn--confirm" (click)="confirmResourceUse()">
-          Потратить {{ resourceUseAmount() }}
+          {{ 'player.resources.spend' | transloco: { amount: resourceUseAmount() } }}
         </button>
         <button
           type="button"
           class="modal-btn modal-btn--cancel"
           (click)="closeResourceUseDialog()"
         >
-          Отмена
+          {{ 'common.cancel' | transloco }}
         </button>
       </div>
     </section>
@@ -813,12 +802,12 @@
       <div class="spell-confirmation__sigil resource-confirmation__sigil" aria-hidden="true">
         {{ confirmation.icon }}
       </div>
-      <p class="spell-confirmation__eyebrow">Ресурс продлён</p>
+      <p class="spell-confirmation__eyebrow">{{ 'player.resources.extended' | transloco }}</p>
       <h3 id="resource-extension-title" class="modal-title spell-confirmation__title">
         {{ confirmation.resourceName }}
       </h3>
       <div id="resource-extension-result" class="spell-confirmation__result">
-        <span>Длительность обновлена</span>
+        <span>{{ 'player.resources.durationUpdated' | transloco }}</span>
         <strong>{{ confirmation.durationLabel }}</strong>
       </div>
       <button
@@ -826,7 +815,7 @@
         class="modal-btn modal-btn--confirm spell-confirmation__close"
         (click)="closeResourceEffectConfirmation()"
       >
-        Продолжить
+        {{ 'common.continue' | transloco }}
       </button>
     </section>
   </div>
@@ -843,24 +832,24 @@
       (click)="$event.stopPropagation()"
     >
       <div class="spell-confirmation__sigil" aria-hidden="true">✦</div>
-      <p class="spell-confirmation__eyebrow">Заклинание применено</p>
+      <p class="spell-confirmation__eyebrow">{{ 'player.spells.cast' | transloco }}</p>
       <h3 id="spell-confirmation-title" class="modal-title spell-confirmation__title">
         {{ confirmation.spellName }}
       </h3>
 
       <div id="spell-confirmation-result" class="spell-confirmation__result">
         @if (confirmation.slotLevel !== null) {
-          <span>Потрачена ячейка</span>
-          <strong>{{ confirmation.slotLevel }} уровень</strong>
+          <span>{{ 'player.spells.slotSpent' | transloco }}</span>
+          <strong>{{ 'common.levelValue' | transloco: { level: confirmation.slotLevel } }}</strong>
         } @else if (confirmation.isCantrip) {
-          <span>Использован заговор</span>
-          <strong>Ячейка не расходуется</strong>
+          <span>{{ 'player.spells.cantripUsed' | transloco }}</span>
+          <strong>{{ 'player.spells.slotNotSpent' | transloco }}</strong>
         } @else if (confirmation.resourceName) {
-          <span>Ячейка не потрачена</span>
+          <span>{{ 'player.spells.slotNotSpent' | transloco }}</span>
           <strong>{{ confirmation.resourceName }}</strong>
         } @else {
-          <span>Использование отмечено</span>
-          <strong>Списан заряд заклинания</strong>
+          <span>{{ 'player.spells.useRecorded' | transloco }}</span>
+          <strong>{{ 'player.spells.chargeSpent' | transloco }}</strong>
         }
       </div>
 
@@ -869,7 +858,7 @@
         type="button"
         (click)="closeSpellUseConfirmation()"
       >
-        Продолжить
+        {{ 'common.continue' | transloco }}
       </button>
     </section>
   </div>

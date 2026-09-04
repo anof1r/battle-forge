@@ -445,3 +445,12 @@
     transition: none;
   }
 }
+
+.translation-column--direct {
+  .translation-form,
+  .nested-translation,
+  > h4,
+  .translation-note:not(:first-of-type) {
+    display: none;
+  }
+}

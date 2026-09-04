@@ -1,19 +1,19 @@
 <details class="dm-section dm-section--controls" open>
-  <summary class="dm-section__title">🎮 Управление боем</summary>
+  <summary class="dm-section__title">🎮 {{ 'dmControls.title' | transloco }}</summary>
   <div class="dm-controls-group">
-    <h3 class="dm-controls-group__title">⚙️ Подготовка</h3>
+    <h3 class="dm-controls-group__title">⚙️ {{ 'battle.status.preparation' | transloco }}</h3>
     <div class="dm-controls">
       <button class="dm-btn" [disabled]="playersLoading()" (click)="loadPlayersToBattle()">
-        {{ playersLoading() ? '⏳ Загружаем игроков…' : '🔄 Обновить игроков из базы' }}
+        {{ (playersLoading() ? 'dmControls.loadingPlayers' : 'dmControls.refreshPlayers') | transloco }}
       </button>
       @if (battleStatus() === BATTLE_STATUS.PREPARATION) {
-        <button class="dm-btn" (click)="startInitiativeRolls()">🎲 Бросить инициативу</button>
+        <button class="dm-btn" (click)="startInitiativeRolls()">🎲 {{ 'dmControls.rollInitiative' | transloco }}</button>
       }
       @if (
         battleStatus() === BATTLE_STATUS.PREPARATION ||
         battleStatus() === BATTLE_STATUS.INITIATIVE
       ) {
-        <button class="dm-btn dm-btn--success" (click)="startBattle()">⚔️ Начать битву</button>
+        <button class="dm-btn dm-btn--success" (click)="startBattle()">⚔️ {{ 'dmControls.startBattle' | transloco }}</button>
       }
     </div>
     @if (playerSyncMessage()) {
@@ -25,36 +25,36 @@
   </div>
 
   <div class="dm-controls-group">
-    <h3 class="dm-controls-group__title">⏳ Управление ходом</h3>
+    <h3 class="dm-controls-group__title">⏳ {{ 'dmControls.turnManagement' | transloco }}</h3>
     <div class="dm-controls">
       <button class="dm-btn" [disabled]="advancingTurn()" (click)="nextTurn()">
-        {{ advancingTurn() ? '⏳ Обработка хода…' : '➡️ Следующий ход' }}
+        {{ (advancingTurn() ? 'dmControls.processingTurn' : 'dmControls.nextTurn') | transloco }}
       </button>
       <button class="dm-btn" [disabled]="!canUndo()" (click)="undoLastAction()">
-        ↩️ Отменить
+        ↩️ {{ 'dmControls.undo' | transloco }}
       </button>
       <button
         class="dm-btn dm-btn--secondary"
         [disabled]="transitioningScene()"
         (click)="finishScene('preserve')"
       >
-        🏁 Завершить сцену
+        🏁 {{ 'dmControls.finishScene' | transloco }}
       </button>
       <button
         class="dm-btn"
         [disabled]="transitioningScene()"
         (click)="finishScene('short-rest')"
       >
-        ☕ Короткий отдых
+        ☕ {{ 'dmControls.shortRest' | transloco }}
       </button>
       <button
         class="dm-btn dm-btn--success"
         [disabled]="transitioningScene()"
         (click)="finishScene('long-rest')"
       >
-        🌙 Завершить с долгим отдыхом
+        🌙 {{ 'dmControls.longRest' | transloco }}
       </button>
-      <button class="dm-btn dm-btn--danger" (click)="resetScene()">🔄 Сбросить</button>
+      <button class="dm-btn dm-btn--danger" (click)="resetScene()">🔄 {{ 'common.reset' | transloco }}</button>
     </div>
   </div>
 </details>

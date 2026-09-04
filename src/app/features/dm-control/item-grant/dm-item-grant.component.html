@@ -1,55 +1,55 @@
 <details class="dm-section dm-section--inventory" open>
-  <summary class="dm-section__title">🎒 Выдать разовый предмет</summary>
+  <summary class="dm-section__title">🎒 {{ 'itemGrant.title' | transloco }}</summary>
   <div class="dm-inventory-form">
     <div class="field-row">
       <div class="field">
-        <label class="field__label" for="dm-item-player">Игрок</label>
+        <label class="field__label" for="dm-item-player">{{ 'common.player' | transloco }}</label>
         <select
           id="dm-item-player"
           class="field__input"
           [value]="selectedPlayerId() || ''"
           (change)="onPlayerChange($event)"
         >
-          <option value="" disabled>Выберите игрока</option>
+          <option value="" disabled>{{ 'common.selectPlayer' | transloco }}</option>
           @for (player of players() | keyvalue; track player.value.id) {
             <option [value]="player.value.id">{{ player.value.name }}</option>
           }
         </select>
       </div>
       <div class="field">
-        <label class="field__label" for="dm-item-name">Предмет</label>
+        <label class="field__label" for="dm-item-name">{{ 'common.item' | transloco }}</label>
         <input
           id="dm-item-name"
           class="field__input"
           type="text"
-          placeholder="Зелье здоровья"
+          [placeholder]="'itemGrant.namePlaceholder' | transloco"
           [value]="itemName()"
           (input)="setText(itemName, $event)"
         />
       </div>
       <div class="field">
-        <label class="field__label" for="dm-item-description">Описание</label>
+        <label class="field__label" for="dm-item-description">{{ 'common.description' | transloco }}</label>
         <input
           id="dm-item-description"
           class="field__input"
           type="text"
-          placeholder="Зелье восстанавливает 2d4+2 HP"
+          [placeholder]="'itemGrant.descriptionPlaceholder' | transloco"
           [value]="description()"
           (input)="setText(description, $event)"
         />
       </div>
       <div class="field field--wide">
-        <label class="field__label" for="dm-item-rarity">Редкость</label>
+        <label class="field__label" for="dm-item-rarity">{{ 'common.rarity' | transloco }}</label>
         <select id="dm-item-rarity" class="field__input" [value]="rarity()" (change)="onRarityChange($event)">
-          <option value="common">Обычный</option>
-          <option value="uncommon">Необычный</option>
-          <option value="rare">Редкий</option>
-          <option value="epic">Эпический</option>
-          <option value="legendary">Легендарный</option>
+          <option value="common">{{ 'item.rarity.common' | transloco }}</option>
+          <option value="uncommon">{{ 'item.rarity.uncommon' | transloco }}</option>
+          <option value="rare">{{ 'item.rarity.rare' | transloco }}</option>
+          <option value="epic">{{ 'item.rarity.epic' | transloco }}</option>
+          <option value="legendary">{{ 'item.rarity.legendary' | transloco }}</option>
         </select>
       </div>
       <div class="field">
-        <label class="field__label" for="dm-item-quantity">Количество</label>
+        <label class="field__label" for="dm-item-quantity">{{ 'common.quantity' | transloco }}</label>
         <input
           id="dm-item-quantity"
           class="field__input"
@@ -64,6 +64,6 @@
       class="dm-btn"
       [disabled]="!selectedPlayerId() || !itemName().trim() || quantity() < 1 || saving()"
       (click)="giveItem()"
-    >{{ saving() ? '⏳ Выдаём…' : '🎒 Выдать предмет' }}</button>
+    >{{ (saving() ? 'common.giving' : 'itemGrant.submit') | transloco }}</button>
   </div>
 </details>

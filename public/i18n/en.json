@@ -1,0 +1,813 @@
+{
+  "language": {
+    "label": "Language"
+  },
+  "common": {
+    "abilities": "Abilities",
+    "add": "Add",
+    "ac": "AC",
+    "actions": "Actions",
+    "apply": "Apply",
+    "battle": "Battle",
+    "bonus": "Bonus",
+    "cancel": "Cancel",
+    "chooseFile": "Choose file",
+    "close": "Close",
+    "continue": "Continue",
+    "currentTurn": "Current turn",
+    "damage": "Damage",
+    "description": "Description",
+    "enemies": "Enemies",
+    "examine": "Examine",
+    "finish": "Finish",
+    "giving": "Giving…",
+    "levelValue": "Level {{ level }}",
+    "maxHp": "Maximum HP",
+    "name": "Name",
+    "noDescription": "No description available",
+    "player": "Player",
+    "quantity": "Quantity",
+    "round": "Round",
+    "roundValue": "Round {{ round }}",
+    "save": "Save",
+    "saving": "Saving…",
+    "search": "Search",
+    "searching": "Searching…",
+    "selectPlayer": "Select a player",
+    "source": "Source",
+    "spell": "Spell",
+    "temporaryHpShort": "TEMP HP",
+    "type": "Type",
+    "use": "Use",
+    "initiativeShort": "INIT",
+    "delete": "Delete",
+    "edit": "Edit",
+    "level": "Level",
+    "maximum": "Maximum",
+    "remaining": "Remaining",
+    "saveChanges": "Save changes",
+    "initiative": "Initiative",
+    "item": "Item",
+    "players": "Players",
+    "rarity": "Rarity",
+    "reset": "Reset",
+    "selectTarget": "Select a target",
+    "target": "Target"
+  },
+  "battle": {
+    "status": {
+      "preparation": "Preparation",
+      "initiative": "Initiative",
+      "battle": "Battle",
+      "ended": "Ended"
+    }
+  },
+  "combatant": {
+    "type": {
+      "player": "Player",
+      "enemy": "Enemy"
+    }
+  },
+  "character": {
+    "stats": {
+      "str": {
+        "short": "STR",
+        "name": "Strength"
+      },
+      "dex": {
+        "short": "DEX",
+        "name": "Dexterity"
+      },
+      "con": {
+        "short": "CON",
+        "name": "Constitution"
+      },
+      "int": {
+        "short": "INT",
+        "name": "Intelligence"
+      },
+      "wis": {
+        "short": "WIS",
+        "name": "Wisdom"
+      },
+      "cha": {
+        "short": "CHA",
+        "name": "Charisma"
+      }
+    }
+  },
+  "item": {
+    "rarity": {
+      "common": "Common",
+      "uncommon": "Uncommon",
+      "rare": "Rare",
+      "epic": "Epic",
+      "very-rare": "Very rare",
+      "legendary": "Legendary"
+    }
+  },
+  "recovery": {
+    "shortRest": "short rest",
+    "longRest": "long rest"
+  },
+  "dm": {
+    "navigationLabel": "Dungeon Master workspace",
+    "tabs": {
+      "scenes": "Scenes and creatures",
+      "battle": "Battle",
+      "rewards": "Players and rewards",
+      "library": "Open5e imports",
+      "story": "Story"
+    },
+    "presentation": {
+      "label": "Shared display mode",
+      "story": "🖼 Story",
+      "battle": "⚔ Battle",
+      "storyButton": "Story",
+      "battleButton": "Battle",
+      "previous": "Previous slide",
+      "next": "Next slide"
+    }
+  },
+  "display": {
+    "storyIllustration": "Story illustration",
+    "awaitingDm": "Awaiting the Dungeon Master…",
+    "rollingInitiative": "Rolling initiative…",
+    "battleEnded": "The battle has ended.",
+    "playerEffects": "Player effects",
+    "toHit": "To Hit"
+  },
+  "player": {
+    "login": {
+      "subtitle": "Sign in as a player",
+      "asLast": "Sign in as {{ name }}",
+      "namePlaceholder": "Character name",
+      "submit": "Sign in",
+      "uploadHint": "Or upload a character JSON file"
+    },
+    "tabs": {
+      "character": "Character",
+      "arena": "Arena"
+    },
+    "effects": {
+      "current": "Current effects"
+    },
+    "sheet": {
+      "stats": "Attributes",
+      "skillBonuses": "Bonuses",
+      "speed": "Speed",
+      "resistances": "Resistances",
+      "noResistances": "No resistances",
+      "weapons": "Weapons",
+      "attackBonus": "Attack bonus {{ bonus }}",
+      "inventory": "Inventory"
+    },
+    "resources": {
+      "title": "Resources",
+      "description": "Resource description",
+      "effectActive": "Effect active",
+      "extending": "Extending…",
+      "extend": "Extend",
+      "depleted": "Resource depleted",
+      "depletedShort": "Depleted",
+      "using": "Using…",
+      "used": "Resource used",
+      "notSpent": "This resource is not consumed",
+      "unlimited": "Unlimited",
+      "spentRemaining": "Spent {{ spent }} · remaining",
+      "effectActivated": "Effect activated",
+      "shownInEffects": "Shown in current effects",
+      "usage": "Use resource",
+      "amountPrompt": "How much should be spent?",
+      "available": "Available",
+      "spend": "Spend {{ amount }}",
+      "extended": "Resource extended",
+      "durationUpdated": "Duration updated"
+    },
+    "spells": {
+      "title": "Spells",
+      "slots": "Spell slots",
+      "slotSummary": "Level {{ level }}: {{ current }}/{{ max }}",
+      "cantrip": "Cantrip",
+      "prepared": "Prepared",
+      "notPrepared": "Not prepared",
+      "description": "Spell description",
+      "unlimitedUses": "Uses: ∞",
+      "slot": "Spell slot",
+      "slotForSpell": "Slot level for {{ name }}",
+      "noSlots": "No available slots",
+      "legacyCounter": "Legacy counter",
+      "using": "Using…",
+      "withoutSlot": "Without a slot",
+      "cast": "Spell cast",
+      "slotSpent": "Spell slot spent",
+      "cantripUsed": "Cantrip used",
+      "slotNotSpent": "No spell slot spent",
+      "useRecorded": "Use recorded",
+      "chargeSpent": "One spell charge spent"
+    },
+    "arena": {
+      "counts": "Combatants: {{ combatants }} · Enemies: {{ enemies }}",
+      "turnOrder": "Turn order",
+      "selectTarget": "Select {{ name }} as the attack target",
+      "position": "Position in turn order",
+      "empty": "No combatants yet"
+    },
+    "attack": {
+      "main": "Attack",
+      "additional": "Additional attack",
+      "type": "Attack type",
+      "mainHit": "Main attack",
+      "additionalShort": "Additional attack",
+      "target": "Target",
+      "bonus": "Attack bonus",
+      "damage": "Damage",
+      "submit": "Attack",
+      "hint": "Players calculate damage manually. The number of attacks is not limited.",
+      "selectEnemy": "Select an enemy to attack"
+    },
+    "footer": {
+      "updateJson": "Update JSON",
+      "logout": "Sign out"
+    },
+    "proficiency": {
+      "proficient": "Proficient",
+      "expertise": "Expertise"
+    },
+    "duration": {
+      "untilNextTurnEnd": "until the end of the next turn",
+      "rounds": "{{ rounds }} rounds"
+    },
+    "error": {
+      "enterName": "Enter a character name",
+      "notFound": "Character not found. Upload a JSON file.",
+      "login": "Could not sign in. Try again later.",
+      "parseJson": "Could not parse the file. Make sure it is an LSS JSON file.",
+      "spellUnavailable": "The spell cannot be used right now. Refresh the character.",
+      "spellUse": "Could not record the spell use. Try again.",
+      "freeUseSpent": "The free use has already been spent.",
+      "freeUse": "Could not record the free spell use.",
+      "extendResource": "Could not extend the active resource.",
+      "resourceDepleted": "The resource is depleted or has changed.",
+      "spendResource": "Could not spend the resource.",
+      "notEnoughItems": "Not enough items"
+    }
+  },
+  "dmControls": {
+    "title": "Battle controls",
+    "loadingPlayers": "⏳ Loading players…",
+    "refreshPlayers": "🔄 Refresh players from database",
+    "rollInitiative": "Roll initiative",
+    "startBattle": "Start battle",
+    "turnManagement": "Turn management",
+    "processingTurn": "⏳ Processing turn…",
+    "nextTurn": "➡️ Next turn",
+    "undo": "Undo",
+    "finishScene": "Finish scene",
+    "shortRest": "Short rest",
+    "longRest": "Finish with a long rest"
+  },
+  "battleHistory": {
+    "title": "Battle log ({{ count }})",
+    "empty": "Actions will appear when the battle changes."
+  },
+  "initiative": {
+    "confirm": "✅ Confirm initiative"
+  },
+  "itemGrant": {
+    "title": "Give a one-off item",
+    "namePlaceholder": "Potion of Healing",
+    "descriptionPlaceholder": "Restores 2d4+2 HP",
+    "submit": "🎒 Give item"
+  },
+  "spellGrant": {
+    "title": "Give a spell to a player",
+    "name": "Spell name",
+    "namePlaceholder": "For example: Fireball",
+    "level": "Level (0 = cantrip)",
+    "damageTypePlaceholder": "fire",
+    "descriptionPlaceholder": "A burst of flame in a 20-foot radius",
+    "submit": "🔮 Give spell",
+    "restoreSlots": "Restore spell slots"
+  },
+  "hpControl": {
+    "title": "Change HP",
+    "mode": "HP operation",
+    "damage": "Deal damage",
+    "heal": "Add HP",
+    "healing": "Healing",
+    "temporary": "Temporary HP",
+    "allEnemies": "All enemies",
+    "selectMultiple": "Select multiple",
+    "multipleTargets": "Multiple target selection",
+    "maxHealing": "Cannot restore more than {{ amount }} HP.",
+    "setTemporary": "Set temporary HP"
+  },
+  "roster": {
+    "title": "Combatants ({{ count }})",
+    "position": "Position {{ position }}",
+    "current": "Acting now",
+    "makeCurrent": "Make current turn",
+    "passTurn": "Pass the turn to {{ name }}",
+    "moveUp": "Move up in initiative",
+    "moveUpName": "Move {{ name }} up in initiative",
+    "moveDown": "Move down in initiative",
+    "moveDownName": "Move {{ name }} down in initiative",
+    "success": "Success",
+    "failure": "Failure",
+    "natural20": "Natural 20: stand up with 1 HP",
+    "natural1": "Natural 1: two failures",
+    "revive": "Return to battle",
+    "remove": "Remove {{ name }} from battle",
+    "empty": "No combatants yet. Players load from the database automatically; add creatures from a scene.",
+    "lifeStatus": {
+      "downed": "Unconscious",
+      "stable": "Stable",
+      "dead": "Dead",
+      "alive": "Active"
+    }
+  },
+  "statusEffects": {
+    "title": "Status effects",
+    "combatant": "Combatant",
+    "selectCombatant": "Select a player or creature",
+    "select": "Select a status effect",
+    "damagePerTrigger": "Damage per trigger",
+    "triggerCount": "Number of triggers",
+    "untilRemoved": "0 — until the DM removes the effect",
+    "triggerWhen": "Trigger timing",
+    "turnStart": "At the start of the target's turn",
+    "turnEnd": "At the end of the target's turn",
+    "sourcePlaceholder": "Spell or ability",
+    "concentration": "Concentration",
+    "notRequired": "Not required",
+    "concentrating": "Concentrating: {{ name }}",
+    "save": "Saving throw",
+    "savePlaceholder": "DEX, CON, WIS…",
+    "dc": "Difficulty class",
+    "note": "Note",
+    "notePlaceholder": "Repeat the saving throw at the end of the turn",
+    "applying": "Applying…",
+    "apply": "✨ Apply effect",
+    "active": "Active effects",
+    "remove": "Remove {{ name }}",
+    "empty": "No combatants have active effects.",
+    "concentrationShort": "Conc.",
+    "dcShort": "DC",
+    "tooltip": {
+      "source": "Source: {{ source }}",
+      "concentration": "Requires concentration",
+      "save": "Saving throw: {{ ability }}, DC {{ dc }}"
+    },
+    "effects": {
+      "poisoned": {
+        "label": "Poisoned",
+        "description": "Poison weakens the creature."
+      },
+      "burning": {
+        "label": "Burning",
+        "description": "The creature is engulfed in flames."
+      },
+      "frozen": {
+        "label": "Frozen",
+        "description": "Ice restricts the creature's movement."
+      },
+      "frightened": {
+        "label": "Frightened",
+        "description": "The creature is overcome by fear."
+      },
+      "bleeding": {
+        "label": "Bleeding",
+        "description": "An open wound continues to bleed."
+      },
+      "stunned": {
+        "label": "Stunned",
+        "description": "The creature is disoriented."
+      },
+      "restrained": {
+        "label": "Restrained",
+        "description": "The creature's movement is restricted."
+      },
+      "blessed": {
+        "label": "Blessed",
+        "description": "The creature is surrounded by beneficial magic."
+      },
+      "prone": {
+        "label": "Prone",
+        "description": "The creature is lying down and must spend movement to stand."
+      },
+      "blinded": {
+        "label": "Blinded",
+        "description": "The creature cannot see its surroundings."
+      },
+      "paralyzed": {
+        "label": "Paralyzed",
+        "description": "The creature cannot move or act."
+      },
+      "invisible": {
+        "label": "Invisible",
+        "description": "The creature is unseen without magic or a special sense."
+      },
+      "charmed": {
+        "label": "Charmed",
+        "description": "The creature is under another creature's influence."
+      },
+      "grappled": {
+        "label": "Grappled",
+        "description": "The creature's speed is zero."
+      },
+      "unconscious": {
+        "label": "Unconscious",
+        "description": "The creature cannot move or act."
+      },
+      "exhausted": {
+        "label": "Exhausted",
+        "description": "The DM tracks the exhaustion level and its effects."
+      },
+      "incapacitated": {
+        "label": "Incapacitated",
+        "description": "The creature cannot take actions."
+      },
+      "deafened": {
+        "label": "Deafened",
+        "description": "The creature cannot hear and automatically fails checks that require hearing."
+      },
+      "petrified": {
+        "label": "Petrified",
+        "description": "The creature and its nonmagical equipment turn into solid substance."
+      },
+      "resource-active": {
+        "label": "Active resource",
+        "description": "An active ability or class resource."
+      }
+    },
+    "error": {
+      "alreadyApplied": "The effect is already applied or the combatant is no longer available.",
+      "apply": "Could not apply the effect.",
+      "alreadyRemoved": "The effect is already removed or the combatant is no longer available.",
+      "remove": "Could not remove the effect."
+    }
+  },
+  "lifeState": {
+    "downed": "Unconscious",
+    "stable": "Stable",
+    "dead": "Dead",
+    "alive": "Ready",
+    "deathSaves": "Death saves"
+  },
+  "sceneLibrary": {
+    "label": "Scene and creature library",
+    "title": "Scenes and creature library",
+    "intro": "Create a creature once, assemble a preset, and add the whole scene to battle with one click.",
+    "steps": {
+      "creature": "1. Creature",
+      "preset": "2. Preset",
+      "battle": "3. Battle"
+    },
+    "quickLaunch": "Quick launch",
+    "savedScenes": "Saved scenes",
+    "creatureCount": "{{ count }} creatures",
+    "deletePreset": "Delete preset",
+    "launching": "Adding…",
+    "launch": "Add scene to battle",
+    "noPresets": "No presets yet",
+    "noPresetsHint": "Create creatures, then assemble your first scene on the right.",
+    "builder": "Builder",
+    "editPreset": "Edit preset",
+    "newPreset": "New scene preset",
+    "sceneName": "Scene name",
+    "sceneNamePlaceholder": "Forest ambush",
+    "notePlaceholder": "Goblins wait by a fallen tree",
+    "creature": "Creature",
+    "removeFromPreset": "Remove from preset",
+    "addCreatureHint": "Add at least one creature to the preset.",
+    "savePreset": "Save preset",
+    "bestiary": "DM bestiary",
+    "creatures": "Creatures",
+    "noType": "no type",
+    "attackCount": "Attacks: {{ count }}",
+    "abilityCount": "Abilities: {{ count }}",
+    "toBattle": "To battle",
+    "empty": "Library is empty",
+    "emptyHint": "Use the editor below.",
+    "editCreature": "Edit creature",
+    "createCreature": "Create creature",
+    "creatureEditorHint": "attributes, weapons, attacks, and abilities",
+    "creatureNamePlaceholder": "Goblin scout",
+    "resistancesPlaceholder": "fire, cold",
+    "startingStatuses": "Comma-separated starting statuses",
+    "statusPlaceholder": "invisible",
+    "weaponsAndAttacks": "Weapons and attacks",
+    "addSavedWeapon": "Add a weapon from your library",
+    "selectWeapon": "Select a weapon or attack",
+    "addToCreature": "Add to creature",
+    "weaponNamePlaceholder": "Shortsword",
+    "damageTypePlaceholder": "piercing",
+    "attackTypePlaceholder": "Melee attack",
+    "extraTextPlaceholder": "Special attack conditions",
+    "addAttack": "Add attack",
+    "deleteAttack": "Delete attack",
+    "abilityNamePlaceholder": "Pack Tactics",
+    "abilityDescriptionPlaceholder": "The creature has advantage while an ally is nearby…",
+    "addAbility": "Add ability",
+    "deleteAbility": "Delete ability",
+    "saveCreature": "Save creature",
+    "confirmDeleteCreature": "Delete the “{{ name }}” template?",
+    "confirmDeleteScene": "Delete the “{{ name }}” scene preset?",
+    "deletedTemplate": "Template deleted",
+    "feedback": {
+      "creatureUpdated": "Creature template updated.",
+      "creatureSaved": "Creature saved to the library.",
+      "creatureDeleted": "Creature template deleted.",
+      "creatureAdded": "{{ name }} was added to the current battle.",
+      "sceneUpdated": "Scene preset updated.",
+      "sceneSaved": "Scene preset saved.",
+      "sceneAdded": "Scene “{{ name }}” added: {{ count }} creatures.",
+      "sceneDeleted": "Scene preset deleted."
+    },
+    "error": {
+      "saveCreature": "Could not save the creature. The form data was preserved.",
+      "creatureInUse": "The creature is used by a saved scene. Remove it from the preset first.",
+      "deleteCreature": "Could not delete the creature.",
+      "addCreature": "Could not add the creature to the battle.",
+      "saveScene": "Could not save the preset. The form data was preserved.",
+      "missingCreatures": "One or more creature templates are missing from this preset.",
+      "addScene": "Could not add the scene to the battle.",
+      "deleteScene": "Could not delete the scene preset."
+    }
+  },
+  "story": {
+    "eyebrow": "Local presentation and teleprompter",
+    "intro": "Images stay on this device, while story notes are stored locally in MongoDB.",
+    "controls": "Story presentation controls",
+    "show": "Show story",
+    "previous": "Previous",
+    "next": "Next",
+    "returnBattle": "Return to battle",
+    "imagesOrder": "Images and order",
+    "imageCount": "{{ count }} images",
+    "fileLink": "The filename links an image to its script",
+    "newPosition": "Position for new images",
+    "endOfList": "End of list",
+    "before": "Before {{ position }}: {{ name }}",
+    "addImages": "Add images",
+    "noSlides": "No slides uploaded",
+    "formats": "JPG, PNG, WebP, and other browser-supported image formats are accepted.",
+    "slides": "Story slides",
+    "selectSlide": "Select slide {{ position }}: {{ name }}",
+    "onScreen": "On screen",
+    "script": "Script",
+    "moveEarlier": "Move slide earlier",
+    "moveLater": "Move slide later",
+    "deleteSlide": "Delete slide",
+    "selectedScript": "Script for the selected image",
+    "sectionKey": "Section key",
+    "duplicateWarning": "Several images have the same filename without the extension. They will share one script.",
+    "scriptHints": "Script and DM notes",
+    "placeholder": "# Tavern scene\n\nDescribe the surroundings…\n\n> — What do you want here?\n\n**Perception check DC 12**",
+    "markdownHint": "Markdown formatting",
+    "previewLabel": "Story script preview",
+    "preview": "Preview",
+    "emptyScript": "No script has been written for this image yet.",
+    "saveScript": "💾 Save script",
+    "cancelChanges": "Discard changes",
+    "selectImageHint": "Upload and select an image to see its script here.",
+    "feedback": {
+      "imagesAdded": "Images added: {{ count }}",
+      "noImages": "No supported images were found.",
+      "saved": "Story “{{ section }}” saved."
+    },
+    "error": {
+      "save": "Could not save the story. The text remains in the editor—try again."
+    }
+  },
+  "itemLibrary": {
+    "title": "Item library",
+    "quickGive": "Quick give",
+    "selectTemplate": "Select a template",
+    "give": "🎒 Give",
+    "editTemplate": "Edit template",
+    "newTemplate": "New template",
+    "namePlaceholder": "Potion of Healing",
+    "effectFormula": "Effect formula",
+    "defaultQuantity": "Default quantity",
+    "icon": "Icon",
+    "descriptionPlaceholder": "Restores HP",
+    "stackable": "Stackable",
+    "consumable": "Consumable",
+    "saveTemplate": "💾 Save template",
+    "savedItems": "Saved items ({{ count }})",
+    "perUnits": "{{ count }} each",
+    "empty": "Save your first item to quickly give it to any player later.",
+    "confirmDelete": "Delete the “{{ name }}” template?",
+    "feedback": {
+      "updated": "Item template updated.",
+      "saved": "Item saved to the library.",
+      "deleted": "Item template deleted.",
+      "given": "{{ item }} was given to {{ player }}."
+    },
+    "error": {
+      "save": "Could not save the item. The form data was preserved.",
+      "delete": "Could not delete the item.",
+      "give": "Could not give the item. Your selection was preserved."
+    }
+  },
+  "resourceManager": {
+    "title": "Character slots and resources",
+    "loading": "Loading character sheet…",
+    "slotHint": "Select a slot level, then change its remaining or maximum value.",
+    "recovery": "Recovery",
+    "pactShortRest": "Short rest (pact magic)",
+    "saveSlots": "Save slots",
+    "heroResources": "Hero resources",
+    "resourcesHint": "Add only the counters this hero needs: rage, focus points, superiority dice, and others.",
+    "newResource": "New resource",
+    "editNamed": "Edit resource {{ name }}",
+    "notConsumed": "Not consumed",
+    "manualOnly": "Manual only",
+    "variableSpend": "variable spend",
+    "activatedEffect": "activates an effect",
+    "clickToEdit": "click to edit",
+    "deleteNamed": "Delete resource {{ name }}",
+    "deleteResource": "Delete resource",
+    "empty": "No resources yet. Create the first counter below.",
+    "editResource": "Edit resource",
+    "presets": "Ready-made resource templates",
+    "quickPresets": "Quick templates",
+    "icon": "Icon",
+    "namePlaceholder": "For example: Rage",
+    "descriptionPlaceholder": "What the resource does and when it can be used",
+    "unlimited": "Unlimited",
+    "unlimitedHint": "Can be used without spending charges",
+    "advanced": "Advanced settings",
+    "spendMode": "Spend mode",
+    "fixed": "Fixed amount",
+    "variable": "Player chooses the amount",
+    "spendPerUse": "Spend per use",
+    "shortRestRestore": "Restore after a short rest",
+    "shortRestRestoreHint": "0 restores nothing. Use 1 for Rage.",
+    "linkedSpell": "Linked spell",
+    "notLinked": "Not linked",
+    "linkedSpellHint": "Provides a free way to cast instead of spending a slot.",
+    "createEffect": "Create an active effect",
+    "createEffectHint": "After use, the effect appears on the character and in battle.",
+    "untilManual": "Until manually ended",
+    "untilNextTurn": "Until the end of the next turn",
+    "roundCount": "Number of rounds",
+    "rounds": "Rounds",
+    "fillMaximum": "Fill to maximum",
+    "addResource": "Add resource",
+    "preset": {
+      "rage": "🔥 Rage",
+      "lay-on-hands": "✋ Lay on Hands",
+      "channel-divinity": "✨ Channel Divinity",
+      "focus-points": "☯️ Focus Points",
+      "heroic-inspiration": "⭐ Heroic Inspiration",
+      "free-spell": "🔮 Free Spell"
+    },
+    "confirmDelete": "Delete the “{{ name }}” resource from this hero?",
+    "feedback": {
+      "slotsSaved": "Spell slots saved.",
+      "resourceSaved": "Resource saved.",
+      "resourceDeleted": "Resource deleted."
+    },
+    "error": {
+      "save": "Could not save the resources. The form data was preserved."
+    },
+    "presetData": {
+      "rage": {
+        "name": "Rage",
+        "description": "Resistance to bludgeoning, piercing, and slashing damage; +2 damage with Strength-based attacks; advantage on Strength checks and saving throws. You cannot cast spells or maintain concentration."
+      },
+      "lay-on-hands": {
+        "name": "Lay on Hands",
+        "description": "Spend any number of points to restore the same amount of HP. You may spend 5 points to remove the Poisoned condition without restoring HP."
+      },
+      "channel-divinity": {
+        "name": "Channel Divinity",
+        "description": "Choose an effect available to the character’s class or subclass."
+      },
+      "focus-points": {
+        "name": "Focus Points",
+        "description": "Spent on monk abilities."
+      },
+      "heroic-inspiration": {
+        "name": "Heroic Inspiration",
+        "description": "Can be spent to reroll any die immediately after the roll."
+      },
+      "free-spell": {
+        "name": "Free Spell Use",
+        "description": "One use of the linked spell without spending a spell slot."
+      }
+    }
+  },
+  "open5e": {
+    "eyebrow": "External reference → personal library",
+    "title": "Import from Open5e",
+    "intro": {
+      "translation": "Find an English entry, add your translation on the right, and save it once.",
+      "original": "Find an entry and save the original Open5e data directly to your personal library."
+    },
+    "librarySize": "Personal library size",
+    "counters": {
+      "spells": "Spells: {{ count }}",
+      "actions": "Actions: {{ count }}",
+      "creatures": "Creatures: {{ count }}"
+    },
+    "contentType": "Open5e content type",
+    "tabs": {
+      "spells": "Spells",
+      "weapons": "Creature weapons",
+      "creatures": "Creatures"
+    },
+    "search": {
+      "englishName": "English name",
+      "allSources": "All open sources",
+      "results": "Search results"
+    },
+    "saved": "saved",
+    "original": "Open5e original",
+    "translation": {
+      "title": "Your translation",
+      "spellHint": "You can paste it from LSS",
+      "weaponTitle": "Your attack template",
+      "weaponHint": "It can then be added to a creature",
+      "creatureHint": "It immediately becomes a scene template",
+      "attackBonusNote": "The attack bonus depends on the creature's attributes. Set it here or adjust it after adding the weapon.",
+      "attacks": "Translate attacks and weapons",
+      "abilities": "Translate abilities"
+    },
+    "direct": {
+      "title": "Import original",
+      "hint": "No translation required",
+      "description": "The original English data will be saved. You can switch to Russian before saving to edit a translation instead."
+    },
+    "fields": {
+      "school": "School",
+      "castingTime": "Casting time",
+      "range": "Range",
+      "duration": "Duration",
+      "components": "Components",
+      "damageDie": "Damage dice",
+      "damageType": "Damage type",
+      "higherLevels": "At higher levels",
+      "attackBonus": "Creature attack bonus",
+      "properties": "Properties",
+      "extraText": "Additional text",
+      "resistances": "Comma-separated resistances"
+    },
+    "actions": {
+      "saveTranslation": "Save translation",
+      "saveOriginal": "Save original",
+      "saveAndGive": "Save and give",
+      "saveOriginalAndGive": "Save original and give",
+      "saveWeapon": "Save weapon",
+      "saveCreature": "Save creature",
+      "give": "Give to player"
+    },
+    "quickGive": {
+      "title": "Quickly give a saved spell",
+      "description": "Uses your saved versions without another Open5e request.",
+      "select": "Select from library"
+    },
+    "attribution": "Data is imported from Open5e. The source and original text are preserved with every entry; third-party open sources may differ from the SRD.",
+    "feedback": {
+      "notFound": "Nothing found. Try another English name or source.",
+      "saved": {
+        "spell": "Spell saved to your library.",
+        "weapon": "Weapon saved to your library.",
+        "creature": "Creature saved to your library."
+      },
+      "savedAndGiven": "Spell saved and given to the player.",
+      "given": "{{ name }} was given to the player."
+    },
+    "error": {
+      "unavailable": "Open5e is unavailable or has blocked the request. Your saved library still works.",
+      "save": "Could not save the entry. Your fields were preserved; you can retry.",
+      "saveAndGive": "Could not save or give the spell. Your data was preserved.",
+      "give": "Could not give the spell. Your selection was preserved."
+    },
+    "meta": {
+      "cantrip": "Cantrip",
+      "level": "Level {{ level }}",
+      "creature": "CR {{ challenge }} · {{ hp }} HP · AC {{ ac }}",
+      "noDie": "no dice",
+      "weapon": "{{ damage }} {{ type }}"
+    }
+  },
+  "battleControls": {
+    "confirmFinish": {
+      "longRest": "Finish the scene, remove enemies, and fully restore living players?",
+      "shortRest": "Finish the scene with a short rest? HP will not change.",
+      "keepHp": "Finish the scene, remove enemies, and keep the players’ current HP?"
+    },
+    "confirmReset": "Are you sure you want to reset the entire battle?",
+    "feedback": {
+      "playersUpdated": "Player list updated: {{ count }}.",
+      "noPlayers": "There are no saved players in the database yet."
+    },
+    "error": {
+      "loadPlayers": "Could not load players from the database. Try refreshing the list."
+    }
+  }
+}

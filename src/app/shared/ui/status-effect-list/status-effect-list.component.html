@@ -23,7 +23,7 @@
           <span class="effect-chip__meta">×{{ effect.remainingTriggers }}</span>
         }
         @if (effect.concentrationSourceId) {
-          <span class="effect-chip__meta">Конц.</span>
+          <span class="effect-chip__meta">{{ 'statusEffects.concentrationShort' | transloco }}</span>
         }
         @if (effect.saveAbility) {
           <span class="effect-chip__meta">{{ effect.saveAbility }} {{ effect.saveDc || '' }}</span>
