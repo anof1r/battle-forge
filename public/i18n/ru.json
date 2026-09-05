@@ -130,6 +130,27 @@
     "shortRest": "короткий отдых",
     "longRest": "долгий отдых"
   },
+  "dmBattle": {
+    "controls": "Управление боем",
+    "controlsHint": "Инициатива, завершение сцены и отдых",
+    "participants": "Участники",
+    "participantsHint": "Порядок ходов, спасброски и состав",
+    "effects": "Статус-эффекты",
+    "effectsHint": "Назначить эффект или снять действующий",
+    "history": "Журнал",
+    "historyHint": "Урон, лечение и события боя",
+    "tools": "Инструменты боя",
+    "quickActions": "Быстрые действия",
+    "onField": "На поле боя",
+    "participantCounts": "Игроки: {{ players }} · Враги: {{ enemies }}",
+    "selectTargetHint": "Нажмите на участника, чтобы выбрать цель для HP.",
+    "selectTarget": "Выбрать цель: {{ name }}",
+    "noCurrentTurn": "Ход не выбран",
+    "preparationHint": "Определите инициативу и начните бой",
+    "sceneCompletion": "Завершение сцены и отдых",
+    "resetTitle": "Полный сброс",
+    "resetHint": "Удаляет текущую сцену. Для обычного завершения используйте действия выше."
+  },
   "dm": {
     "navigationLabel": "Разделы панели мастера",
     "tabs": {

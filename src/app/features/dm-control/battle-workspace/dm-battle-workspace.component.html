@@ -1,0 +1,103 @@
+<div class="dm-battle-workspace" [class.dm-battle-workspace--expanded]="activeTool() !== null">
+  <div class="dm-battle-main">
+    <section class="dm-battle-bar" [attr.aria-label]="'dmBattle.quickActions' | transloco">
+      <div class="dm-battle-bar__turn" aria-live="polite">
+        <span class="dm-battle-eyebrow">{{ 'common.roundValue' | transloco: { round: currentRound() } }} · {{ 'battle.status.' + battleStatus() | transloco }}</span>
+        <strong>{{ currentCombatant()?.name ?? ('dmBattle.noCurrentTurn' | transloco) }}</strong>
+        <span>{{ (currentCombatant() ? 'common.currentTurn' : 'dmBattle.preparationHint') | transloco }}</span>
+      </div>
+      <app-dm-battle-controls #controls
+        (initiativeRequested)="openInitiative($event)"
+        (initiativeClosed)="initiativeVisible.set(false)"
+        (sceneFinished)="finishScene()" />
+    </section>
+
+    <nav class="dm-battle-tools" [attr.aria-label]="'dmBattle.tools' | transloco">
+      @for (tool of tools; track tool.id) {
+        <button type="button" class="dm-battle-tool"
+          [class.dm-battle-tool--active]="activeTool() === tool.id"
+          [attr.aria-expanded]="activeTool() === tool.id"
+          aria-controls="dm-battle-drawer"
+          (click)="openTool(tool.id, $event)">
+          <span class="dm-battle-tool__top">
+            <span class="dm-battle-tool__icon" aria-hidden="true">{{ tool.icon }}</span>
+            <span class="dm-battle-tool__stat">
+              @switch (tool.id) {
+                @case ('controls') { {{ 'battle.status.' + battleStatus() | transloco }} }
+                @case ('participants') { {{ combatants().length }} }
+                @case ('effects') { {{ effectCount() }} }
+                @case ('history') { {{ historyCount() }} }
+              }
+            </span>
+          </span>
+          <strong>{{ tool.title | transloco }} <span aria-hidden="true">↗</span></strong>
+          <small>{{ tool.hint | transloco }}</small>
+        </button>
+      }
+    </nav>
+
+    <div class="dm-battle-live">
+      <section class="dm-battle-overview" aria-labelledby="dm-battle-participants-title">
+        <header>
+          <h2 id="dm-battle-participants-title">{{ 'dmBattle.onField' | transloco }}</h2>
+          <span>{{ 'dmBattle.participantCounts' | transloco: { players: playerCount(), enemies: enemyCount() } }}</span>
+        </header>
+        <p class="dm-battle-hint">{{ 'dmBattle.selectTargetHint' | transloco }}</p>
+        <div class="dm-battle-roster">
+          @for (combatant of combatants(); track combatant.id; let index = $index) {
+            <article class="dm-battle-combatant"
+              [class.dm-battle-combatant--current]="currentCombatant()?.id === combatant.id"
+              [class.dm-battle-combatant--selected]="hpControl.targetId() === combatant.id">
+              <button type="button" class="dm-battle-combatant__target"
+                [disabled]="combatant.status === COMBATANT_STATUS.DEAD"
+                [attr.aria-pressed]="hpControl.targetId() === combatant.id"
+                [attr.aria-label]="'dmBattle.selectTarget' | transloco: { name: combatant.name }"
+                (click)="hpControl.selectCombatant(combatant)">
+                <span class="dm-battle-combatant__order">{{ index + 1 }}</span>
+                <span class="dm-battle-combatant__identity">
+                  <strong>{{ combatant.name }}</strong>
+                  <small>{{ 'combatant.type.' + combatant.type | transloco }} · {{ 'common.ac' | transloco }} {{ combatant.ac }}</small>
+                </span>
+                <span class="dm-battle-combatant__hp">
+                  <strong>{{ combatant.currentHp }}/{{ combatant.maxHp }}</strong> HP
+                  @if (combatant.temporaryHp) { <small>+{{ combatant.temporaryHp }} {{ 'hpControl.temporary' | transloco }}</small> }
+                </span>
+              </button>
+              @if (currentCombatant()?.id === combatant.id) {
+                <span class="dm-battle-combatant__turn">→ {{ 'common.currentTurn' | transloco }}</span>
+              }
+              @if (combatant.status !== COMBATANT_STATUS.ALIVE) {
+                <bf-combatant-life-state [status]="combatant.status" [deathSaves]="combatant.deathSaves" />
+              }
+              <bf-status-effect-list [effects]="combatant.activeEffects ?? []" />
+            </article>
+          } @empty {
+            <p class="empty-hint">{{ 'roster.empty' | transloco }}</p>
+          }
+        </div>
+      </section>
+      <app-dm-hp-control #hpControl />
+    </div>
+  </div>
+
+  <dialog #drawer id="dm-battle-drawer" class="dm-battle-drawer"
+    aria-labelledby="dm-battle-drawer-title"
+    (keydown)="onDrawerKeydown($event)" (cancel)="onDrawerCancel($event)">
+    <header class="dm-battle-drawer__header">
+      <div>
+        <span class="dm-battle-eyebrow">{{ 'dmBattle.tools' | transloco }}</span>
+        <h2 #drawerTitle id="dm-battle-drawer-title" tabindex="-1">{{ toolTitle() | transloco }}</h2>
+      </div>
+      <button type="button" class="dm-battle-drawer__close" (click)="closeTool()" [attr.aria-label]="'common.close' | transloco">✕</button>
+    </header>
+    <div class="dm-battle-drawer__body">
+      <div [hidden]="activeTool() !== 'controls'">
+        <app-dm-initiative [visible]="initiativeVisible()" [rolls]="initiativeRolls()" (closed)="initiativeVisible.set(false)" />
+        <ng-container [ngTemplateOutlet]="controls.managementTemplate() ?? null" />
+      </div>
+      <div [hidden]="activeTool() !== 'participants'"><app-dm-combatant-roster /></div>
+      <div [hidden]="activeTool() !== 'effects'"><app-dm-status-effects /></div>
+      <div [hidden]="activeTool() !== 'history'"><app-dm-battle-history /></div>
+    </div>
+  </dialog>
+</div>

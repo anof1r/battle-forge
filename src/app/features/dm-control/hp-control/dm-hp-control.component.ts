@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { COMBATANT_STATUS } from '../../../core/constants/combatant.constants';
+import { COMBATANT_STATUS, COMBATANT_TYPE } from '../../../core/constants/combatant.constants';
+import { Combatant } from '../../../core/models/combatant.model';
 import { BattleService } from '../../../core/services/battle.service';
 import { LoggerService } from '../../../core/services/logger.service';
 import { DmHpOperation, DmHpTargetType } from './dm-hp-control.model';
@@ -88,6 +89,13 @@ export class DmHpControlComponent {
     this.targetType.set(type);
     this.targetId.set(null);
     if (type !== 'selected') this.selectedCombatantIds.set([]);
+  }
+
+  selectCombatant(combatant: Combatant): void {
+    if (combatant.status === COMBATANT_STATUS.DEAD || !this.combatants()[combatant.id]) return;
+    this.setTargetType(combatant.type === COMBATANT_TYPE.PLAYER ? 'players' : 'enemies');
+    this.targetId.set(combatant.id);
+    this.clampHealingAmount();
   }
 
   onTargetChange(event: Event): void {

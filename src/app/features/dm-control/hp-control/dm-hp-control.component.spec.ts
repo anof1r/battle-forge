@@ -80,6 +80,25 @@ describe('DmHpControlComponent', () => {
     expect(component.maxHealingAmount()).toBe(4);
   });
 
+  it('selects a roster target, clears group selection, and caps a healing draft', () => {
+    component.setOperation('heal');
+    component.setTargetType('selected');
+    component.selectedCombatantIds.set([goblin.id]);
+    component.amount.set(12);
+    component.selectCombatant(aria);
+    expect(component.targetType()).toBe('players');
+    expect(component.targetId()).toBe(aria.id);
+    expect(component.selectedCombatantIds()).toEqual([]);
+    expect(component.amount()).toBe(4);
+  });
+
+  it('ignores dead or removed roster targets', () => {
+    component.selectCombatant({ ...goblin, status: COMBATANT_STATUS.DEAD });
+    expect(component.targetId()).toBeNull();
+    component.selectCombatant({ ...goblin, id: 'removed' });
+    expect(component.targetId()).toBeNull();
+  });
+
   it('preserves form state and logs a failed write', async () => {
     const error = new Error('denied');
     battle.takeDamage.mockRejectedValue(error);

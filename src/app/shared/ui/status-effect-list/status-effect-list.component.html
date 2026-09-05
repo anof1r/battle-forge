@@ -13,7 +13,7 @@
         <span class="effect-chip__icon" aria-hidden="true">
           {{ effectIcon(effect) }}
         </span>
-        {{ effectLabel(effect) }}
+        {{ effect.customLabel ?? ('statusEffects.effects.' + effect.type + '.label' | transloco) }}
         @if (effect.damagePerTrigger) {
           <span class="effect-chip__meta">−{{ effect.damagePerTrigger }} HP</span>
         }

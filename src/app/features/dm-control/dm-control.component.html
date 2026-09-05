@@ -131,21 +131,8 @@
     </section>
   }
 
-  <div class="dm-workspace-grid" [hidden]="activePanel() !== 'battle'">
-    <app-dm-battle-controls
-      (initiativeRequested)="openInitiative($event)"
-      (initiativeClosed)="closeInitiative()"
-      (sceneFinished)="returnToScenes()"
-    />
-    <app-dm-combatant-roster />
-    <app-dm-hp-control />
-    <app-dm-status-effects />
-    <app-dm-battle-history />
-    <app-dm-initiative
-      [visible]="initiativeVisible()"
-      [rolls]="initiativeRolls()"
-      (closed)="closeInitiative()"
-    />
+  <div class="dm-battle-workspace-host" [hidden]="activePanel() !== 'battle'">
+    <app-dm-battle-workspace [active]="activePanel() === 'battle'" (sceneFinished)="activePanel.set('scenes')" />
   </div>
 
   @if (activePanel() === 'rewards') {
@@ -157,11 +144,13 @@
     </div>
   }
 
-  @if (currentCombatant(); as current) {
-    <footer class="dm-footer">
-      <span class="dm-footer__label">{{ 'common.currentTurn' | transloco }}:</span>
-      <span class="dm-footer__name">{{ current.name }}</span>
-      <span class="dm-footer__type">({{ 'combatant.type.' + current.type | transloco }})</span>
-    </footer>
+  @if (activePanel() !== 'battle') {
+    @if (currentCombatant(); as current) {
+      <footer class="dm-footer">
+        <span class="dm-footer__label">{{ 'common.currentTurn' | transloco }}:</span>
+        <span class="dm-footer__name">{{ current.name }}</span>
+        <span class="dm-footer__type">({{ 'combatant.type.' + current.type | transloco }})</span>
+      </footer>
+    }
   }
 </div>

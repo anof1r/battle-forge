@@ -1,5 +1,5 @@
-<details class="dm-section dm-section--combatants" open>
-  <summary class="dm-section__title">👥 {{ 'roster.title' | transloco: { count: combatants().length } }}</summary>
+<section class="dm-section dm-section--combatants">
+  <h3 class="dm-section__title">👥 {{ 'roster.title' | transloco: { count: combatants().length } }}</h3>
   <div class="combatant-list">
     @for (combatant of combatants(); track combatant.id; let order = $index) {
       <article
@@ -109,4 +109,4 @@
       </div>
     }
   </div>
-</details>
+</section>

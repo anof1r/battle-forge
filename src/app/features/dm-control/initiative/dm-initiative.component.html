@@ -1,6 +1,6 @@
 @if (visible()) {
-  <details class="dm-section dm-section--initiative" open>
-    <summary class="dm-section__title">🎲 {{ 'common.initiative' | transloco }}</summary>
+  <section class="dm-section dm-section--initiative">
+    <h3 class="dm-section__title">🎲 {{ 'common.initiative' | transloco }}</h3>
     <div class="initiative-editor">
       @for (combatant of allCombatants(); track combatant.id) {
         <label class="initiative-editor__row">
@@ -18,5 +18,5 @@
     <button class="dm-btn dm-btn--success" [disabled]="saving()" (click)="confirmInitiative()">
       {{ (saving() ? 'common.saving' : 'initiative.confirm') | transloco }}
     </button>
-  </details>
+  </section>
 }

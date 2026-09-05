@@ -1,3 +1,4 @@
+import { TranslocoService } from '@jsverse/transloco';
 import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { ActiveStatusEffect } from '../../../core/models/combatant.model';
@@ -27,6 +28,17 @@ describe('StatusEffectListComponent', () => {
     expect(fixture.nativeElement).toHaveTextContent('Благословение');
     expect(chips[0]).toHaveClass('effect-chip--poisoned');
     expect(chips[1]).toHaveClass('effect-chip--blessed');
+  });
+
+  it('updates labels when the language changes without a new battle snapshot', () => {
+    const fixture = TestBed.createComponent(StatusEffectListComponent);
+    fixture.componentRef.setInput('effects', [{ id: 'poison', type: 'poisoned', appliedAt: 1 }]);
+    fixture.detectChanges();
+    expect(fixture.nativeElement).toHaveTextContent('Отравление');
+    TestBed.inject(TranslocoService).setActiveLang('en');
+    fixture.detectChanges();
+    expect(fixture.nativeElement).toHaveTextContent('Poisoned');
+    expect(fixture.nativeElement.querySelector('.effect-chip')).toHaveAttribute('aria-label', 'Poisoned');
   });
 
   it('renders an empty list without placeholder content', () => {

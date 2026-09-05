@@ -130,6 +130,27 @@
     "shortRest": "short rest",
     "longRest": "long rest"
   },
+  "dmBattle": {
+    "controls": "Battle controls",
+    "controlsHint": "Initiative, scene completion and rest",
+    "participants": "Participants",
+    "participantsHint": "Turn order, death saves and roster",
+    "effects": "Status effects",
+    "effectsHint": "Apply an effect or remove an active one",
+    "history": "Journal",
+    "historyHint": "Damage, healing and battle events",
+    "tools": "Battle tools",
+    "quickActions": "Quick actions",
+    "onField": "On the battlefield",
+    "participantCounts": "Players: {{ players }} · Enemies: {{ enemies }}",
+    "selectTargetHint": "Select a participant to target their HP.",
+    "selectTarget": "Select target: {{ name }}",
+    "noCurrentTurn": "No turn selected",
+    "preparationHint": "Set initiative and start the battle",
+    "sceneCompletion": "Scene completion and rest",
+    "resetTitle": "Full reset",
+    "resetHint": "Removes the current scene. Use the actions above to finish the scene normally."
+  },
   "dm": {
     "navigationLabel": "Dungeon Master workspace",
     "tabs": {

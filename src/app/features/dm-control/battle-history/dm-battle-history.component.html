@@ -1,5 +1,5 @@
-<details class="dm-section dm-section--history">
-  <summary class="dm-section__title">📜 {{ 'battleHistory.title' | transloco: { count: history().length } }}</summary>
+<section class="dm-section dm-section--history">
+  <h3 class="dm-section__title">📜 {{ 'battleHistory.title' | transloco: { count: history().length } }}</h3>
   <div class="dm-history">
     @for (entry of history().slice().reverse(); track entry.id) {
       <div class="dm-history__entry">
@@ -10,4 +10,4 @@
       <p class="empty-hint">{{ 'battleHistory.empty' | transloco }}</p>
     }
   </div>
-</details>
+</section>

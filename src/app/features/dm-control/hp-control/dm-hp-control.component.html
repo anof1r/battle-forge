@@ -1,5 +1,5 @@
-<details class="dm-section dm-section--damage" open>
-  <summary class="dm-section__title">❤️ {{ 'hpControl.title' | transloco }}</summary>
+<section class="dm-section dm-section--damage">
+  <h3 class="dm-section__title">❤️ {{ 'hpControl.title' | transloco }}</h3>
   <div class="dm-damage-panel">
     <div class="dm-hp-tabs" role="group" [attr.aria-label]="'hpControl.mode' | transloco">
       <button
@@ -132,4 +132,4 @@
       <button class="dm-btn dm-btn--secondary" (click)="resetForm()">✕ {{ 'common.reset' | transloco }}</button>
     </div>
   </div>
-</details>
+</section>

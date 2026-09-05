@@ -1,60 +1,45 @@
-<details class="dm-section dm-section--controls" open>
-  <summary class="dm-section__title">🎮 {{ 'dmControls.title' | transloco }}</summary>
-  <div class="dm-controls-group">
-    <h3 class="dm-controls-group__title">⚙️ {{ 'battle.status.preparation' | transloco }}</h3>
+<div class="dm-controls dm-battle-quick-actions">
+  @if (battleStatus() === BATTLE_STATUS.PREPARATION || battleStatus() === BATTLE_STATUS.INITIATIVE) {
+    <button type="button" class="dm-btn" (click)="startInitiativeRolls()">🎲 {{ 'dmControls.rollInitiative' | transloco }}</button>
+    <button type="button" class="dm-btn dm-btn--success" (click)="startBattle()">⚔ {{ 'dmControls.startBattle' | transloco }}</button>
+  }
+  @if (battleStatus() === BATTLE_STATUS.BATTLE) {
+    <button type="button" class="dm-btn dm-btn--success" [disabled]="advancingTurn() || transitioningScene()" (click)="nextTurn()">
+      {{ (advancingTurn() ? 'dmControls.processingTurn' : 'dmControls.nextTurn') | transloco }} →
+    </button>
+  }
+  <button type="button" class="dm-btn dm-btn--secondary" [disabled]="!canUndo()" (click)="undoLastAction()">↩ {{ 'dmControls.undo' | transloco }}</button>
+</div>
+@if (playerSyncError()) {
+  <p class="dm-sync-message dm-sync-message--error" role="alert">{{ playerSyncError() }}</p>
+}
+
+<ng-template #management>
+  <section class="dm-controls-group">
+    <h3 class="dm-controls-group__title">{{ 'battle.status.preparation' | transloco }}</h3>
     <div class="dm-controls">
-      <button class="dm-btn" [disabled]="playersLoading()" (click)="loadPlayersToBattle()">
+      <button type="button" class="dm-btn" [disabled]="playersLoading()" (click)="loadPlayersToBattle()">
         {{ (playersLoading() ? 'dmControls.loadingPlayers' : 'dmControls.refreshPlayers') | transloco }}
       </button>
-      @if (battleStatus() === BATTLE_STATUS.PREPARATION) {
-        <button class="dm-btn" (click)="startInitiativeRolls()">🎲 {{ 'dmControls.rollInitiative' | transloco }}</button>
-      }
-      @if (
-        battleStatus() === BATTLE_STATUS.PREPARATION ||
-        battleStatus() === BATTLE_STATUS.INITIATIVE
-      ) {
-        <button class="dm-btn dm-btn--success" (click)="startBattle()">⚔️ {{ 'dmControls.startBattle' | transloco }}</button>
+      @if (battleStatus() === BATTLE_STATUS.PREPARATION || battleStatus() === BATTLE_STATUS.INITIATIVE) {
+        <button type="button" class="dm-btn" (click)="startInitiativeRolls()">🎲 {{ 'dmControls.rollInitiative' | transloco }}</button>
       }
     </div>
     @if (playerSyncMessage()) {
       <p class="dm-sync-message" role="status">{{ playerSyncMessage() }}</p>
     }
-    @if (playerSyncError()) {
-      <p class="dm-sync-message dm-sync-message--error" role="alert">{{ playerSyncError() }}</p>
-    }
-  </div>
-
-  <div class="dm-controls-group">
-    <h3 class="dm-controls-group__title">⏳ {{ 'dmControls.turnManagement' | transloco }}</h3>
+  </section>
+  <section class="dm-controls-group">
+    <h3 class="dm-controls-group__title">{{ 'dmBattle.sceneCompletion' | transloco }}</h3>
     <div class="dm-controls">
-      <button class="dm-btn" [disabled]="advancingTurn()" (click)="nextTurn()">
-        {{ (advancingTurn() ? 'dmControls.processingTurn' : 'dmControls.nextTurn') | transloco }}
-      </button>
-      <button class="dm-btn" [disabled]="!canUndo()" (click)="undoLastAction()">
-        ↩️ {{ 'dmControls.undo' | transloco }}
-      </button>
-      <button
-        class="dm-btn dm-btn--secondary"
-        [disabled]="transitioningScene()"
-        (click)="finishScene('preserve')"
-      >
-        🏁 {{ 'dmControls.finishScene' | transloco }}
-      </button>
-      <button
-        class="dm-btn"
-        [disabled]="transitioningScene()"
-        (click)="finishScene('short-rest')"
-      >
-        ☕ {{ 'dmControls.shortRest' | transloco }}
-      </button>
-      <button
-        class="dm-btn dm-btn--success"
-        [disabled]="transitioningScene()"
-        (click)="finishScene('long-rest')"
-      >
-        🌙 {{ 'dmControls.longRest' | transloco }}
-      </button>
-      <button class="dm-btn dm-btn--danger" (click)="resetScene()">🔄 {{ 'common.reset' | transloco }}</button>
+      <button type="button" class="dm-btn" [disabled]="transitioningScene()" (click)="finishScene('preserve')">🏁 {{ 'dmControls.finishScene' | transloco }}</button>
+      <button type="button" class="dm-btn" [disabled]="transitioningScene()" (click)="finishScene('short-rest')">☕ {{ 'dmControls.shortRest' | transloco }}</button>
+      <button type="button" class="dm-btn" [disabled]="transitioningScene()" (click)="finishScene('long-rest')">🌙 {{ 'dmControls.longRest' | transloco }}</button>
     </div>
-  </div>
-</details>
+  </section>
+  <section class="dm-controls-group dm-battle-reset">
+    <h3 class="dm-controls-group__title">{{ 'dmBattle.resetTitle' | transloco }}</h3>
+    <p>{{ 'dmBattle.resetHint' | transloco }}</p>
+    <button type="button" class="dm-btn dm-btn--danger" (click)="resetScene()">{{ 'common.reset' | transloco }}</button>
+  </section>
+</ng-template>

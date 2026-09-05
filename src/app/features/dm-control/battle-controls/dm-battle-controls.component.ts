@@ -1,11 +1,13 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  TemplateRef,
   OnInit,
   computed,
   inject,
   output,
   signal,
+  viewChild,
 } from '@angular/core';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { BATTLE_STATUS } from '../../../core/constants/battle-status.constants';
@@ -30,6 +32,8 @@ export class DmBattleControlsComponent implements OnInit {
   readonly initiativeRequested = output<Record<string, number>>();
   readonly initiativeClosed = output<void>();
   readonly sceneFinished = output<void>();
+
+  readonly managementTemplate = viewChild<TemplateRef<unknown>>('management');
 
   readonly BATTLE_STATUS = BATTLE_STATUS;
   readonly battleStatus = this.battleService.battleStatus;
