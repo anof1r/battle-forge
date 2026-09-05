@@ -94,6 +94,26 @@
         "short": "CHA",
         "name": "Charisma"
       }
+    },
+    "skills": {
+      "athletics": "Athletics",
+      "acrobatics": "Acrobatics",
+      "sleight of hand": "Sleight of Hand",
+      "stealth": "Stealth",
+      "arcana": "Arcana",
+      "history": "History",
+      "investigation": "Investigation",
+      "nature": "Nature",
+      "religion": "Religion",
+      "animal handling": "Animal Handling",
+      "insight": "Insight",
+      "medicine": "Medicine",
+      "perception": "Perception",
+      "survival": "Survival",
+      "deception": "Deception",
+      "intimidation": "Intimidation",
+      "performance": "Performance",
+      "persuasion": "Persuasion"
     }
   },
   "item": {
@@ -152,7 +172,9 @@
     },
     "tabs": {
       "character": "Character",
-      "arena": "Arena"
+      "arena": "Arena",
+      "label": "Player sections",
+      "settings": "Settings"
     },
     "effects": {
       "current": "Current effects"
@@ -256,6 +278,10 @@
       "resourceDepleted": "The resource is depleted or has changed.",
       "spendResource": "Could not spend the resource.",
       "notEnoughItems": "Not enough items"
+    },
+    "settings": {
+      "title": "Settings",
+      "description": "Interface language for this device."
     }
   },
   "dmControls": {

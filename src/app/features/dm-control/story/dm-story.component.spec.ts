@@ -155,9 +155,9 @@ describe('DmStoryComponent', () => {
       'story-script__workspace--reading',
     );
 
-    const editButton = Array.from(
-      fixture.nativeElement.querySelectorAll<HTMLButtonElement>('.story-script__header button'),
-    ).find((button) => button.textContent?.includes('Редактировать'));
+    const editButton = fixture.nativeElement.querySelector<HTMLButtonElement>(
+      '.story-script__header .story-editor__button',
+    );
     editButton?.click();
     fixture.detectChanges();
 

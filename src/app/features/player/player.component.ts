@@ -25,6 +25,7 @@ import { ActiveStatusEffect, Combatant, SpellData } from '../../core/models/comb
 import { COMBATANT_STATUS, COMBATANT_TYPE } from '../../core/constants/combatant.constants';
 import { StatusEffectListComponent } from '../../shared/ui/status-effect-list/status-effect-list.component';
 import { CombatantLifeStateComponent } from '../../shared/ui/combatant-life-state/combatant-life-state.component';
+import { LanguageSwitcherComponent } from '../../shared/ui/language-switcher/language-switcher.component';
 import {
   formatSignedModifier,
   getWeaponAttackBonus,
@@ -51,7 +52,12 @@ import {
 @Component({
   selector: 'app-player',
   standalone: true,
-  imports: [TranslocoPipe, StatusEffectListComponent, CombatantLifeStateComponent],
+  imports: [
+    TranslocoPipe,
+    StatusEffectListComponent,
+    CombatantLifeStateComponent,
+    LanguageSwitcherComponent,
+  ],
   templateUrl: './player.component.html',
   styleUrl: './player.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -81,7 +87,7 @@ export class PlayerComponent implements OnDestroy {
   readonly expandedAbility = signal<string | null>(null);
 
   // --- Навигация по вкладкам ---
-  readonly activeTab = signal<'character' | 'arena'>('character');
+  readonly activeTab = signal<'character' | 'arena' | 'settings'>('character');
 
   // --- Состояние арены/атаки ---
   readonly selectedEnemyId = signal<string | null>(null);
@@ -324,7 +330,7 @@ export class PlayerComponent implements OnDestroy {
     this.resourceUseAmount.set(1);
   }
 
-  switchTab(tab: 'character' | 'arena'): void {
+  switchTab(tab: 'character' | 'arena' | 'settings'): void {
     this.activeTab.set(tab);
   }
 
@@ -342,6 +348,12 @@ export class PlayerComponent implements OnDestroy {
 
   toggleAbility(name: string): void {
     this.expandedAbility.set(this.expandedAbility() === name ? null : name);
+  }
+
+  getSkillName(skill: CharacterSkill): string {
+    const key = 'character.skills.' + skill.id;
+    const translated = this.i18n.translate(key);
+    return translated === key ? skill.name : translated;
   }
 
   getSkillModString(modifier: number): string {

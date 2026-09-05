@@ -2,6 +2,7 @@ import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Observable, of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { TranslocoService } from '@jsverse/transloco';
 import { COMBATANT_STATUS, COMBATANT_TYPE } from '../../core/constants/combatant.constants';
 import { ParsedCharacter } from '../../core/models/character.model';
 import { Combatant, SpellData } from '../../core/models/combatant.model';
@@ -461,6 +462,52 @@ describe('PlayerComponent', () => {
     expect(groups[1].querySelector('.player__skill-stat')).toHaveTextContent('ХАР:');
     expect(groups[1]).toHaveTextContent('Запугивание');
     expect(groups[1].querySelector('.player__skill-mod')).toHaveTextContent('+2');
+  });
+
+  it('translates standard skill bonuses independently of imported character names', () => {
+    TestBed.inject(TranslocoService).setActiveLang('en');
+    component.character.set(character({
+      skills: [
+        {
+          id: 'perception',
+          name: 'Внимательность',
+          baseStat: 'wis',
+          proficiency: 'proficient',
+          modifier: 3,
+        },
+        {
+          id: 'intimidation',
+          name: 'Запугивание',
+          baseStat: 'cha',
+          proficiency: 'proficient',
+          modifier: 2,
+        },
+      ],
+    }));
+    component.isLoggedIn.set(true);
+
+    fixture.detectChanges();
+
+    const bonusBlock = fixture.nativeElement.querySelector('.player__skill-bonuses') as HTMLElement;
+    expect(bonusBlock).toHaveTextContent('WIS:');
+    expect(bonusBlock).toHaveTextContent('Perception');
+    expect(bonusBlock).toHaveTextContent('Intimidation');
+    expect(bonusBlock).not.toHaveTextContent('Внимательность');
+    expect(bonusBlock).not.toHaveTextContent('Запугивание');
+  });
+
+  it('shows the shared language switcher in a right-aligned settings tab', () => {
+    component.character.set(character());
+    component.isLoggedIn.set(true);
+    component.switchTab('settings');
+
+    fixture.detectChanges();
+
+    const settingsTab = fixture.nativeElement.querySelector('.player__tab--settings');
+    expect(settingsTab).toHaveTextContent('Настройки');
+    expect(settingsTab).toHaveAttribute('aria-selected', 'true');
+    expect(fixture.nativeElement.querySelector('.player__settings bf-language-switcher'))
+      .toBeInTheDocument();
   });
 
   it('offers JSON reimport for an existing character', () => {
