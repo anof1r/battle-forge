@@ -3,7 +3,9 @@
     <div>
       <p class="open5e-import__eyebrow">{{ 'open5e.eyebrow' | transloco }}</p>
       <h2 id="open5e-title">📚 {{ 'open5e.title' | transloco }}</h2>
-      <p>{{ (translationMode() ? 'open5e.intro.translation' : 'open5e.intro.original') | transloco }}</p>
+      <p>
+        {{ (translationMode() ? 'open5e.intro.translation' : 'open5e.intro.original') | transloco }}
+      </p>
     </div>
     <div class="open5e-import__counters" [attr.aria-label]="'open5e.librarySize' | transloco">
       <span>{{ 'open5e.counters.spells' | transloco: { count: savedSpells().length } }}</span>
@@ -12,7 +14,11 @@
     </div>
   </header>
 
-  <div class="open5e-import__tabs" role="tablist" [attr.aria-label]="'open5e.contentType' | transloco">
+  <div
+    class="open5e-import__tabs"
+    role="tablist"
+    [attr.aria-label]="'open5e.contentType' | transloco"
+  >
     <button
       type="button"
       role="tab"
@@ -89,7 +95,9 @@
         >
           <span class="open5e-result__title">
             {{ entry.name }}
-            @if (isSaved(entry)) { <small>✓ {{ 'open5e.saved' | transloco }}</small> }
+            @if (isSaved(entry)) {
+              <small>✓ {{ 'open5e.saved' | transloco }}</small>
+            }
           </span>
           <span>{{ resultMeta(entry) }}</span>
           <span class="open5e-result__source">{{ entry.document.name }}</span>
@@ -101,15 +109,39 @@
   @if (selectedSpell(); as spell) {
     <div class="translation-workspace">
       <section class="translation-column translation-column--original">
-        <header><span>{{ 'open5e.original' | transloco }}</span><strong>{{ spell.name }}</strong></header>
+        <header>
+          <span>{{ 'open5e.original' | transloco }}</span
+          ><strong>{{ spell.name }}</strong>
+        </header>
         <dl class="original-facts">
-          <div><dt>Level</dt><dd>{{ spell.level }}</dd></div>
-          <div><dt>School</dt><dd>{{ spell.school || '—' }}</dd></div>
-          <div><dt>Casting time</dt><dd>{{ spell.castingTime || '—' }}</dd></div>
-          <div><dt>Range</dt><dd>{{ spell.range || '—' }}</dd></div>
-          <div><dt>Duration</dt><dd>{{ spell.duration || '—' }}</dd></div>
-          <div><dt>Components</dt><dd>{{ spell.components || '—' }}</dd></div>
-          <div><dt>Damage</dt><dd>{{ spell.damageFormula || '—' }} {{ spell.damageTypes.join(', ') }}</dd></div>
+          <div>
+            <dt>Level</dt>
+            <dd>{{ spell.level }}</dd>
+          </div>
+          <div>
+            <dt>School</dt>
+            <dd>{{ spell.school || '—' }}</dd>
+          </div>
+          <div>
+            <dt>Casting time</dt>
+            <dd>{{ spell.castingTime || '—' }}</dd>
+          </div>
+          <div>
+            <dt>Range</dt>
+            <dd>{{ spell.range || '—' }}</dd>
+          </div>
+          <div>
+            <dt>Duration</dt>
+            <dd>{{ spell.duration || '—' }}</dd>
+          </div>
+          <div>
+            <dt>Components</dt>
+            <dd>{{ spell.components || '—' }}</dd>
+          </div>
+          <div>
+            <dt>Damage</dt>
+            <dd>{{ spell.damageFormula || '—' }} {{ spell.damageTypes.join(', ') }}</dd>
+          </div>
         </dl>
         <h4>Description</h4>
         <p class="original-text">{{ spell.description || ('common.noDescription' | transloco) }}</p>
@@ -119,24 +151,86 @@
         }
       </section>
 
-      <section class="translation-column translation-column--editable" [class.translation-column--direct]="!translationMode()">
-        <header><span>{{ (translationMode() ? 'open5e.translation.title' : 'open5e.direct.title') | transloco }}</span><strong>{{ (translationMode() ? 'open5e.translation.spellHint' : 'open5e.direct.hint') | transloco }}</strong></header>
-        @if (!translationMode()) { <p class="translation-note">{{ 'open5e.direct.description' | transloco }}</p> }
+      <section
+        class="translation-column translation-column--editable"
+        [class.translation-column--direct]="!translationMode()"
+      >
+        <header>
+          <span>{{
+            (translationMode() ? 'open5e.translation.title' : 'open5e.direct.title') | transloco
+          }}</span
+          ><strong>{{
+            (translationMode() ? 'open5e.translation.spellHint' : 'open5e.direct.hint') | transloco
+          }}</strong>
+        </header>
+        @if (!translationMode()) {
+          <p class="translation-note">{{ 'open5e.direct.description' | transloco }}</p>
+        }
         <div class="translation-form translation-form--two">
-          <label class="open5e-field"><span>{{ 'common.name' | transloco }}</span><input [value]="spellName()" (input)="setText(spellName, $event)" /></label>
-          <label class="open5e-field"><span>{{ 'open5e.fields.school' | transloco }}</span><input [value]="spellSchool()" (input)="setText(spellSchool, $event)" /></label>
-          <label class="open5e-field"><span>{{ 'open5e.fields.castingTime' | transloco }}</span><input [value]="spellCastingTime()" (input)="setText(spellCastingTime, $event)" /></label>
-          <label class="open5e-field"><span>{{ 'open5e.fields.range' | transloco }}</span><input [value]="spellRange()" (input)="setText(spellRange, $event)" /></label>
-          <label class="open5e-field"><span>{{ 'open5e.fields.duration' | transloco }}</span><input [value]="spellDuration()" (input)="setText(spellDuration, $event)" /></label>
-          <label class="open5e-field"><span>{{ 'open5e.fields.components' | transloco }}</span><input [value]="spellComponents()" (input)="setText(spellComponents, $event)" /></label>
-          <label class="open5e-field"><span>{{ 'open5e.fields.damageDie' | transloco }}</span><input [value]="spellDamageFormula()" (input)="setText(spellDamageFormula, $event)" /></label>
-          <label class="open5e-field"><span>{{ 'open5e.fields.damageType' | transloco }}</span><input [value]="spellDamageType()" (input)="setText(spellDamageType, $event)" /></label>
-          <label class="open5e-field open5e-field--wide"><span>{{ 'common.description' | transloco }}</span><textarea rows="8" [value]="spellDescription()" (input)="setText(spellDescription, $event)"></textarea></label>
-          <label class="open5e-field open5e-field--wide"><span>{{ 'open5e.fields.higherLevels' | transloco }}</span><textarea rows="4" [value]="spellHigherLevel()" (input)="setText(spellHigherLevel, $event)"></textarea></label>
+          <label class="open5e-field"
+            ><span>{{ 'common.name' | transloco }}</span
+            ><input [value]="spellName()" (input)="setText(spellName, $event)"
+          /></label>
+          <label class="open5e-field"
+            ><span>{{ 'open5e.fields.school' | transloco }}</span
+            ><input [value]="spellSchool()" (input)="setText(spellSchool, $event)"
+          /></label>
+          <label class="open5e-field"
+            ><span>{{ 'open5e.fields.castingTime' | transloco }}</span
+            ><input [value]="spellCastingTime()" (input)="setText(spellCastingTime, $event)"
+          /></label>
+          <label class="open5e-field"
+            ><span>{{ 'open5e.fields.range' | transloco }}</span
+            ><input [value]="spellRange()" (input)="setText(spellRange, $event)"
+          /></label>
+          <label class="open5e-field"
+            ><span>{{ 'open5e.fields.duration' | transloco }}</span
+            ><input [value]="spellDuration()" (input)="setText(spellDuration, $event)"
+          /></label>
+          <label class="open5e-field"
+            ><span>{{ 'open5e.fields.components' | transloco }}</span
+            ><input [value]="spellComponents()" (input)="setText(spellComponents, $event)"
+          /></label>
+          <label class="open5e-field"
+            ><span>{{ 'open5e.fields.damageDie' | transloco }}</span
+            ><input [value]="spellDamageFormula()" (input)="setText(spellDamageFormula, $event)"
+          /></label>
+          <label class="open5e-field"
+            ><span>{{ 'open5e.fields.damageType' | transloco }}</span
+            ><input [value]="spellDamageType()" (input)="setText(spellDamageType, $event)"
+          /></label>
+          <label class="open5e-field open5e-field--wide"
+            ><span>{{ 'common.description' | transloco }}</span
+            ><textarea
+              rows="8"
+              [value]="spellDescription()"
+              (input)="setText(spellDescription, $event)"
+            ></textarea>
+          </label>
+          <label class="open5e-field open5e-field--wide"
+            ><span>{{ 'open5e.fields.higherLevels' | transloco }}</span
+            ><textarea
+              rows="4"
+              [value]="spellHigherLevel()"
+              (input)="setText(spellHigherLevel, $event)"
+            ></textarea>
+          </label>
         </div>
         <div class="translation-actions">
-          <button class="open5e-button open5e-button--primary" type="button" [disabled]="!canSave() || saving()" (click)="saveSelected()">
-            {{ (saving() ? 'common.saving' : translationMode() ? 'open5e.actions.saveTranslation' : 'open5e.actions.saveOriginal') | transloco }}
+          <button
+            class="open5e-button open5e-button--primary"
+            type="button"
+            [disabled]="!canSave() || saving()"
+            (click)="saveSelected()"
+          >
+            {{
+              (saving()
+                ? 'common.saving'
+                : translationMode()
+                  ? 'open5e.actions.saveTranslation'
+                  : 'open5e.actions.saveOriginal'
+              ) | transloco
+            }}
           </button>
           <label class="open5e-field open5e-field--player">
             <span>{{ 'common.player' | transloco }}</span>
@@ -147,8 +241,18 @@
               }
             </select>
           </label>
-          <button class="open5e-button" type="button" [disabled]="!canSave() || !selectedPlayerId() || saving() || giving()" (click)="saveAndGiveSpell()">
-            {{ (translationMode() ? 'open5e.actions.saveAndGive' : 'open5e.actions.saveOriginalAndGive') | transloco }}
+          <button
+            class="open5e-button"
+            type="button"
+            [disabled]="!canSave() || !selectedPlayerId() || saving() || giving()"
+            (click)="saveAndGiveSpell()"
+          >
+            {{
+              (translationMode()
+                ? 'open5e.actions.saveAndGive'
+                : 'open5e.actions.saveOriginalAndGive'
+              ) | transloco
+            }}
           </button>
         </div>
       </section>
@@ -158,28 +262,91 @@
   @if (selectedWeapon(); as weapon) {
     <div class="translation-workspace">
       <section class="translation-column translation-column--original">
-        <header><span>{{ 'open5e.original' | transloco }}</span><strong>{{ weapon.name }}</strong></header>
+        <header>
+          <span>{{ 'open5e.original' | transloco }}</span
+          ><strong>{{ weapon.name }}</strong>
+        </header>
         <dl class="original-facts">
-          <div><dt>Damage</dt><dd>{{ weapon.damageFormula || '—' }} {{ weapon.damageType }}</dd></div>
-          <div><dt>Range</dt><dd>{{ weapon.range || '—' }}</dd></div>
-          <div><dt>Properties</dt><dd>{{ weapon.properties.join(', ') || '—' }}</dd></div>
+          <div>
+            <dt>Damage</dt>
+            <dd>{{ weapon.damageFormula || '—' }} {{ weapon.damageType }}</dd>
+          </div>
+          <div>
+            <dt>Range</dt>
+            <dd>{{ weapon.range || '—' }}</dd>
+          </div>
+          <div>
+            <dt>Properties</dt>
+            <dd>{{ weapon.properties.join(', ') || '—' }}</dd>
+          </div>
         </dl>
         <p class="original-text">{{ weapon.description }}</p>
       </section>
-      <section class="translation-column translation-column--editable" [class.translation-column--direct]="!translationMode()">
-        <header><span>{{ (translationMode() ? 'open5e.translation.weaponTitle' : 'open5e.direct.title') | transloco }}</span><strong>{{ (translationMode() ? 'open5e.translation.weaponHint' : 'open5e.direct.hint') | transloco }}</strong></header>
-        @if (!translationMode()) { <p class="translation-note">{{ 'open5e.direct.description' | transloco }}</p> }
+      <section
+        class="translation-column translation-column--editable"
+        [class.translation-column--direct]="!translationMode()"
+      >
+        <header>
+          <span>{{
+            (translationMode() ? 'open5e.translation.weaponTitle' : 'open5e.direct.title')
+              | transloco
+          }}</span
+          ><strong>{{
+            (translationMode() ? 'open5e.translation.weaponHint' : 'open5e.direct.hint') | transloco
+          }}</strong>
+        </header>
+        @if (!translationMode()) {
+          <p class="translation-note">{{ 'open5e.direct.description' | transloco }}</p>
+        }
         <div class="translation-form translation-form--two">
-          <label class="open5e-field"><span>{{ 'common.name' | transloco }}</span><input [value]="weaponName()" (input)="setText(weaponName, $event)" /></label>
-          <label class="open5e-field"><span>{{ 'open5e.fields.attackBonus' | transloco }}</span><input placeholder="+4" [value]="weaponToHit()" (input)="setText(weaponToHit, $event)" /></label>
-          <label class="open5e-field"><span>{{ 'open5e.fields.damageDie' | transloco }}</span><input [value]="weaponDamage()" (input)="setText(weaponDamage, $event)" /></label>
-          <label class="open5e-field"><span>{{ 'open5e.fields.damageType' | transloco }}</span><input [value]="weaponDamageType()" (input)="setText(weaponDamageType, $event)" /></label>
-          <label class="open5e-field open5e-field--wide"><span>{{ 'open5e.fields.properties' | transloco }}</span><textarea rows="3" [value]="weaponDescription()" (input)="setText(weaponDescription, $event)"></textarea></label>
-          <label class="open5e-field open5e-field--wide"><span>{{ 'open5e.fields.extraText' | transloco }}</span><textarea rows="4" [value]="weaponFullText()" (input)="setText(weaponFullText, $event)"></textarea></label>
+          <label class="open5e-field"
+            ><span>{{ 'common.name' | transloco }}</span
+            ><input [value]="weaponName()" (input)="setText(weaponName, $event)"
+          /></label>
+          <label class="open5e-field"
+            ><span>{{ 'open5e.fields.attackBonus' | transloco }}</span
+            ><input placeholder="+4" [value]="weaponToHit()" (input)="setText(weaponToHit, $event)"
+          /></label>
+          <label class="open5e-field"
+            ><span>{{ 'open5e.fields.damageDie' | transloco }}</span
+            ><input [value]="weaponDamage()" (input)="setText(weaponDamage, $event)"
+          /></label>
+          <label class="open5e-field"
+            ><span>{{ 'open5e.fields.damageType' | transloco }}</span
+            ><input [value]="weaponDamageType()" (input)="setText(weaponDamageType, $event)"
+          /></label>
+          <label class="open5e-field open5e-field--wide"
+            ><span>{{ 'open5e.fields.properties' | transloco }}</span
+            ><textarea
+              rows="3"
+              [value]="weaponDescription()"
+              (input)="setText(weaponDescription, $event)"
+            ></textarea>
+          </label>
+          <label class="open5e-field open5e-field--wide"
+            ><span>{{ 'open5e.fields.extraText' | transloco }}</span
+            ><textarea
+              rows="4"
+              [value]="weaponFullText()"
+              (input)="setText(weaponFullText, $event)"
+            ></textarea>
+          </label>
         </div>
         <p class="translation-note">{{ 'open5e.translation.attackBonusNote' | transloco }}</p>
-        <button class="open5e-button open5e-button--primary" type="button" [disabled]="!canSave() || saving()" (click)="saveSelected()">
-          {{ (saving() ? 'common.saving' : translationMode() ? 'open5e.actions.saveWeapon' : 'open5e.actions.saveOriginal') | transloco }}
+        <button
+          class="open5e-button open5e-button--primary"
+          type="button"
+          [disabled]="!canSave() || saving()"
+          (click)="saveSelected()"
+        >
+          {{
+            (saving()
+              ? 'common.saving'
+              : translationMode()
+                ? 'open5e.actions.saveWeapon'
+                : 'open5e.actions.saveOriginal'
+            ) | transloco
+          }}
         </button>
       </section>
     </div>
@@ -188,52 +355,164 @@
   @if (selectedCreature(); as creature) {
     <div class="translation-workspace">
       <section class="translation-column translation-column--original">
-        <header><span>{{ 'open5e.original' | transloco }}</span><strong>{{ creature.name }}</strong></header>
+        <header>
+          <span>{{ 'open5e.original' | transloco }}</span
+          ><strong>{{ creature.name }}</strong>
+        </header>
         <dl class="original-facts">
-          <div><dt>Type</dt><dd>{{ creature.subtype }}</dd></div>
-          <div><dt>CR</dt><dd>{{ creature.challengeRating }}</dd></div>
-          <div><dt>HP</dt><dd>{{ creature.maxHp }}</dd></div>
-          <div><dt>AC</dt><dd>{{ creature.ac }}</dd></div>
-          <div><dt>Resistances</dt><dd>{{ creature.resistances.join(', ') || '—' }}</dd></div>
+          <div>
+            <dt>Type</dt>
+            <dd>{{ creature.subtype }}</dd>
+          </div>
+          <div>
+            <dt>CR</dt>
+            <dd>{{ creature.challengeRating }}</dd>
+          </div>
+          <div>
+            <dt>HP</dt>
+            <dd>{{ creature.maxHp }}</dd>
+          </div>
+          <div>
+            <dt>AC</dt>
+            <dd>{{ creature.ac }}</dd>
+          </div>
+          <div>
+            <dt>Resistances</dt>
+            <dd>{{ creature.resistances.join(', ') || '—' }}</dd>
+          </div>
         </dl>
         <h4>Actions</h4>
         @for (action of creature.actions; track $index) {
-          <article class="original-entry"><strong>{{ action.name }}</strong><span>{{ action.toHit }} · {{ action.damage }} {{ action.damageType }}</span><p>{{ action.fullText }}</p></article>
+          <article class="original-entry">
+            <strong>{{ action.name }}</strong
+            ><span>{{ action.toHit }} · {{ action.damage }} {{ action.damageType }}</span>
+            <p>{{ action.fullText }}</p>
+          </article>
         }
         <h4>Traits</h4>
         @for (ability of creature.abilities; track $index) {
-          <article class="original-entry"><strong>{{ ability.name }}</strong><p>{{ ability.description }}</p></article>
+          <article class="original-entry">
+            <strong>{{ ability.name }}</strong>
+            <p>{{ ability.description }}</p>
+          </article>
         }
       </section>
-      <section class="translation-column translation-column--editable" [class.translation-column--direct]="!translationMode()">
-        <header><span>{{ (translationMode() ? 'open5e.translation.title' : 'open5e.direct.title') | transloco }}</span><strong>{{ (translationMode() ? 'open5e.translation.creatureHint' : 'open5e.direct.hint') | transloco }}</strong></header>
-        @if (!translationMode()) { <p class="translation-note">{{ 'open5e.direct.description' | transloco }}</p> }
+      <section
+        class="translation-column translation-column--editable"
+        [class.translation-column--direct]="!translationMode()"
+      >
+        <header>
+          <span>{{
+            (translationMode() ? 'open5e.translation.title' : 'open5e.direct.title') | transloco
+          }}</span
+          ><strong>{{
+            (translationMode() ? 'open5e.translation.creatureHint' : 'open5e.direct.hint')
+              | transloco
+          }}</strong>
+        </header>
+        @if (!translationMode()) {
+          <p class="translation-note">{{ 'open5e.direct.description' | transloco }}</p>
+        }
         <div class="translation-form translation-form--two">
-          <label class="open5e-field"><span>{{ 'common.name' | transloco }}</span><input [value]="creatureName()" (input)="setText(creatureName, $event)" /></label>
-          <label class="open5e-field"><span>{{ 'common.type' | transloco }}</span><input [value]="creatureSubtype()" (input)="setText(creatureSubtype, $event)" /></label>
-          <label class="open5e-field"><span>{{ 'common.maxHp' | transloco }}</span><input type="number" min="1" [value]="creatureMaxHp()" (input)="onCreatureNumber(creatureMaxHp, $event, 1)" /></label>
-          <label class="open5e-field"><span>{{ 'common.ac' | transloco }}</span><input type="number" min="1" [value]="creatureAc()" (input)="onCreatureNumber(creatureAc, $event, 10)" /></label>
-          <label class="open5e-field open5e-field--wide"><span>{{ 'open5e.fields.resistances' | transloco }}</span><input [value]="creatureResistances()" (input)="setText(creatureResistances, $event)" /></label>
+          <label class="open5e-field"
+            ><span>{{ 'common.name' | transloco }}</span
+            ><input [value]="creatureName()" (input)="setText(creatureName, $event)"
+          /></label>
+          <label class="open5e-field"
+            ><span>{{ 'common.type' | transloco }}</span
+            ><input [value]="creatureSubtype()" (input)="setText(creatureSubtype, $event)"
+          /></label>
+          <label class="open5e-field"
+            ><span>{{ 'common.maxHp' | transloco }}</span
+            ><input
+              type="number"
+              min="1"
+              [value]="creatureMaxHp()"
+              (input)="onCreatureNumber(creatureMaxHp, $event, 1)"
+          /></label>
+          <label class="open5e-field"
+            ><span>{{ 'common.ac' | transloco }}</span
+            ><input
+              type="number"
+              min="1"
+              [value]="creatureAc()"
+              (input)="onCreatureNumber(creatureAc, $event, 10)"
+          /></label>
+          <label class="open5e-field open5e-field--wide"
+            ><span>{{ 'open5e.fields.resistances' | transloco }}</span
+            ><input [value]="creatureResistances()" (input)="setText(creatureResistances, $event)"
+          /></label>
         </div>
         <h4>{{ 'open5e.translation.attacks' | transloco }}</h4>
         @for (action of creatureActions(); track $index; let actionIndex = $index) {
           <div class="nested-translation">
-            <label class="open5e-field"><span>{{ 'common.name' | transloco }}</span><input [value]="action.name" (input)="updateCreatureAction(actionIndex, 'name', $event)" /></label>
-            <label class="open5e-field"><span>{{ 'common.bonus' | transloco }}</span><input [value]="action.toHit" (input)="updateCreatureAction(actionIndex, 'toHit', $event)" /></label>
-            <label class="open5e-field"><span>{{ 'common.damage' | transloco }}</span><input [value]="action.damage" (input)="updateCreatureAction(actionIndex, 'damage', $event)" /></label>
-            <label class="open5e-field"><span>{{ 'open5e.fields.damageType' | transloco }}</span><input [value]="action.damageType" (input)="updateCreatureAction(actionIndex, 'damageType', $event)" /></label>
-            <label class="open5e-field open5e-field--wide"><span>{{ 'common.description' | transloco }}</span><textarea rows="3" [value]="action.fullText || ''" (input)="updateCreatureAction(actionIndex, 'fullText', $event)"></textarea></label>
+            <label class="open5e-field"
+              ><span>{{ 'common.name' | transloco }}</span
+              ><input
+                [value]="action.name"
+                (input)="updateCreatureAction(actionIndex, 'name', $event)"
+            /></label>
+            <label class="open5e-field"
+              ><span>{{ 'common.bonus' | transloco }}</span
+              ><input
+                [value]="action.toHit"
+                (input)="updateCreatureAction(actionIndex, 'toHit', $event)"
+            /></label>
+            <label class="open5e-field"
+              ><span>{{ 'common.damage' | transloco }}</span
+              ><input
+                [value]="action.damage"
+                (input)="updateCreatureAction(actionIndex, 'damage', $event)"
+            /></label>
+            <label class="open5e-field"
+              ><span>{{ 'open5e.fields.damageType' | transloco }}</span
+              ><input
+                [value]="action.damageType"
+                (input)="updateCreatureAction(actionIndex, 'damageType', $event)"
+            /></label>
+            <label class="open5e-field open5e-field--wide"
+              ><span>{{ 'common.description' | transloco }}</span
+              ><textarea
+                rows="3"
+                [value]="action.fullText || ''"
+                (input)="updateCreatureAction(actionIndex, 'fullText', $event)"
+              ></textarea>
+            </label>
           </div>
         }
         <h4>{{ 'open5e.translation.abilities' | transloco }}</h4>
         @for (ability of creatureAbilities(); track $index; let abilityIndex = $index) {
           <div class="nested-translation nested-translation--ability">
-            <label class="open5e-field"><span>{{ 'common.name' | transloco }}</span><input [value]="ability.name" (input)="updateCreatureAbility(abilityIndex, 'name', $event)" /></label>
-            <label class="open5e-field open5e-field--wide"><span>{{ 'common.description' | transloco }}</span><textarea rows="4" [value]="ability.description" (input)="updateCreatureAbility(abilityIndex, 'description', $event)"></textarea></label>
+            <label class="open5e-field"
+              ><span>{{ 'common.name' | transloco }}</span
+              ><input
+                [value]="ability.name"
+                (input)="updateCreatureAbility(abilityIndex, 'name', $event)"
+            /></label>
+            <label class="open5e-field open5e-field--wide"
+              ><span>{{ 'common.description' | transloco }}</span
+              ><textarea
+                rows="4"
+                [value]="ability.description"
+                (input)="updateCreatureAbility(abilityIndex, 'description', $event)"
+              ></textarea>
+            </label>
           </div>
         }
-        <button class="open5e-button open5e-button--primary" type="button" [disabled]="!canSave() || saving()" (click)="saveSelected()">
-          {{ (saving() ? 'common.saving' : translationMode() ? 'open5e.actions.saveCreature' : 'open5e.actions.saveOriginal') | transloco }}
+        <button
+          class="open5e-button open5e-button--primary"
+          type="button"
+          [disabled]="!canSave() || saving()"
+          (click)="saveSelected()"
+        >
+          {{
+            (saving()
+              ? 'common.saving'
+              : translationMode()
+                ? 'open5e.actions.saveCreature'
+                : 'open5e.actions.saveOriginal'
+            ) | transloco
+          }}
         </button>
       </section>
     </div>
@@ -250,7 +529,14 @@
         <select [value]="selectedSavedSpellId()" (change)="setSavedSpell($event)">
           <option value="">{{ 'open5e.quickGive.select' | transloco }}</option>
           @for (spell of savedSpells(); track spell.id) {
-            <option [value]="spell.id">{{ spell.name }} · {{ spell.isCantrip ? ('open5e.meta.cantrip' | transloco) : ('open5e.meta.level' | transloco: { level: spell.level }) }}</option>
+            <option [value]="spell.id">
+              {{ spell.name }} ·
+              {{
+                spell.isCantrip
+                  ? ('open5e.meta.cantrip' | transloco)
+                  : ('open5e.meta.level' | transloco: { level: spell.level })
+              }}
+            </option>
           }
         </select>
       </label>
@@ -263,7 +549,12 @@
           }
         </select>
       </label>
-      <button class="open5e-button open5e-button--primary" type="button" [disabled]="!selectedSavedSpellId() || !selectedPlayerId() || giving()" (click)="giveSavedSpell()">
+      <button
+        class="open5e-button open5e-button--primary"
+        type="button"
+        [disabled]="!selectedSavedSpellId() || !selectedPlayerId() || giving()"
+        (click)="giveSavedSpell()"
+      >
         {{ (giving() ? 'common.giving' : 'open5e.actions.give') | transloco }}
       </button>
     </section>

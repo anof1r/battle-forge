@@ -9,7 +9,7 @@
         [class.status-pill--battle]="battleStatus() === BATTLE_STATUS.BATTLE"
         [class.status-pill--ended]="battleStatus() === BATTLE_STATUS.ENDED"
       >
-        {{ ('battle.status.' + battleStatus()) | transloco }}
+        {{ 'battle.status.' + battleStatus() | transloco }}
       </span>
       <span class="dm-round">{{ 'common.roundValue' | transloco: { round: currentRound() } }}</span>
     </div>
@@ -20,7 +20,9 @@
       type="button"
       [class.dm-workspace-tabs__button--active]="activePanel() === 'scenes'"
       (click)="activePanel.set('scenes')"
-    ><b>1</b> 🗺️ {{ 'dm.tabs.scenes' | transloco }}</button>
+    >
+      <b>1</b> 🗺️ {{ 'dm.tabs.scenes' | transloco }}
+    </button>
     <button
       type="button"
       [class.dm-workspace-tabs__button--active]="activePanel() === 'battle'"
@@ -32,12 +34,16 @@
       type="button"
       [class.dm-workspace-tabs__button--active]="activePanel() === 'rewards'"
       (click)="activePanel.set('rewards')"
-    ><b>3</b> 🎁 {{ 'dm.tabs.rewards' | transloco }}</button>
+    >
+      <b>3</b> 🎁 {{ 'dm.tabs.rewards' | transloco }}
+    </button>
     <button
       type="button"
       [class.dm-workspace-tabs__button--active]="activePanel() === 'library'"
       (click)="activePanel.set('library')"
-    ><b>4</b> 📚 {{ 'dm.tabs.library' | transloco }}</button>
+    >
+      <b>4</b> 📚 {{ 'dm.tabs.library' | transloco }}
+    </button>
     <button
       type="button"
       [class.dm-workspace-tabs__button--active]="activePanel() === 'story'"
@@ -54,13 +60,18 @@
       class="dm-workspace-tabs__button--settings"
       [class.dm-workspace-tabs__button--active]="activePanel() === 'settings'"
       (click)="activePanel.set('settings')"
-    >⚙️ {{ 'dm.tabs.settings' | transloco }}</button>
+    >
+      ⚙️ {{ 'dm.tabs.settings' | transloco }}
+    </button>
   </nav>
 
   <section class="dm-presentation-bar" [attr.aria-label]="'dm.presentation.label' | transloco">
     <div class="dm-presentation-bar__status">
       <span>DISPLAY</span>
-      <strong>{{ (storyPresentation.mode() === 'story' ? 'dm.presentation.story' : 'dm.presentation.battle') | transloco }}</strong>
+      <strong>{{
+        (storyPresentation.mode() === 'story' ? 'dm.presentation.story' : 'dm.presentation.battle')
+          | transloco
+      }}</strong>
       @if (storyPresentation.activeSlide(); as slide) {
         <small>{{ slide.name }}</small>
       }
@@ -70,19 +81,25 @@
         type="button"
         [class.dm-presentation-bar__button--active]="storyPresentation.mode() === 'battle'"
         (click)="storyPresentation.setMode('battle')"
-      >⚔ {{ 'dm.presentation.battleButton' | transloco }}</button>
+      >
+        ⚔ {{ 'dm.presentation.battleButton' | transloco }}
+      </button>
       <button
         type="button"
         [class.dm-presentation-bar__button--active]="storyPresentation.mode() === 'story'"
         [disabled]="!storyPresentation.canShowStory()"
         (click)="storyPresentation.setMode('story')"
-      >🖼 {{ 'dm.presentation.storyButton' | transloco }}</button>
+      >
+        🖼 {{ 'dm.presentation.storyButton' | transloco }}
+      </button>
       <button
         type="button"
         [attr.aria-label]="'dm.presentation.previous' | transloco"
         [disabled]="!storyPresentation.canGoPrevious()"
         (click)="storyPresentation.previousSlide()"
-      >←</button>
+      >
+        ←
+      </button>
       <span class="dm-presentation-bar__counter">
         {{ storyPresentation.activeSlideIndex() + 1 }} / {{ storyPresentation.slides().length }}
       </span>
@@ -91,7 +108,9 @@
         [attr.aria-label]="'dm.presentation.next' | transloco"
         [disabled]="!storyPresentation.canGoNext()"
         (click)="storyPresentation.nextSlide()"
-      >→</button>
+      >
+        →
+      </button>
     </div>
   </section>
 
@@ -142,7 +161,7 @@
     <footer class="dm-footer">
       <span class="dm-footer__label">{{ 'common.currentTurn' | transloco }}:</span>
       <span class="dm-footer__name">{{ current.name }}</span>
-      <span class="dm-footer__type">({{ ('combatant.type.' + current.type) | transloco }})</span>
+      <span class="dm-footer__type">({{ 'combatant.type.' + current.type | transloco }})</span>
     </footer>
   }
 </div>

@@ -128,7 +128,9 @@ describe('DmControlComponent', () => {
     component.activePanel.set('settings');
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('.dm-settings-panel bf-language-switcher')).toBeInTheDocument();
+    expect(
+      fixture.nativeElement.querySelector('.dm-settings-panel bf-language-switcher'),
+    ).toBeInTheDocument();
   });
 
   it('shows the composed battle workspace without duplicating its form logic in the shell', () => {
