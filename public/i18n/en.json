@@ -117,7 +117,8 @@
       "battle": "Battle",
       "rewards": "Players and rewards",
       "library": "Open5e imports",
-      "story": "Story"
+      "story": "Story",
+      "settings": "Settings"
     },
     "presentation": {
       "label": "Shared display mode",
@@ -127,6 +128,10 @@
       "battleButton": "Battle",
       "previous": "Previous slide",
       "next": "Next slide"
+    },
+    "settings": {
+      "title": "Settings",
+      "description": "Interface language for this device."
     }
   },
   "display": {

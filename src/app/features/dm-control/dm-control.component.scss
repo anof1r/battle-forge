@@ -91,6 +91,39 @@ app-dm-control {
     background: linear-gradient(180deg, rgba(132, 101, 32, 0.42), rgba(76, 58, 21, 0.34));
     color: #f0db97;
   }
+
+  .dm-workspace-tabs__divider {
+    align-self: stretch;
+    width: 1px;
+    margin: 0.3rem 0.1rem;
+    background: #6e5a30;
+  }
+
+  .dm-workspace-tabs__button--settings {
+    flex: 0 0 auto;
+    padding-inline: 1.1rem;
+  }
+}
+
+.dm-settings-panel {
+  display: grid;
+  gap: var(--bf-space-3);
+  border: 1px solid var(--bf-border);
+  border-radius: var(--bf-radius-md);
+  padding: var(--bf-space-5);
+  background: rgba(14, 11, 7, 0.86);
+  box-shadow: var(--bf-shadow-soft);
+
+  &__title {
+    margin: 0;
+    color: var(--bf-gold-bright);
+    font-family: var(--bf-font-display);
+  }
+
+  &__description {
+    margin: 0;
+    color: var(--bf-text-muted);
+  }
 }
 
 app-dm-battle-controls,

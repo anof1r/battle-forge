@@ -15,22 +15,24 @@ type JsonRecord = Record<string, unknown>;
 @Injectable({ providedIn: 'root' })
 export class Open5eService {
   private readonly http = inject(HttpClient);
-  private readonly apiRoot = 'https://api.open5e.com/v2';
+  // Same-origin server proxy (see server/src/open5e) — avoids calling
+  // api.open5e.com directly from the browser, which that host blocks via CORS.
+  private readonly apiRoot = '/api/open5e';
 
   searchSpells(query: string, documentKey = ''): Observable<Open5eSpell[]> {
-    return this.search(`${this.apiRoot}/spells/`, query, documentKey).pipe(
+    return this.search(`${this.apiRoot}/spells`, query, documentKey).pipe(
       map((records) => records.map((record) => this.toSpell(record)).filter(this.isPresent)),
     );
   }
 
   searchCreatures(query: string, documentKey = ''): Observable<Open5eCreature[]> {
-    return this.search(`${this.apiRoot}/creatures/`, query, documentKey).pipe(
+    return this.search(`${this.apiRoot}/creatures`, query, documentKey).pipe(
       map((records) => records.map((record) => this.toCreature(record)).filter(this.isPresent)),
     );
   }
 
   searchWeapons(query: string, documentKey = ''): Observable<Open5eWeapon[]> {
-    return this.search(`${this.apiRoot}/items/`, query, documentKey, { is_weapon: 'true' }).pipe(
+    return this.search(`${this.apiRoot}/items`, query, documentKey, { is_weapon: 'true' }).pipe(
       map((records) => records.map((record) => this.toWeapon(record)).filter(this.isPresent)),
     );
   }
@@ -46,7 +48,9 @@ export class Open5eService {
     let params = new HttpParams().set('name__icontains', normalizedQuery).set('limit', 30);
     if (documentKey) params = params.set('document__key__in', documentKey);
     for (const [key, value] of Object.entries(extraParams)) params = params.set(key, value);
-    return this.http.get<unknown>(url, { params }).pipe(map((payload) => this.readResults(payload)));
+    return this.http
+      .get<unknown>(url, { params })
+      .pipe(map((payload) => this.readResults(payload)));
   }
 
   private toSpell(record: JsonRecord): Open5eSpell | null {
@@ -87,13 +91,15 @@ export class Open5eService {
     const name = this.string(record['name']) || this.string(weapon['name']);
     const key = this.string(record['key']) || this.string(weapon['key']);
     if (!name || !key) return null;
-    const properties = this.array(weapon['properties']).map((entry) => {
-      const assignment = this.record(entry);
-      const property = assignment ? this.record(assignment['property']) : null;
-      const propertyName = property ? this.string(property['name']) : '';
-      const detail = assignment ? this.string(assignment['detail']) : '';
-      return `${propertyName}${detail ? ` (${detail})` : ''}`.trim();
-    }).filter(Boolean);
+    const properties = this.array(weapon['properties'])
+      .map((entry) => {
+        const assignment = this.record(entry);
+        const property = assignment ? this.record(assignment['property']) : null;
+        const propertyName = property ? this.string(property['name']) : '';
+        const detail = assignment ? this.string(assignment['detail']) : '';
+        return `${propertyName}${detail ? ` (${detail})` : ''}`.trim();
+      })
+      .filter(Boolean);
     return {
       kind: 'weapon',
       key,
@@ -134,7 +140,10 @@ export class Open5eService {
       maxHp: this.integer(record['hit_points'], 1, 1),
       ac: this.integer(record['armor_class'], 10, 1),
       resistances: resistanceDisplay
-        ? resistanceDisplay.split(/[,;]/).map((item) => item.trim()).filter(Boolean)
+        ? resistanceDisplay
+            .split(/[,;]/)
+            .map((item) => item.trim())
+            .filter(Boolean)
         : resistanceObjects.filter(Boolean),
       actions,
       abilities,
@@ -147,18 +156,30 @@ export class Open5eService {
     const name = this.string(action['name']);
     if (!name) return [];
     const fullText = this.string(action['desc']);
-    const attacks = this.array(action['attacks']).map((attack) => this.record(attack)).filter(this.isPresent);
+    const attacks = this.array(action['attacks'])
+      .map((attack) => this.record(attack))
+      .filter(this.isPresent);
     if (attacks.length === 0) {
-      return [{ name, description: this.string(action['action_type']), toHit: '', damage: '', damageType: '', fullText }];
+      return [
+        {
+          name,
+          description: this.string(action['action_type']),
+          toHit: '',
+          damage: '',
+          damageType: '',
+          fullText,
+        },
+      ];
     }
     return attacks.map((attack, index) => {
       const attackName = this.string(attack['name']);
       const damageCount = this.integer(attack['damage_die_count'], 0, 0);
       const damageDie = this.dieSize(attack['damage_die_type']);
       const damageBonus = this.number(attack['damage_bonus'], 0);
-      const damage = damageCount > 0 && damageDie > 0
-        ? `${damageCount}d${damageDie}${damageBonus ? ` ${damageBonus > 0 ? '+' : '-'} ${Math.abs(damageBonus)}` : ''}`
-        : '';
+      const damage =
+        damageCount > 0 && damageDie > 0
+          ? `${damageCount}d${damageDie}${damageBonus ? ` ${damageBonus > 0 ? '+' : '-'} ${Math.abs(damageBonus)}` : ''}`
+          : '';
       const toHit = this.number(attack['to_hit_mod'], 0);
       return {
         name: attacks.length > 1 && attackName ? `${name} — ${attackName}` : name,
@@ -183,7 +204,9 @@ export class Open5eService {
   private readResults(payload: unknown): JsonRecord[] {
     const root = this.record(payload);
     const values = Array.isArray(payload) ? payload : root ? root['results'] : [];
-    return this.array(values).map((value) => this.record(value)).filter(this.isPresent);
+    return this.array(values)
+      .map((value) => this.record(value))
+      .filter(this.isPresent);
   }
 
   private document(value: unknown): Open5eDocumentRef {

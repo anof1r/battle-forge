@@ -5,6 +5,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { readEnvironment } from './config/environment';
 import { DataModule } from './data/data.module';
 import { HealthController } from './health/health.controller';
+import { Open5eModule } from './open5e/open5e.module';
 
 const environment = readEnvironment();
 
@@ -17,6 +18,7 @@ const environment = readEnvironment();
       exclude: ['/api/{*path}'],
     }),
     DataModule,
+    Open5eModule,
   ],
   controllers: [HealthController],
 })

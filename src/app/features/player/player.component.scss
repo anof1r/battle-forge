@@ -18,7 +18,7 @@
 
 .player-stage {
   width: 100%;
-  height: 100vh;
+  height: 100%;
   overflow-y: auto;
   padding: var(--bf-space-4);
 }
@@ -398,8 +398,7 @@
   &--depleted {
     border-color: rgba(139, 111, 80, 0.5);
     background:
-      linear-gradient(135deg, rgba(51, 42, 34, 0.34), rgba(8, 7, 6, 0.7)),
-      rgba(0, 0, 0, 0.28);
+      linear-gradient(135deg, rgba(51, 42, 34, 0.34), rgba(8, 7, 6, 0.7)), rgba(0, 0, 0, 0.28);
     color: #8e8578;
     box-shadow: none;
 
@@ -713,8 +712,7 @@
 }
 
 .modal-overlay--spell {
-  padding:
-    max(var(--bf-space-4), env(safe-area-inset-top))
+  padding: max(var(--bf-space-4), env(safe-area-inset-top))
     max(var(--bf-space-4), env(safe-area-inset-right))
     max(var(--bf-space-4), env(safe-area-inset-bottom))
     max(var(--bf-space-4), env(safe-area-inset-left));
@@ -979,7 +977,6 @@
         font-size: 0.8rem;
         text-transform: lowercase;
       }
-
     }
   }
 }
@@ -1365,8 +1362,12 @@
     0 18px 55px rgba(0, 0, 0, 0.85),
     0 0 34px rgba(235, 151, 42, 0.22);
 
-  .spell-confirmation__title { color: #ffc75a; }
-  .spell-confirmation__result { border-color: rgba(227, 156, 56, 0.55); }
+  .spell-confirmation__title {
+    color: #ffc75a;
+  }
+  .spell-confirmation__result {
+    border-color: rgba(227, 156, 56, 0.55);
+  }
 }
 
 .resource-confirmation__sigil {

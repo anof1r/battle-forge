@@ -24,6 +24,7 @@ import { DmSpellGrantComponent } from './spell-grant/dm-spell-grant.component';
 import { DmStatusEffectsComponent } from './status-effects/dm-status-effects.component';
 import { DmStoryComponent } from './story/dm-story.component';
 import { DmWorkspacePanel } from './dm-control.model';
+import { LanguageSwitcherComponent } from '../../shared/ui/language-switcher/language-switcher.component';
 
 @Component({
   selector: 'app-dm-control',
@@ -43,6 +44,7 @@ import { DmWorkspacePanel } from './dm-control.model';
     DmSpellGrantComponent,
     DmStatusEffectsComponent,
     DmStoryComponent,
+    LanguageSwitcherComponent,
   ],
   templateUrl: './dm-control.component.html',
   styleUrl: './dm-control.component.scss',

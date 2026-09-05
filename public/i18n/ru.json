@@ -117,7 +117,8 @@
       "battle": "Бой",
       "rewards": "Игроки и награды",
       "library": "Переводы Open5e",
-      "story": "История"
+      "story": "История",
+      "settings": "Настройки"
     },
     "presentation": {
       "label": "Режим общего экрана",
@@ -127,6 +128,10 @@
       "battleButton": "Бой",
       "previous": "Предыдущий слайд",
       "next": "Следующий слайд"
+    },
+    "settings": {
+      "title": "Настройки",
+      "description": "Язык интерфейса на этом устройстве."
     }
   },
   "display": {

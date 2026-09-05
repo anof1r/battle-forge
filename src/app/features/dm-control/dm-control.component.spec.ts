@@ -121,7 +121,14 @@ describe('DmControlComponent', () => {
     expect(fixture.nativeElement.querySelector('app-dm-scene-library')).toBeInTheDocument();
     expect(fixture.nativeElement.querySelector('app-dm-battle-controls')).toBeInTheDocument();
     expect(fixture.nativeElement.querySelector('.dm-workspace-grid')).toHaveAttribute('hidden');
-    expect(fixture.nativeElement.querySelectorAll('.dm-workspace-tabs button')).toHaveLength(5);
+    expect(fixture.nativeElement.querySelectorAll('.dm-workspace-tabs button')).toHaveLength(6);
+  });
+
+  it('shows the language switcher in the settings panel', () => {
+    component.activePanel.set('settings');
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.dm-settings-panel bf-language-switcher')).toBeInTheDocument();
   });
 
   it('shows the composed battle workspace without duplicating its form logic in the shell', () => {

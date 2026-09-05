@@ -48,6 +48,13 @@
         <span>{{ storyPresentation.slides().length }}</span>
       }
     </button>
+    <span class="dm-workspace-tabs__divider" aria-hidden="true"></span>
+    <button
+      type="button"
+      class="dm-workspace-tabs__button--settings"
+      [class.dm-workspace-tabs__button--active]="activePanel() === 'settings'"
+      (click)="activePanel.set('settings')"
+    >⚙️ {{ 'dm.tabs.settings' | transloco }}</button>
   </nav>
 
   <section class="dm-presentation-bar" [attr.aria-label]="'dm.presentation.label' | transloco">
@@ -96,6 +103,13 @@
   }
   @if (activePanel() === 'story') {
     <app-dm-story />
+  }
+  @if (activePanel() === 'settings') {
+    <section class="dm-settings-panel">
+      <h2 class="dm-settings-panel__title">{{ 'dm.settings.title' | transloco }}</h2>
+      <p class="dm-settings-panel__description">{{ 'dm.settings.description' | transloco }}</p>
+      <bf-language-switcher />
+    </section>
   }
 
   <div class="dm-workspace-grid" [hidden]="activePanel() !== 'battle'">

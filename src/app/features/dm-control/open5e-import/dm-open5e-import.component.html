@@ -120,7 +120,8 @@
       </section>
 
       <section class="translation-column translation-column--editable" [class.translation-column--direct]="!translationMode()">
-        <header><span>{{ (translationMode() ? 'open5e.translation.title' : 'open5e.direct.title') | transloco }}</span><strong>{{ (translationMode() ? 'open5e.translation.spellHint' : 'open5e.direct.hint') | transloco }}</strong></header>`n        @if (!translationMode()) { <p class="translation-note">{{ 'open5e.direct.description' | transloco }}</p> }
+        <header><span>{{ (translationMode() ? 'open5e.translation.title' : 'open5e.direct.title') | transloco }}</span><strong>{{ (translationMode() ? 'open5e.translation.spellHint' : 'open5e.direct.hint') | transloco }}</strong></header>
+        @if (!translationMode()) { <p class="translation-note">{{ 'open5e.direct.description' | transloco }}</p> }
         <div class="translation-form translation-form--two">
           <label class="open5e-field"><span>{{ 'common.name' | transloco }}</span><input [value]="spellName()" (input)="setText(spellName, $event)" /></label>
           <label class="open5e-field"><span>{{ 'open5e.fields.school' | transloco }}</span><input [value]="spellSchool()" (input)="setText(spellSchool, $event)" /></label>
@@ -166,7 +167,8 @@
         <p class="original-text">{{ weapon.description }}</p>
       </section>
       <section class="translation-column translation-column--editable" [class.translation-column--direct]="!translationMode()">
-        <header><span>{{ (translationMode() ? 'open5e.translation.weaponTitle' : 'open5e.direct.title') | transloco }}</span><strong>{{ (translationMode() ? 'open5e.translation.weaponHint' : 'open5e.direct.hint') | transloco }}</strong></header>`n        @if (!translationMode()) { <p class="translation-note">{{ 'open5e.direct.description' | transloco }}</p> }
+        <header><span>{{ (translationMode() ? 'open5e.translation.weaponTitle' : 'open5e.direct.title') | transloco }}</span><strong>{{ (translationMode() ? 'open5e.translation.weaponHint' : 'open5e.direct.hint') | transloco }}</strong></header>
+        @if (!translationMode()) { <p class="translation-note">{{ 'open5e.direct.description' | transloco }}</p> }
         <div class="translation-form translation-form--two">
           <label class="open5e-field"><span>{{ 'common.name' | transloco }}</span><input [value]="weaponName()" (input)="setText(weaponName, $event)" /></label>
           <label class="open5e-field"><span>{{ 'open5e.fields.attackBonus' | transloco }}</span><input placeholder="+4" [value]="weaponToHit()" (input)="setText(weaponToHit, $event)" /></label>
@@ -204,7 +206,8 @@
         }
       </section>
       <section class="translation-column translation-column--editable" [class.translation-column--direct]="!translationMode()">
-        <header><span>{{ (translationMode() ? 'open5e.translation.title' : 'open5e.direct.title') | transloco }}</span><strong>{{ (translationMode() ? 'open5e.translation.creatureHint' : 'open5e.direct.hint') | transloco }}</strong></header>`n        @if (!translationMode()) { <p class="translation-note">{{ 'open5e.direct.description' | transloco }}</p> }
+        <header><span>{{ (translationMode() ? 'open5e.translation.title' : 'open5e.direct.title') | transloco }}</span><strong>{{ (translationMode() ? 'open5e.translation.creatureHint' : 'open5e.direct.hint') | transloco }}</strong></header>
+        @if (!translationMode()) { <p class="translation-note">{{ 'open5e.direct.description' | transloco }}</p> }
         <div class="translation-form translation-form--two">
           <label class="open5e-field"><span>{{ 'common.name' | transloco }}</span><input [value]="creatureName()" (input)="setText(creatureName, $event)" /></label>
           <label class="open5e-field"><span>{{ 'common.type' | transloco }}</span><input [value]="creatureSubtype()" (input)="setText(creatureSubtype, $event)" /></label>

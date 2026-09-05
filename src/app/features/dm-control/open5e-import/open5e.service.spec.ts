@@ -24,7 +24,7 @@ describe('Open5eService', () => {
       : never = [];
     service.searchSpells('Magic Missile', 'srd-2024').subscribe((value) => (result = value));
 
-    const request = http.expectOne((candidate) => candidate.url.endsWith('/v2/spells/'));
+    const request = http.expectOne((candidate) => candidate.url.endsWith('/open5e/spells'));
     expect(request.request.params.get('name__icontains')).toBe('Magic Missile');
     expect(request.request.params.get('document__key__in')).toBe('srd-2024');
     request.flush({
@@ -72,7 +72,7 @@ describe('Open5eService', () => {
     let result: unknown[] = [];
     service.searchCreatures('Goblin').subscribe((value) => (result = value));
 
-    const request = http.expectOne((candidate) => candidate.url.endsWith('/v2/creatures/'));
+    const request = http.expectOne((candidate) => candidate.url.endsWith('/open5e/creatures'));
     request.flush({
       results: [
         {
@@ -129,7 +129,7 @@ describe('Open5eService', () => {
     let result: unknown[] = [];
     service.searchWeapons('long').subscribe((value) => (result = value));
 
-    const request = http.expectOne((candidate) => candidate.url.endsWith('/v2/items/'));
+    const request = http.expectOne((candidate) => candidate.url.endsWith('/open5e/items'));
     expect(request.request.params.get('is_weapon')).toBe('true');
     expect(request.request.params.get('name__icontains')).toBe('long');
     request.flush({
@@ -142,9 +142,7 @@ describe('Open5eService', () => {
           weapon: {
             damage_dice: '1d8',
             damage_type: { name: 'Slashing' },
-            properties: [
-              { property: { name: 'Versatile' }, detail: '1d10' },
-            ],
+            properties: [{ property: { name: 'Versatile' }, detail: '1d10' }],
           },
         },
       ],
