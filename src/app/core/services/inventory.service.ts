@@ -1,3 +1,4 @@
+import { generateUuid } from '../utils/uuid.util';
 import { Injectable, inject } from '@angular/core';
 import { CharacterService } from './character.service';
 import { GiveItemInput, InventoryItem } from '../models/inventory-item.model';
@@ -36,7 +37,7 @@ export class InventoryService {
       );
     } else {
       const newItem: InventoryItem = {
-        id: crypto.randomUUID(),
+        id: generateUuid(),
         name: item.name,
         description: item.description ?? '',
         quantity: item.quantity,

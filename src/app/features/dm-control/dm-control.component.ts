@@ -1,4 +1,8 @@
 import {
+  WorkspaceComponent,
+  WorkspaceToolDirective,
+} from '../../shared/ui/workspace/workspace.component';
+import {
   ChangeDetectionStrategy,
   Component,
   ViewEncapsulation,
@@ -25,6 +29,8 @@ import { LanguageSwitcherComponent } from '../../shared/ui/language-switcher/lan
   selector: 'app-dm-control',
   standalone: true,
   imports: [
+    WorkspaceComponent,
+    WorkspaceToolDirective,
     TranslocoPipe,
     DmBattleWorkspaceComponent,
     DmCharacterResourcesComponent,

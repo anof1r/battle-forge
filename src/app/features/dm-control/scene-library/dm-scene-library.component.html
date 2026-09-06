@@ -5,7 +5,9 @@
       <p>{{ 'sceneLibrary.intro' | transloco }}</p>
     </div>
     <div class="scene-library__legend">
-      <span>{{ 'sceneLibrary.steps.creature' | transloco }}</span><span>{{ 'sceneLibrary.steps.preset' | transloco }}</span><span>{{ 'sceneLibrary.steps.battle' | transloco }}</span>
+      <span>{{ 'sceneLibrary.steps.creature' | transloco }}</span
+      ><span>{{ 'sceneLibrary.steps.preset' | transloco }}</span
+      ><span>{{ 'sceneLibrary.steps.battle' | transloco }}</span>
     </div>
   </header>
 
@@ -18,439 +20,496 @@
     <p class="scene-library__message scene-library__message--error" role="alert">{{ error() }}</p>
   }
 
-  <div class="scene-library__dashboard">
-    <section class="library-panel library-panel--scenes">
-      <header class="library-panel__header">
-        <div>
-          <span class="library-panel__eyebrow">{{ 'sceneLibrary.quickLaunch' | transloco }}</span>
-          <h3>{{ 'sceneLibrary.savedScenes' | transloco }}</h3>
-        </div>
-        <span class="library-panel__count">{{ scenes().length }}</span>
-      </header>
-
-      <div class="scene-cards">
-        @for (scene of scenes(); track scene.id) {
-          <article class="scene-card">
-            <div class="scene-card__heading">
-              <div>
-                <h4>{{ scene.name }}</h4>
-                <span>{{ 'sceneLibrary.creatureCount' | transloco: { count: sceneCreatureCount(scene) } }}</span>
-              </div>
-              <button
-                class="icon-button"
-                type="button"
-                (click)="deleteScene(scene)"
-                [attr.aria-label]="'sceneLibrary.deletePreset' | transloco"
-              >
-                ×
-              </button>
-            </div>
-            @if (scene.description) {
-              <p>{{ scene.description }}</p>
-            }
-            <div class="scene-card__roster">
-              @for (entry of scene.entries; track entry.templateId) {
-                <span>{{ creatureNameFor(entry.templateId) }} ×{{ entry.quantity }}</span>
-              }
-            </div>
-            <div class="library-actions">
-              <button
-                class="library-button library-button--primary"
-                type="button"
-                [disabled]="launchingSceneId() !== null"
-                (click)="launchScene(scene)"
-              >
-                {{ (launchingSceneId() === scene.id ? 'sceneLibrary.launching' : 'sceneLibrary.launch') | transloco }}
-              </button>
-              <button class="library-button" type="button" (click)="editScene(scene)">
-                {{ 'common.edit' | transloco }}
-              </button>
-            </div>
-          </article>
-        } @empty {
-          <div class="library-empty">
-            <strong>{{ 'sceneLibrary.noPresets' | transloco }}</strong>
-            <span>{{ 'sceneLibrary.noPresetsHint' | transloco }}</span>
+  <bf-workspace [label]="'sceneLibrary.title' | transloco" [(activeTool)]="activeTool">
+    <ng-template
+      bfWorkspaceTool="scene-editor"
+      [title]="'sceneLibrary.builder' | transloco"
+      [hint]="'workspace.sceneHint' | transloco"
+      icon="🗺"
+      ><section class="library-panel library-panel--builder">
+        <header class="library-panel__header">
+          <div>
+            <span class="library-panel__eyebrow">{{ 'sceneLibrary.builder' | transloco }}</span>
+            <h3>
+              {{ (sceneId() ? 'sceneLibrary.editPreset' : 'sceneLibrary.newPreset') | transloco }}
+            </h3>
           </div>
-        }
-      </div>
-    </section>
+        </header>
 
-    <section class="library-panel library-panel--builder">
-      <header class="library-panel__header">
-        <div>
-          <span class="library-panel__eyebrow">{{ 'sceneLibrary.builder' | transloco }}</span>
-          <h3>{{ (sceneId() ? 'sceneLibrary.editPreset' : 'sceneLibrary.newPreset') | transloco }}</h3>
-        </div>
-      </header>
-
-      <div class="library-form">
-        <label class="library-field">
-          <span>{{ 'sceneLibrary.sceneName' | transloco }}</span>
-          <input
-            type="text"
-            [placeholder]="'sceneLibrary.sceneNamePlaceholder' | transloco"
-            [value]="sceneName()"
-            (input)="setText(sceneName, $event)"
-          />
-        </label>
-        <label class="library-field">
-          <span>{{ 'statusEffects.note' | transloco }}</span>
-          <textarea
-            rows="2"
-            [placeholder]="'sceneLibrary.notePlaceholder' | transloco"
-            [value]="sceneDescription()"
-            (input)="setText(sceneDescription, $event)"
-          ></textarea>
-        </label>
-
-        <div class="scene-entry-form">
+        <div class="library-form">
           <label class="library-field">
-            <span>{{ 'sceneLibrary.creature' | transloco }}</span>
-            <select [value]="selectedTemplateId()" (change)="setText(selectedTemplateId, $event)">
-              <option value="">{{ 'itemLibrary.selectTemplate' | transloco }}</option>
-              @for (creature of creatures(); track creature.id) {
-                <option [value]="creature.id">{{ creature.name }}</option>
-              }
-            </select>
-          </label>
-          <label class="library-field library-field--quantity">
-            <span>{{ 'common.quantity' | transloco }}</span>
+            <span>{{ 'sceneLibrary.sceneName' | transloco }}</span>
             <input
-              type="number"
-              min="1"
-              [value]="selectedQuantity()"
-              (input)="onQuantityInput($event)"
+              type="text"
+              [placeholder]="'sceneLibrary.sceneNamePlaceholder' | transloco"
+              [value]="sceneName()"
+              (input)="setText(sceneName, $event)"
             />
           </label>
-          <button
-            class="library-button"
-            type="button"
-            [disabled]="!selectedTemplateId()"
-            (click)="addSceneEntry()"
-          >
-            {{ 'common.add' | transloco }}
-          </button>
-        </div>
+          <label class="library-field">
+            <span>{{ 'statusEffects.note' | transloco }}</span>
+            <textarea
+              rows="2"
+              [placeholder]="'sceneLibrary.notePlaceholder' | transloco"
+              [value]="sceneDescription()"
+              (input)="setText(sceneDescription, $event)"
+            ></textarea>
+          </label>
 
-        <div class="scene-roster">
-          @for (entry of sceneEntries(); track entry.templateId) {
-            <div class="scene-roster__item">
-              <span>{{ creatureNameFor(entry.templateId) }}</span>
-              <strong>×{{ entry.quantity }}</strong>
-              <button
-                type="button"
-                class="icon-button"
-                (click)="removeSceneEntry(entry.templateId)"
-                [attr.aria-label]="'sceneLibrary.removeFromPreset' | transloco"
-              >
-                ×
-              </button>
-            </div>
-          } @empty {
-            <p class="library-hint">{{ 'sceneLibrary.addCreatureHint' | transloco }}</p>
-          }
-        </div>
-
-        <div class="library-actions">
-          <button
-            class="library-button library-button--primary"
-            type="button"
-            [disabled]="!canSaveScene() || savingScene()"
-            (click)="saveScene()"
-          >
-            {{ (savingScene() ? 'common.saving' : sceneId() ? 'common.saveChanges' : 'sceneLibrary.savePreset') | transloco }}
-          </button>
-          @if (sceneId()) {
-            <button class="library-button" type="button" (click)="resetSceneEditor()">
-              {{ 'common.cancel' | transloco }}
+          <div class="scene-entry-form">
+            <label class="library-field">
+              <span>{{ 'sceneLibrary.creature' | transloco }}</span>
+              <select [value]="selectedTemplateId()" (change)="setText(selectedTemplateId, $event)">
+                <option value="">{{ 'itemLibrary.selectTemplate' | transloco }}</option>
+                @for (creature of creatures(); track creature.id) {
+                  <option [value]="creature.id">{{ creature.name }}</option>
+                }
+              </select>
+            </label>
+            <label class="library-field library-field--quantity">
+              <span>{{ 'common.quantity' | transloco }}</span>
+              <input
+                type="number"
+                min="1"
+                [value]="selectedQuantity()"
+                (input)="onQuantityInput($event)"
+              />
+            </label>
+            <button
+              class="library-button"
+              type="button"
+              [disabled]="!selectedTemplateId()"
+              (click)="addSceneEntry()"
+            >
+              {{ 'common.add' | transloco }}
             </button>
-          }
-        </div>
-      </div>
-    </section>
-
-    <section class="library-panel library-panel--creatures">
-      <header class="library-panel__header">
-        <div>
-          <span class="library-panel__eyebrow">{{ 'sceneLibrary.bestiary' | transloco }}</span>
-          <h3>{{ 'sceneLibrary.creatures' | transloco }}</h3>
-        </div>
-        <span class="library-panel__count">{{ creatures().length }}</span>
-      </header>
-
-      <div class="creature-cards">
-        @for (creature of creatures(); track creature.id) {
-          <article class="creature-card">
-            <div class="creature-card__heading">
-              <div>
-                <h4>{{ creature.name }}</h4>
-                <span>{{ creature.subtype || ('sceneLibrary.noType' | transloco) }}</span>
-              </div>
-              <div class="creature-card__stats">
-                <b>HP {{ creature.maxHp }}</b
-                ><b>{{ 'common.ac' | transloco }} {{ creature.ac }}</b>
-              </div>
-            </div>
-            <div class="creature-card__meta">
-              <span>{{ 'sceneLibrary.attackCount' | transloco: { count: creature.actions.length } }}</span>
-              <span>{{ 'sceneLibrary.abilityCount' | transloco: { count: creature.abilities.length } }}</span>
-            </div>
-            <div class="library-actions">
-              <button
-                class="library-button library-button--primary"
-                type="button"
-                (click)="addCreatureToBattle(creature)"
-              >
-                {{ 'sceneLibrary.toBattle' | transloco }}
-              </button>
-              <button class="library-button" type="button" (click)="editCreature(creature)">
-                {{ 'common.edit' | transloco }}
-              </button>
-              <button
-                class="library-button library-button--danger"
-                type="button"
-                (click)="deleteCreature(creature)"
-              >
-                {{ 'common.delete' | transloco }}
-              </button>
-            </div>
-          </article>
-        } @empty {
-          <div class="library-empty">
-            <strong>{{ 'sceneLibrary.empty' | transloco }}</strong><span>{{ 'sceneLibrary.emptyHint' | transloco }}</span>
           </div>
-        }
-      </div>
-    </section>
-  </div>
 
-  <details class="creature-editor" [open]="creatures().length === 0 || creatureId() !== null">
-    <summary>
-      <span>{{ (creatureId() ? 'sceneLibrary.editCreature' : 'sceneLibrary.createCreature') | transloco }}</span>
-      <small>{{ 'sceneLibrary.creatureEditorHint' | transloco }}</small>
-    </summary>
+          <div class="scene-roster">
+            @for (entry of sceneEntries(); track entry.templateId) {
+              <div class="scene-roster__item">
+                <span>{{ creatureNameFor(entry.templateId) }}</span>
+                <strong>×{{ entry.quantity }}</strong>
+                <button
+                  type="button"
+                  class="icon-button"
+                  (click)="removeSceneEntry(entry.templateId)"
+                  [attr.aria-label]="'sceneLibrary.removeFromPreset' | transloco"
+                >
+                  ×
+                </button>
+              </div>
+            } @empty {
+              <p class="library-hint">{{ 'sceneLibrary.addCreatureHint' | transloco }}</p>
+            }
+          </div>
 
-    <div class="creature-editor__body">
-      <div class="creature-editor__basics">
-        <label class="library-field"
-          ><span>{{ 'common.name' | transloco }}</span
-          ><input
-            type="text"
-            [placeholder]="'sceneLibrary.creatureNamePlaceholder' | transloco"
-            [value]="creatureName()"
-            (input)="setText(creatureName, $event)"
-        /></label>
-        <label class="library-field"
-          ><span>{{ 'common.type' | transloco }}</span
-          ><input
-            type="text"
-            placeholder="goblin"
-            [value]="creatureSubtype()"
-            (input)="setText(creatureSubtype, $event)"
-        /></label>
-        <label class="library-field"
-          ><span>{{ 'common.maxHp' | transloco }}</span
-          ><input
-            type="number"
-            min="1"
-            [value]="creatureMaxHp()"
-            (input)="onCreatureMaxHpInput($event)"
-        /></label>
-        <label class="library-field"
-          ><span>{{ 'common.ac' | transloco }}</span
-          ><input type="number" min="1" [value]="creatureAc()" (input)="onCreatureAcInput($event)"
-        /></label>
-        <label class="library-field"
-          ><span>{{ 'open5e.fields.resistances' | transloco }}</span
-          ><input
-            type="text"
-            [placeholder]="'sceneLibrary.resistancesPlaceholder' | transloco"
-            [value]="creatureResistances()"
-            (input)="setText(creatureResistances, $event)"
-        /></label>
-        <label class="library-field"
-          ><span>{{ 'sceneLibrary.startingStatuses' | transloco }}</span
-          ><input
-            type="text"
-            [placeholder]="'sceneLibrary.statusPlaceholder' | transloco"
-            [value]="creatureStatuses()"
-            (input)="setText(creatureStatuses, $event)"
-        /></label>
-      </div>
-
-      <div class="creature-editor__columns">
-        <section class="subeditor">
-          <header>
-            <h4>{{ 'sceneLibrary.weaponsAndAttacks' | transloco }}</h4>
-            <span>{{ creatureActions().length }}</span>
-          </header>
-          @if (savedActions().length > 0) {
-            <div class="saved-action-picker">
-              <label class="library-field">
-                <span>{{ 'sceneLibrary.addSavedWeapon' | transloco }}</span>
-                <select [value]="selectedActionTemplateId()" (change)="selectActionTemplate($event)">
-                  <option value="">{{ 'sceneLibrary.selectWeapon' | transloco }}</option>
-                  @for (action of savedActions(); track action.id) {
-                    <option [value]="action.id">{{ action.name }} · {{ action.damage }} {{ action.damageType }}</option>
-                  }
-                </select>
-              </label>
-              <button
-                class="library-button"
-                type="button"
-                [disabled]="!selectedActionTemplateId()"
-                (click)="addSavedAction()"
-              >
-                {{ 'sceneLibrary.addToCreature' | transloco }}
+          <div class="library-actions">
+            <button
+              class="library-button library-button--primary"
+              type="button"
+              [disabled]="!canSaveScene() || savingScene()"
+              (click)="saveScene()"
+            >
+              {{
+                (savingScene()
+                  ? 'common.saving'
+                  : sceneId()
+                    ? 'common.saveChanges'
+                    : 'sceneLibrary.savePreset'
+                ) | transloco
+              }}
+            </button>
+            @if (sceneId()) {
+              <button class="library-button" type="button" (click)="resetSceneEditor()">
+                {{ 'common.cancel' | transloco }}
               </button>
+            }
+          </div>
+        </div>
+      </section></ng-template
+    >
+    <ng-template
+      bfWorkspaceTool="creatures"
+      [title]="'sceneLibrary.bestiary' | transloco"
+      [hint]="'workspace.creaturesHint' | transloco"
+      icon="♟"
+      [badge]="creatures().length"
+      ><section class="library-panel library-panel--creatures">
+        <header class="library-panel__header">
+          <div>
+            <span class="library-panel__eyebrow">{{ 'sceneLibrary.bestiary' | transloco }}</span>
+            <h3>{{ 'sceneLibrary.creatures' | transloco }}</h3>
+          </div>
+          <span class="library-panel__count">{{ creatures().length }}</span>
+        </header>
+
+        <div class="creature-cards">
+          @for (creature of creatures(); track creature.id) {
+            <article class="creature-card">
+              <div class="creature-card__heading">
+                <div>
+                  <h4>{{ creature.name }}</h4>
+                  <span>{{ creature.subtype || ('sceneLibrary.noType' | transloco) }}</span>
+                </div>
+                <div class="creature-card__stats">
+                  <b>HP {{ creature.maxHp }}</b
+                  ><b>{{ 'common.ac' | transloco }} {{ creature.ac }}</b>
+                </div>
+              </div>
+              <div class="creature-card__meta">
+                <span>{{
+                  'sceneLibrary.attackCount' | transloco: { count: creature.actions.length }
+                }}</span>
+                <span>{{
+                  'sceneLibrary.abilityCount' | transloco: { count: creature.abilities.length }
+                }}</span>
+              </div>
+              <div class="library-actions">
+                <button
+                  class="library-button library-button--primary"
+                  type="button"
+                  (click)="addCreatureToBattle(creature)"
+                >
+                  {{ 'sceneLibrary.toBattle' | transloco }}
+                </button>
+                <button class="library-button" type="button" (click)="editCreature(creature)">
+                  {{ 'common.edit' | transloco }}
+                </button>
+                <button
+                  class="library-button library-button--danger"
+                  type="button"
+                  (click)="deleteCreature(creature)"
+                >
+                  {{ 'common.delete' | transloco }}
+                </button>
+              </div>
+            </article>
+          } @empty {
+            <div class="library-empty">
+              <strong>{{ 'sceneLibrary.empty' | transloco }}</strong
+              ><span>{{ 'sceneLibrary.emptyHint' | transloco }}</span>
             </div>
           }
-          <div class="subeditor__grid">
+        </div>
+      </section></ng-template
+    >
+    <ng-template
+      bfWorkspaceTool="creature-editor"
+      [title]="'workspace.creatureEditor' | transloco"
+      [hint]="'workspace.creatureEditorHint' | transloco"
+      icon="✎"
+      ><section class="creature-editor">
+        <header class="creature-editor__heading">
+          <span>{{
+            (creatureId() ? 'sceneLibrary.editCreature' : 'sceneLibrary.createCreature') | transloco
+          }}</span>
+          <small>{{ 'sceneLibrary.creatureEditorHint' | transloco }}</small>
+        </header>
+
+        <div class="creature-editor__body">
+          <div class="creature-editor__basics">
             <label class="library-field"
               ><span>{{ 'common.name' | transloco }}</span
               ><input
                 type="text"
-                [placeholder]="'sceneLibrary.weaponNamePlaceholder' | transloco"
-                [value]="actionName()"
-                (input)="setText(actionName, $event)"
+                [placeholder]="'sceneLibrary.creatureNamePlaceholder' | transloco"
+                [value]="creatureName()"
+                (input)="setText(creatureName, $event)"
             /></label>
             <label class="library-field"
-              ><span>{{ 'player.attack.bonus' | transloco }}</span
+              ><span>{{ 'common.type' | transloco }}</span
               ><input
                 type="text"
-                placeholder="+4"
-                [value]="actionToHit()"
-                (input)="setText(actionToHit, $event)"
+                placeholder="goblin"
+                [value]="creatureSubtype()"
+                (input)="setText(creatureSubtype, $event)"
             /></label>
             <label class="library-field"
-              ><span>{{ 'open5e.fields.damageDie' | transloco }}</span
+              ><span>{{ 'common.maxHp' | transloco }}</span
               ><input
-                type="text"
-                placeholder="1d6 + 2"
-                [value]="actionDamage()"
-                (input)="setText(actionDamage, $event)"
+                type="number"
+                min="1"
+                [value]="creatureMaxHp()"
+                (input)="onCreatureMaxHpInput($event)"
             /></label>
             <label class="library-field"
-              ><span>{{ 'open5e.fields.damageType' | transloco }}</span
+              ><span>{{ 'common.ac' | transloco }}</span
               ><input
-                type="text"
-                [placeholder]="'sceneLibrary.damageTypePlaceholder' | transloco"
-                [value]="actionDamageType()"
-                (input)="setText(actionDamageType, $event)"
+                type="number"
+                min="1"
+                [value]="creatureAc()"
+                (input)="onCreatureAcInput($event)"
             /></label>
             <label class="library-field"
-              ><span>{{ 'player.attack.type' | transloco }}</span
+              ><span>{{ 'open5e.fields.resistances' | transloco }}</span
               ><input
                 type="text"
-                [placeholder]="'sceneLibrary.attackTypePlaceholder' | transloco"
-                [value]="actionDescription()"
-                (input)="setText(actionDescription, $event)"
+                [placeholder]="'sceneLibrary.resistancesPlaceholder' | transloco"
+                [value]="creatureResistances()"
+                (input)="setText(creatureResistances, $event)"
             /></label>
-            <label class="library-field library-field--wide"
-              ><span>{{ 'open5e.fields.extraText' | transloco }}</span
-              ><textarea
-                rows="2"
-                [placeholder]="'sceneLibrary.extraTextPlaceholder' | transloco"
-                [value]="actionFullText()"
-                (input)="setText(actionFullText, $event)"
-              ></textarea>
-            </label>
+            <label class="library-field"
+              ><span>{{ 'sceneLibrary.startingStatuses' | transloco }}</span
+              ><input
+                type="text"
+                [placeholder]="'sceneLibrary.statusPlaceholder' | transloco"
+                [value]="creatureStatuses()"
+                (input)="setText(creatureStatuses, $event)"
+            /></label>
           </div>
-          <button
-            class="library-button"
-            type="button"
-            [disabled]="!actionName().trim()"
-            (click)="addAction()"
-          >
-            {{ 'sceneLibrary.addAttack' | transloco }}
-          </button>
-          <div class="editor-items">
-            @for (action of creatureActions(); track $index) {
-              <div class="editor-item">
+
+          <div class="creature-editor__columns">
+            <section class="subeditor">
+              <header>
+                <h4>{{ 'sceneLibrary.weaponsAndAttacks' | transloco }}</h4>
+                <span>{{ creatureActions().length }}</span>
+              </header>
+              @if (savedActions().length > 0) {
+                <div class="saved-action-picker">
+                  <label class="library-field">
+                    <span>{{ 'sceneLibrary.addSavedWeapon' | transloco }}</span>
+                    <select
+                      [value]="selectedActionTemplateId()"
+                      (change)="selectActionTemplate($event)"
+                    >
+                      <option value="">{{ 'sceneLibrary.selectWeapon' | transloco }}</option>
+                      @for (action of savedActions(); track action.id) {
+                        <option [value]="action.id">
+                          {{ action.name }} · {{ action.damage }} {{ action.damageType }}
+                        </option>
+                      }
+                    </select>
+                  </label>
+                  <button
+                    class="library-button"
+                    type="button"
+                    [disabled]="!selectedActionTemplateId()"
+                    (click)="addSavedAction()"
+                  >
+                    {{ 'sceneLibrary.addToCreature' | transloco }}
+                  </button>
+                </div>
+              }
+              <div class="subeditor__grid">
+                <label class="library-field"
+                  ><span>{{ 'common.name' | transloco }}</span
+                  ><input
+                    type="text"
+                    [placeholder]="'sceneLibrary.weaponNamePlaceholder' | transloco"
+                    [value]="actionName()"
+                    (input)="setText(actionName, $event)"
+                /></label>
+                <label class="library-field"
+                  ><span>{{ 'player.attack.bonus' | transloco }}</span
+                  ><input
+                    type="text"
+                    placeholder="+4"
+                    [value]="actionToHit()"
+                    (input)="setText(actionToHit, $event)"
+                /></label>
+                <label class="library-field"
+                  ><span>{{ 'open5e.fields.damageDie' | transloco }}</span
+                  ><input
+                    type="text"
+                    placeholder="1d6 + 2"
+                    [value]="actionDamage()"
+                    (input)="setText(actionDamage, $event)"
+                /></label>
+                <label class="library-field"
+                  ><span>{{ 'open5e.fields.damageType' | transloco }}</span
+                  ><input
+                    type="text"
+                    [placeholder]="'sceneLibrary.damageTypePlaceholder' | transloco"
+                    [value]="actionDamageType()"
+                    (input)="setText(actionDamageType, $event)"
+                /></label>
+                <label class="library-field"
+                  ><span>{{ 'player.attack.type' | transloco }}</span
+                  ><input
+                    type="text"
+                    [placeholder]="'sceneLibrary.attackTypePlaceholder' | transloco"
+                    [value]="actionDescription()"
+                    (input)="setText(actionDescription, $event)"
+                /></label>
+                <label class="library-field library-field--wide"
+                  ><span>{{ 'open5e.fields.extraText' | transloco }}</span
+                  ><textarea
+                    rows="2"
+                    [placeholder]="'sceneLibrary.extraTextPlaceholder' | transloco"
+                    [value]="actionFullText()"
+                    (input)="setText(actionFullText, $event)"
+                  ></textarea>
+                </label>
+              </div>
+              <button
+                class="library-button"
+                type="button"
+                [disabled]="!actionName().trim()"
+                (click)="addAction()"
+              >
+                {{ 'sceneLibrary.addAttack' | transloco }}
+              </button>
+              <div class="editor-items">
+                @for (action of creatureActions(); track $index) {
+                  <div class="editor-item">
+                    <div>
+                      <strong>{{ action.name }}</strong
+                      ><span>{{ action.toHit }} · {{ action.damage }} {{ action.damageType }}</span>
+                    </div>
+                    <button
+                      class="icon-button"
+                      type="button"
+                      (click)="removeAction($index)"
+                      [attr.aria-label]="'sceneLibrary.deleteAttack' | transloco"
+                    >
+                      ×
+                    </button>
+                  </div>
+                }
+              </div>
+            </section>
+
+            <section class="subeditor">
+              <header>
+                <h4>{{ 'common.abilities' | transloco }}</h4>
+                <span>{{ creatureAbilities().length }}</span>
+              </header>
+              <label class="library-field"
+                ><span>{{ 'common.name' | transloco }}</span
+                ><input
+                  type="text"
+                  [placeholder]="'sceneLibrary.abilityNamePlaceholder' | transloco"
+                  [value]="abilityName()"
+                  (input)="setText(abilityName, $event)"
+              /></label>
+              <label class="library-field"
+                ><span>{{ 'common.description' | transloco }}</span
+                ><textarea
+                  rows="4"
+                  [placeholder]="'sceneLibrary.abilityDescriptionPlaceholder' | transloco"
+                  [value]="abilityDescription()"
+                  (input)="setText(abilityDescription, $event)"
+                ></textarea>
+              </label>
+              <button
+                class="library-button"
+                type="button"
+                [disabled]="!abilityName().trim() || !abilityDescription().trim()"
+                (click)="addAbility()"
+              >
+                {{ 'sceneLibrary.addAbility' | transloco }}
+              </button>
+              <div class="editor-items">
+                @for (ability of creatureAbilities(); track $index) {
+                  <div class="editor-item">
+                    <div>
+                      <strong>{{ ability.name }}</strong
+                      ><span>{{ ability.description }}</span>
+                    </div>
+                    <button
+                      class="icon-button"
+                      type="button"
+                      (click)="removeAbility($index)"
+                      [attr.aria-label]="'sceneLibrary.deleteAbility' | transloco"
+                    >
+                      ×
+                    </button>
+                  </div>
+                }
+              </div>
+            </section>
+          </div>
+
+          <div class="library-actions library-actions--footer">
+            <button
+              class="library-button library-button--primary"
+              type="button"
+              [disabled]="!canSaveCreature() || savingCreature()"
+              (click)="saveCreature()"
+            >
+              {{
+                (savingCreature()
+                  ? 'common.saving'
+                  : creatureId()
+                    ? 'common.saveChanges'
+                    : 'sceneLibrary.saveCreature'
+                ) | transloco
+              }}
+            </button>
+            @if (creatureId()) {
+              <button class="library-button" type="button" (click)="resetCreatureEditor()">
+                {{ 'common.cancel' | transloco }}
+              </button>
+            }
+          </div>
+        </div>
+      </section></ng-template
+    >
+    <div class="scene-library__ready">
+      <section class="library-panel library-panel--scenes">
+        <header class="library-panel__header">
+          <div>
+            <span class="library-panel__eyebrow">{{ 'sceneLibrary.quickLaunch' | transloco }}</span>
+            <h3>{{ 'sceneLibrary.savedScenes' | transloco }}</h3>
+          </div>
+          <span class="library-panel__count">{{ scenes().length }}</span>
+        </header>
+
+        <div class="scene-cards">
+          @for (scene of scenes(); track scene.id) {
+            <article class="scene-card">
+              <div class="scene-card__heading">
                 <div>
-                  <strong>{{ action.name }}</strong
-                  ><span>{{ action.toHit }} · {{ action.damage }} {{ action.damageType }}</span>
+                  <h4>{{ scene.name }}</h4>
+                  <span>{{
+                    'sceneLibrary.creatureCount' | transloco: { count: sceneCreatureCount(scene) }
+                  }}</span>
                 </div>
                 <button
                   class="icon-button"
                   type="button"
-                  (click)="removeAction($index)"
-                  [attr.aria-label]="'sceneLibrary.deleteAttack' | transloco"
+                  (click)="deleteScene(scene)"
+                  [attr.aria-label]="'sceneLibrary.deletePreset' | transloco"
                 >
                   ×
                 </button>
               </div>
-            }
-          </div>
-        </section>
-
-        <section class="subeditor">
-          <header>
-            <h4>{{ 'common.abilities' | transloco }}</h4>
-            <span>{{ creatureAbilities().length }}</span>
-          </header>
-          <label class="library-field"
-            ><span>{{ 'common.name' | transloco }}</span
-            ><input
-              type="text"
-              [placeholder]="'sceneLibrary.abilityNamePlaceholder' | transloco"
-              [value]="abilityName()"
-              (input)="setText(abilityName, $event)"
-          /></label>
-          <label class="library-field"
-            ><span>{{ 'common.description' | transloco }}</span
-            ><textarea
-              rows="4"
-              [placeholder]="'sceneLibrary.abilityDescriptionPlaceholder' | transloco"
-              [value]="abilityDescription()"
-              (input)="setText(abilityDescription, $event)"
-            ></textarea>
-          </label>
-          <button
-            class="library-button"
-            type="button"
-            [disabled]="!abilityName().trim() || !abilityDescription().trim()"
-            (click)="addAbility()"
-          >
-            {{ 'sceneLibrary.addAbility' | transloco }}
-          </button>
-          <div class="editor-items">
-            @for (ability of creatureAbilities(); track $index) {
-              <div class="editor-item">
-                <div>
-                  <strong>{{ ability.name }}</strong
-                  ><span>{{ ability.description }}</span>
-                </div>
+              @if (scene.description) {
+                <p>{{ scene.description }}</p>
+              }
+              <div class="scene-card__roster">
+                @for (entry of scene.entries; track entry.templateId) {
+                  <span>{{ creatureNameFor(entry.templateId) }} ×{{ entry.quantity }}</span>
+                }
+              </div>
+              <div class="library-actions">
                 <button
-                  class="icon-button"
+                  class="library-button library-button--primary"
                   type="button"
-                  (click)="removeAbility($index)"
-                  [attr.aria-label]="'sceneLibrary.deleteAbility' | transloco"
+                  [disabled]="launchingSceneId() !== null"
+                  (click)="launchScene(scene)"
                 >
-                  ×
+                  {{
+                    (launchingSceneId() === scene.id
+                      ? 'sceneLibrary.launching'
+                      : 'sceneLibrary.launch'
+                    ) | transloco
+                  }}
+                </button>
+                <button class="library-button" type="button" (click)="editScene(scene)">
+                  {{ 'common.edit' | transloco }}
                 </button>
               </div>
-            }
-          </div>
-        </section>
-      </div>
-
-      <div class="library-actions library-actions--footer">
-        <button
-          class="library-button library-button--primary"
-          type="button"
-          [disabled]="!canSaveCreature() || savingCreature()"
-          (click)="saveCreature()"
-        >
-          {{ (savingCreature() ? 'common.saving' : creatureId() ? 'common.saveChanges' : 'sceneLibrary.saveCreature') | transloco }}
-        </button>
-        @if (creatureId()) {
-          <button class="library-button" type="button" (click)="resetCreatureEditor()">
-            {{ 'common.cancel' | transloco }}
-          </button>
-        }
-      </div>
+            </article>
+          } @empty {
+            <div class="library-empty">
+              <strong>{{ 'sceneLibrary.noPresets' | transloco }}</strong>
+              <span>{{ 'sceneLibrary.noPresetsHint' | transloco }}</span>
+            </div>
+          }
+        </div>
+      </section>
     </div>
-  </details>
+  </bf-workspace>
 </section>

@@ -193,9 +193,9 @@ describe('DmSceneLibraryComponent', () => {
 
     expect(fixture.nativeElement).toHaveTextContent('Forest Ambush');
     expect(fixture.nativeElement).toHaveTextContent('Goblin ×3');
-    const launch = Array.from<HTMLButtonElement>(fixture.nativeElement.querySelectorAll('button')).find(
-      (button) => button.textContent?.includes('Добавить сцену в бой'),
-    );
+    const launch = Array.from<HTMLButtonElement>(
+      fixture.nativeElement.querySelectorAll('button'),
+    ).find((button) => button.textContent?.includes('Добавить сцену в бой'));
     launch?.click();
 
     await vi.waitFor(() =>
@@ -232,5 +232,19 @@ describe('DmSceneLibraryComponent', () => {
     expect(component.creatureAbilities()).toEqual([]);
     expect(component.creatureResistances()).toBe('');
     expect(component.creatureStatuses()).toBe('');
+  });
+  it('keeps saved scenes visible and opens the relevant editor when editing a preset', () => {
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.scene-library__ready')).toBeVisible();
+    expect(fixture.nativeElement.querySelector('.library-panel--builder')).not.toBeVisible();
+    component.editScene(forest);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.library-panel--builder')).toBeVisible();
+    expect(fixture.nativeElement.querySelector('.scene-library__ready')).not.toBeVisible();
+    expect(component.sceneName()).toBe(forest.name);
+    component.editCreature(goblin);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.creature-editor')).toBeVisible();
+    expect(component.sceneName()).toBe(forest.name);
   });
 });

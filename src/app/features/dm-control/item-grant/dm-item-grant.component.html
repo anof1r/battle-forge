@@ -1,5 +1,5 @@
-<details class="dm-section dm-section--inventory" open>
-  <summary class="dm-section__title">🎒 {{ 'itemGrant.title' | transloco }}</summary>
+<section class="dm-section dm-section--inventory">
+  <h3 class="dm-section__title">🎒 {{ 'itemGrant.title' | transloco }}</h3>
   <div class="dm-inventory-form">
     <div class="field-row">
       <div class="field">
@@ -28,7 +28,9 @@
         />
       </div>
       <div class="field">
-        <label class="field__label" for="dm-item-description">{{ 'common.description' | transloco }}</label>
+        <label class="field__label" for="dm-item-description">{{
+          'common.description' | transloco
+        }}</label>
         <input
           id="dm-item-description"
           class="field__input"
@@ -40,7 +42,12 @@
       </div>
       <div class="field field--wide">
         <label class="field__label" for="dm-item-rarity">{{ 'common.rarity' | transloco }}</label>
-        <select id="dm-item-rarity" class="field__input" [value]="rarity()" (change)="onRarityChange($event)">
+        <select
+          id="dm-item-rarity"
+          class="field__input"
+          [value]="rarity()"
+          (change)="onRarityChange($event)"
+        >
           <option value="common">{{ 'item.rarity.common' | transloco }}</option>
           <option value="uncommon">{{ 'item.rarity.uncommon' | transloco }}</option>
           <option value="rare">{{ 'item.rarity.rare' | transloco }}</option>
@@ -49,7 +56,9 @@
         </select>
       </div>
       <div class="field">
-        <label class="field__label" for="dm-item-quantity">{{ 'common.quantity' | transloco }}</label>
+        <label class="field__label" for="dm-item-quantity">{{
+          'common.quantity' | transloco
+        }}</label>
         <input
           id="dm-item-quantity"
           class="field__input"
@@ -64,6 +73,8 @@
       class="dm-btn"
       [disabled]="!selectedPlayerId() || !itemName().trim() || quantity() < 1 || saving()"
       (click)="giveItem()"
-    >{{ (saving() ? 'common.giving' : 'itemGrant.submit') | transloco }}</button>
+    >
+      {{ (saving() ? 'common.giving' : 'itemGrant.submit') | transloco }}
+    </button>
   </div>
-</details>
+</section>

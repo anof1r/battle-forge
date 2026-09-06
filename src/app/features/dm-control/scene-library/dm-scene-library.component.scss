@@ -528,3 +528,68 @@
     }
   }
 }
+
+.scene-library__intro {
+  border: 0;
+  border-left: 3px solid var(--bf-gold);
+  background: linear-gradient(110deg, var(--bf-bg-elevated), transparent);
+  padding: var(--bf-space-5);
+}
+.scene-library__legend {
+  display: none;
+}
+.library-panel {
+  min-width: 0;
+  background: var(--bf-bg-deep);
+  border-color: var(--bf-border);
+  box-shadow: none;
+}
+bf-workspace .library-panel,
+.creature-editor {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.scene-library__ready .library-panel {
+  padding: var(--bf-space-5);
+  border: 1px solid var(--bf-border);
+  background: var(--bf-bg-base);
+}
+.scene-cards,
+.creature-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: var(--bf-space-4);
+  max-height: none;
+  overflow: visible;
+}
+.scene-card,
+.creature-card {
+  background: var(--bf-bg-base);
+  border-color: var(--bf-border);
+  padding: var(--bf-space-4);
+}
+.scene-library__ready .scene-card {
+  background: var(--bf-bg-deep);
+}
+.creature-editor__heading {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--bf-space-2);
+  margin-bottom: var(--bf-space-5);
+}
+.creature-editor__heading small {
+  color: var(--bf-text-muted);
+}
+.creature-editor__body {
+  padding: 0;
+}
+@media (max-width: 600px) {
+  .scene-library__intro {
+    padding: var(--bf-space-4);
+  }
+  .scene-library__ready .library-panel {
+    padding: var(--bf-space-3);
+  }
+}

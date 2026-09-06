@@ -1,6 +1,16 @@
 <div class="player-stage">
   @if (!isLoggedIn()) {
     <div class="player__intro">
+      <div class="player__welcome">
+        <span class="bf-eyebrow">{{ 'workspace.adventure' | transloco }}</span>
+        <h2>{{ 'workspace.welcome' | transloco }}</h2>
+        <p>{{ 'workspace.welcomeHint' | transloco }}</p>
+        <div class="player__welcome-features">
+          <span>◈ {{ 'player.tabs.character' | transloco }}</span
+          ><span>⚔ {{ 'player.tabs.arena' | transloco }}</span
+          ><span>✦ {{ 'player.spells.title' | transloco }}</span>
+        </div>
+      </div>
       <div class="player__intro-frame">
         <h1 class="player__title">⚔️ Battle Forge</h1>
         <p class="bf-build-signature">ver 0.0.1 alpha by anof1r</p>
@@ -11,7 +21,11 @@
         </div>
         <p class="player__subtitle">{{ 'player.login.subtitle' | transloco }}</p>
 
+        <bf-language-switcher class="player__login-language" />
         <div class="player__login-form">
+          <label class="player__login-label" for="player-login-name">{{
+            'player.login.namePlaceholder' | transloco
+          }}</label>
           @if (lastLoginName(); as lastName) {
             <button
               type="button"
@@ -22,6 +36,8 @@
             </button>
           }
           <input
+            id="player-login-name"
+            autocomplete="username"
             class="player__login-input"
             type="text"
             [placeholder]="'player.login.namePlaceholder' | transloco"
@@ -29,11 +45,13 @@
             (input)="onLoginInput($event)"
             (keyup.enter)="login()"
           />
-          <button type="button" class="player__login-btn" (click)="login()">{{ 'player.login.submit' | transloco }}</button>
+          <button type="button" class="player__login-btn" (click)="login()">
+            {{ 'player.login.submit' | transloco }}
+          </button>
         </div>
 
         @if (loginError()) {
-          <p class="player__error">{{ loginError() }}</p>
+          <p class="player__error" role="alert">{{ loginError() }}</p>
         }
 
         @if (showUploadPrompt()) {
@@ -51,11 +69,43 @@
 
   @if (isLoggedIn() && character(); as char) {
     <div class="player__arena">
-      <div
-        class="player__tabs"
-        role="tablist"
-        [attr.aria-label]="'player.tabs.label' | transloco"
-      >
+      <div class="player__hero">
+        <div class="player__header">
+          <h1 class="player__header-title">{{ char.name }}</h1>
+          <div class="player__header-info">
+            <span class="player__header-tag">{{ char.race }}</span>
+            <span class="player__header-tag">{{ char.class }}</span>
+            <span class="player__header-tag">{{
+              'common.levelValue' | transloco: { level: char.level }
+            }}</span>
+          </div>
+        </div>
+        <div class="player__vitality">
+          <div class="player__vitality-item player__vitality-item--hp">
+            <span class="player__vitality-label">HP</span>
+            <span class="player__vitality-value player__vitality-value--hp"
+              >{{ char.currentHp }} / {{ char.maxHp }}</span
+            >
+          </div>
+          <div class="player__vitality-item">
+            <span class="player__vitality-label">{{ 'common.ac' | transloco }}</span>
+            <span class="player__vitality-value">{{ char.ac }}</span>
+          </div>
+          @if ((char.temporaryHp ?? 0) > 0) {
+            <div class="player__vitality-item">
+              <span class="player__vitality-label"
+                >🛡️ {{ 'common.temporaryHpShort' | transloco }}</span
+              >
+              <span class="player__vitality-value">{{ char.temporaryHp }}</span>
+            </div>
+          }
+          <div class="player__vitality-item">
+            <span class="player__vitality-label">{{ 'player.sheet.speed' | transloco }}</span>
+            <span class="player__vitality-value">{{ char.speed }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="player__tabs" role="tablist" [attr.aria-label]="'player.tabs.label' | transloco">
         <button
           type="button"
           class="player__tab"
@@ -114,104 +164,113 @@
             {{ 'player.settings.description' | transloco }}
           </p>
           <bf-language-switcher />
+          <footer class="player__footer">
+            <label class="player__reset-btn">
+              <input
+                class="player__reimport-input"
+                type="file"
+                accept=".json"
+                (change)="onFileSelected($event)"
+                hidden
+              />
+              📂 {{ 'player.footer.updateJson' | transloco }}
+            </label>
+            <button type="button" class="player__reset-btn" (click)="logout()">
+              {{ 'player.footer.logout' | transloco }}
+            </button>
+          </footer>
         </section>
       }
 
       @if (activeTab() === 'character') {
         <div class="player__character">
-          <header class="player__header">
-            <h1 class="player__header-title">{{ char.name }}</h1>
-            <div class="player__header-info">
-              <span class="player__header-tag">{{ char.race }}</span>
-              <span class="player__header-tag">{{ char.class }}</span>
-              <span class="player__header-tag">{{ 'common.levelValue' | transloco: { level: char.level } }}</span>
-            </div>
-          </header>
-
-          <div class="player__grid">
-            <section class="player__stats-panel">
-              <h2 class="player__panel-title">{{ 'player.sheet.stats' | transloco }}</h2>
-              <div class="player__stats-grid">
-                @for (stat of CHARACTER_STATS; track stat.key) {
-                  <div class="player__stat-box">
-                    <span class="player__stat-label" [attr.title]="('character.stats.' + stat.key + '.name') | transloco">{{
-                      ('character.stats.' + stat.key + '.short') | transloco
-                    }}</span>
-                    <span class="player__stat-value">{{ getStatValue(stat.key) }}</span>
-                    <span class="player__stat-mod">{{ getStatModString(stat.key) }}</span>
-                  </div>
-                }
-              </div>
-
-              @if ((char.skills?.length ?? 0) > 0) {
-                <section class="player__skill-bonuses" aria-labelledby="player-skill-bonuses-title">
-                  <h3 id="player-skill-bonuses-title" class="player__panel-title">{{ 'player.sheet.skillBonuses' | transloco }}</h3>
+          <bf-workspace [label]="'player.tabs.character' | transloco" [(activeTool)]="sheetTool">
+            <ng-template
+              bfWorkspaceTool="stats"
+              [title]="'player.sheet.stats' | transloco"
+              [hint]="'workspace.statsHint' | transloco"
+              icon="◈"
+              [badge]="null"
+              ><section class="player__stats-panel">
+                <h2 class="player__panel-title">{{ 'player.sheet.stats' | transloco }}</h2>
+                <div class="player__stats-grid">
                   @for (stat of CHARACTER_STATS; track stat.key) {
-                    @if (skillsByStat()[stat.key].length > 0) {
-                      <div class="player__skill-group">
-                        <h4 class="player__skill-stat" [attr.title]="('character.stats.' + stat.key + '.name') | transloco">
-                          {{ ('character.stats.' + stat.key + '.short') | transloco }}:
-                        </h4>
-                        <ul class="player__skill-list">
-                          @for (skill of skillsByStat()[stat.key]; track skill.id) {
-                            <li
-                              class="player__skill"
-                              [attr.title]="getSkillProficiencyLabel(skill)"
-                            >
-                              <span>{{ getSkillName(skill) }}</span>
-                              <strong class="player__skill-mod">{{
-                                getSkillModString(skill.modifier)
-                              }}</strong>
-                            </li>
-                          }
-                        </ul>
-                      </div>
-                    }
+                    <div class="player__stat-box">
+                      <span
+                        class="player__stat-label"
+                        [attr.title]="'character.stats.' + stat.key + '.name' | transloco"
+                        >{{ 'character.stats.' + stat.key + '.short' | transloco }}</span
+                      >
+                      <span class="player__stat-value">{{ getStatValue(stat.key) }}</span>
+                      <span class="player__stat-mod">{{ getStatModString(stat.key) }}</span>
+                    </div>
                   }
-                </section>
-              }
+                </div>
 
-              <div class="player__vitality">
-                <div class="player__vitality-item player__vitality-item--hp">
-                  <span class="player__vitality-label">HP</span>
-                  <span class="player__vitality-value player__vitality-value--hp"
-                    >{{ char.currentHp }} / {{ char.maxHp }}</span
+                @if ((char.skills?.length ?? 0) > 0) {
+                  <section
+                    class="player__skill-bonuses"
+                    aria-labelledby="player-skill-bonuses-title"
                   >
-                </div>
-                <div class="player__vitality-item">
-                  <span class="player__vitality-label">{{ 'common.ac' | transloco }}</span>
-                  <span class="player__vitality-value">{{ char.ac }}</span>
-                </div>
-                @if ((char.temporaryHp ?? 0) > 0) {
-                  <div class="player__vitality-item">
-                    <span class="player__vitality-label">🛡️ {{ 'common.temporaryHpShort' | transloco }}</span>
-                    <span class="player__vitality-value">{{ char.temporaryHp }}</span>
+                    <h3 id="player-skill-bonuses-title" class="player__panel-title">
+                      {{ 'player.sheet.skillBonuses' | transloco }}
+                    </h3>
+                    @for (stat of CHARACTER_STATS; track stat.key) {
+                      @if (skillsByStat()[stat.key].length > 0) {
+                        <div class="player__skill-group">
+                          <h4
+                            class="player__skill-stat"
+                            [attr.title]="'character.stats.' + stat.key + '.name' | transloco"
+                          >
+                            {{ 'character.stats.' + stat.key + '.short' | transloco }}:
+                          </h4>
+                          <ul class="player__skill-list">
+                            @for (skill of skillsByStat()[stat.key]; track skill.id) {
+                              <li
+                                class="player__skill"
+                                [attr.title]="getSkillProficiencyLabel(skill)"
+                              >
+                                <span>{{ getSkillName(skill) }}</span>
+                                <strong class="player__skill-mod">{{
+                                  getSkillModString(skill.modifier)
+                                }}</strong>
+                              </li>
+                            }
+                          </ul>
+                        </div>
+                      }
+                    }
+                  </section>
+                }
+
+                @if (char.resistances?.length) {
+                  <div class="player__resistances">
+                    <h3 class="player__panel-title">
+                      {{ 'player.sheet.resistances' | transloco }}
+                    </h3>
+                    <div class="player__resistance-tags">
+                      @for (res of char.resistances; track res) {
+                        <span class="player__resistance-tag">🛡️ {{ res }}</span>
+                      }
+                    </div>
+                  </div>
+                } @else {
+                  <div class="player__resistances">
+                    <h3 class="player__panel-title">
+                      {{ 'player.sheet.resistances' | transloco }}
+                    </h3>
+                    <p>{{ 'player.sheet.noResistances' | transloco }}</p>
                   </div>
                 }
-                <div class="player__vitality-item">
-                  <span class="player__vitality-label">{{ 'player.sheet.speed' | transloco }}</span>
-                  <span class="player__vitality-value">{{ char.speed }}</span>
-                </div>
-              </div>
-
-              @if (char.resistances?.length) {
-                <div class="player__resistances">
-                  <h3 class="player__panel-title">{{ 'player.sheet.resistances' | transloco }}</h3>
-                  <div class="player__resistance-tags">
-                    @for (res of char.resistances; track res) {
-                      <span class="player__resistance-tag">🛡️ {{ res }}</span>
-                    }
-                  </div>
-                </div>
-              } @else {
-                <div class="player__resistances">
-                  <h3 class="player__panel-title">{{ 'player.sheet.resistances' | transloco }}</h3>
-                  <p>{{ 'player.sheet.noResistances' | transloco }}</p>
-                </div>
-              }
-            </section>
-
-            <section class="player__abilities-panel">
+              </section></ng-template
+            >
+            <ng-template
+              bfWorkspaceTool="equipment"
+              [title]="'workspace.equipment' | transloco"
+              [hint]="'workspace.equipmentHint' | transloco"
+              icon="🎒"
+              [badge]="char.weapons.length + (char.inventory?.length ?? 0)"
+            >
               @if (char.weapons.length > 0) {
                 <div class="player__weapons">
                   <h2 class="player__panel-title">⚔️ {{ 'player.sheet.weapons' | transloco }}</h2>
@@ -251,7 +310,7 @@
                               class="player__inventory-rarity"
                               [class]="'player__inventory-rarity--' + item.rarity"
                             >
-                              {{ ('item.rarity.' + item.rarity) | transloco }}
+                              {{ 'item.rarity.' + item.rarity | transloco }}
                             </span>
                           }
                         </div>
@@ -275,6 +334,174 @@
                 </div>
               }
 
+              @if (char.weapons.length === 0 && (char.inventory?.length ?? 0) === 0) {
+                <p class="bf-empty-state">{{ 'workspace.emptySection' | transloco }}</p>
+              }
+            </ng-template>
+            <ng-template
+              bfWorkspaceTool="spells"
+              [title]="'player.spells.title' | transloco"
+              [hint]="'workspace.spellsHint' | transloco"
+              icon="✦"
+              [badge]="char.spells?.length ?? 0"
+            >
+              @if (char.spells && char.spells.length > 0) {
+                <div class="player__spells">
+                  <h2 class="player__panel-title">🔮 {{ 'player.spells.title' | transloco }}</h2>
+                  @if (hasSharedSpellSlots()) {
+                    <div
+                      class="player__slot-pools"
+                      [attr.aria-label]="'player.spells.slots' | transloco"
+                    >
+                      @for (slot of spellSlots(); track slot.level) {
+                        <span>
+                          {{
+                            'player.spells.slotSummary'
+                              | transloco
+                                : { level: slot.level, current: slot.current, max: slot.max }
+                          }}
+                          @if (slot.recovery === 'short-rest') {
+                            · {{ 'recovery.shortRest' | transloco }}
+                          }
+                        </span>
+                      }
+                    </div>
+                  }
+                  <div class="player__spells-grid">
+                    @for (spell of char.spells; track spell.id) {
+                      <div class="player__spell-card">
+                        <div class="player__spell-header">
+                          <span class="player__spell-name">{{ spell.name }}</span>
+                          <span class="player__spell-level">
+                            @if (spell.isCantrip) {
+                              {{ 'player.spells.cantrip' | transloco }}
+                            } @else {
+                              {{ 'common.levelValue' | transloco: { level: spell.level } }}
+                            }
+                          </span>
+                          @if (spell.isPrepared) {
+                            <span class="player__spell-prepared"
+                              >✔ {{ 'player.spells.prepared' | transloco }}</span
+                            >
+                          } @else {
+                            <span class="player__spell-unprepared">{{
+                              'player.spells.notPrepared' | transloco
+                            }}</span>
+                          }
+                        </div>
+                        @if (spell.school) {
+                          <div class="player__spell-school">{{ spell.school }}</div>
+                        }
+                        @if (spell.damageFormula && spell.damageType) {
+                          <div class="player__spell-damage">
+                            <strong class="player__dice-notation">{{ spell.damageFormula }}</strong>
+                            <span>{{ spell.damageType }}</span>
+                          </div>
+                        }
+                        @if (spell.description) {
+                          <details class="player__spell-details">
+                            <summary>{{ 'player.spells.description' | transloco }}</summary>
+                            <p class="player__spell-description">
+                              @for (
+                                part of spellDescriptionParts(spell.description);
+                                track $index
+                              ) {
+                                @if (part.isDice) {
+                                  <strong class="player__dice-notation">{{ part.text }}</strong>
+                                } @else {
+                                  <span>{{ part.text }}</span>
+                                }
+                              }
+                            </p>
+                          </details>
+                        }
+                        <div class="player__spell-actions">
+                          <span class="player__spell-uses">
+                            @if (spell.isCantrip) {
+                              {{ 'player.spells.unlimitedUses' | transloco }}
+                            } @else if (hasSharedSpellSlots()) {
+                              @if (getAvailableSlotLevels(spell).length > 0) {
+                                <label class="player__slot-selector">
+                                  <span class="player__slot-selector-label">{{
+                                    'player.spells.slot' | transloco
+                                  }}</span>
+                                  <span class="player__slot-selector-control">
+                                    <select
+                                      class="player__slot-select"
+                                      [attr.aria-label]="
+                                        'player.spells.slotForSpell'
+                                          | transloco: { name: spell.name }
+                                      "
+                                      [value]="getSelectedSlotLevel(spell)"
+                                      (change)="setSpellSlotLevel(spell.id, $event)"
+                                    >
+                                      @for (level of getAvailableSlotLevels(spell); track level) {
+                                        <option [value]="level">
+                                          {{ 'common.levelValue' | transloco: { level } }}
+                                        </option>
+                                      }
+                                    </select>
+                                    <span
+                                      class="player__slot-select-chevron"
+                                      aria-hidden="true"
+                                    ></span>
+                                  </span>
+                                </label>
+                              } @else {
+                                {{ 'player.spells.noSlots' | transloco }}
+                              }
+                            } @else {
+                              {{ 'player.spells.legacyCounter' | transloco }}:
+                              {{ getSpellUsesRemaining(spell) }} /
+                              {{ getSpellMaxUses(spell) }}
+                            }
+                          </span>
+                          <button
+                            class="player__inventory-btn player__spell-use-btn"
+                            [disabled]="!canUseSpell(spell) || usingSpellId() !== null"
+                            (click)="useSpell(spell)"
+                          >
+                            {{
+                              (usingSpellId() === spell.id ? 'player.spells.using' : 'common.use')
+                                | transloco
+                            }}
+                          </button>
+                        </div>
+                        @if (linkedSpellResources(spell).length > 0) {
+                          <div class="player__spell-free-casts">
+                            @for (resource of linkedSpellResources(spell); track resource.id) {
+                              <button
+                                type="button"
+                                class="player__inventory-btn player__inventory-btn--info"
+                                [disabled]="usingSpellId() !== null"
+                                (click)="useSpellWithResource(spell, resource)"
+                              >
+                                {{ 'player.spells.withoutSlot' | transloco }} ·
+                                {{ resource.current }}/{{ resource.max }}
+                              </button>
+                            }
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                  @if (spellUseError()) {
+                    <p class="player__spell-error" role="alert">{{ spellUseError() }}</p>
+                  }
+                </div>
+              }
+
+              @if ((char.spells?.length ?? 0) === 0) {
+                <p class="bf-empty-state">{{ 'workspace.emptySection' | transloco }}</p>
+              }
+            </ng-template>
+            <ng-template
+              bfWorkspaceTool="resources"
+              [title]="'player.resources.title' | transloco"
+              [hint]="'workspace.playerResourcesHint' | transloco"
+              icon="⚡"
+              [badge]="char.resources?.length ?? 0"
+            >
               @if ((char.resources?.length ?? 0) > 0) {
                 <div class="player__spells">
                   <h2 class="player__panel-title">⚡ {{ 'player.resources.title' | transloco }}</h2>
@@ -313,7 +540,8 @@
                         @if (activeResourceEffect(resource.id); as activeEffect) {
                           <div class="player__resource-active">
                             <span
-                              >{{ resource.icon || resource.activeEffect?.icon || '⚡' }} {{ 'player.resources.effectActive' | transloco }}</span
+                              >{{ resource.icon || resource.activeEffect?.icon || '⚡' }}
+                              {{ 'player.resources.effectActive' | transloco }}</span
                             >
                             <div class="player__resource-active-actions">
                               @if (resource.activeEffect?.duration !== 'manual') {
@@ -323,7 +551,12 @@
                                   [disabled]="updatingResourceEffectId() !== null"
                                   (click)="extendResourceEffect(resource.id)"
                                 >
-                                  {{ (updatingResourceEffectId() === resource.id ? 'player.resources.extending' : 'player.resources.extend') | transloco }}
+                                  {{
+                                    (updatingResourceEffectId() === resource.id
+                                      ? 'player.resources.extending'
+                                      : 'player.resources.extend'
+                                    ) | transloco
+                                  }}
                                 </button>
                               }
                               <button
@@ -351,7 +584,14 @@
                             "
                             (click)="useResource(resource.id)"
                           >
-                            {{ (usingResourceId() === resource.id ? 'player.resources.using' : !resource.isUnlimited && resource.current <= 0 ? 'player.resources.depletedShort' : 'common.use') | transloco }}
+                            {{
+                              (usingResourceId() === resource.id
+                                ? 'player.resources.using'
+                                : !resource.isUnlimited && resource.current <= 0
+                                  ? 'player.resources.depletedShort'
+                                  : 'common.use'
+                              ) | transloco
+                            }}
                           </button>
                         }
                       </div>
@@ -363,131 +603,17 @@
                 </div>
               }
 
-              @if (char.spells && char.spells.length > 0) {
-                <div class="player__spells">
-                  <h2 class="player__panel-title">🔮 {{ 'player.spells.title' | transloco }}</h2>
-                  @if (hasSharedSpellSlots()) {
-                    <div class="player__slot-pools" [attr.aria-label]="'player.spells.slots' | transloco">
-                      @for (slot of spellSlots(); track slot.level) {
-                        <span>
-                          {{ 'player.spells.slotSummary' | transloco: { level: slot.level, current: slot.current, max: slot.max } }}
-                          @if (slot.recovery === 'short-rest') {
-                            · {{ 'recovery.shortRest' | transloco }}
-                          }
-                        </span>
-                      }
-                    </div>
-                  }
-                  <div class="player__spells-grid">
-                    @for (spell of char.spells; track spell.id) {
-                      <div class="player__spell-card">
-                        <div class="player__spell-header">
-                          <span class="player__spell-name">{{ spell.name }}</span>
-                          <span class="player__spell-level">
-                            @if (spell.isCantrip) {
-                              {{ 'player.spells.cantrip' | transloco }}
-                            } @else {
-                              {{ 'common.levelValue' | transloco: { level: spell.level } }}
-                            }
-                          </span>
-                          @if (spell.isPrepared) {
-                            <span class="player__spell-prepared">✔ {{ 'player.spells.prepared' | transloco }}</span>
-                          } @else {
-                            <span class="player__spell-unprepared">{{ 'player.spells.notPrepared' | transloco }}</span>
-                          }
-                        </div>
-                        @if (spell.school) {
-                          <div class="player__spell-school">{{ spell.school }}</div>
-                        }
-                        @if (spell.damageFormula && spell.damageType) {
-                          <div class="player__spell-damage">
-                            <strong class="player__dice-notation">{{ spell.damageFormula }}</strong>
-                            <span>{{ spell.damageType }}</span>
-                          </div>
-                        }
-                        @if (spell.description) {
-                          <details class="player__spell-details">
-                            <summary>{{ 'player.spells.description' | transloco }}</summary>
-                            <p class="player__spell-description">
-                              @for (
-                                part of spellDescriptionParts(spell.description);
-                                track $index
-                              ) {
-                                @if (part.isDice) {
-                                  <strong class="player__dice-notation">{{ part.text }}</strong>
-                                } @else {
-                                  <span>{{ part.text }}</span>
-                                }
-                              }
-                            </p>
-                          </details>
-                        }
-                        <div class="player__spell-actions">
-                          <span class="player__spell-uses">
-                            @if (spell.isCantrip) {
-                              {{ 'player.spells.unlimitedUses' | transloco }}
-                            } @else if (hasSharedSpellSlots()) {
-                              @if (getAvailableSlotLevels(spell).length > 0) {
-                                <label class="player__slot-selector">
-                                  <span class="player__slot-selector-label">{{ 'player.spells.slot' | transloco }}</span>
-                                  <span class="player__slot-selector-control">
-                                    <select
-                                      class="player__slot-select"
-                                      [attr.aria-label]="
-                                        'player.spells.slotForSpell' | transloco: { name: spell.name }
-                                      "
-                                      [value]="getSelectedSlotLevel(spell)"
-                                      (change)="setSpellSlotLevel(spell.id, $event)"
-                                    >
-                                      @for (level of getAvailableSlotLevels(spell); track level) {
-                                        <option [value]="level">{{ 'common.levelValue' | transloco: { level } }}</option>
-                                      }
-                                    </select>
-                                    <span
-                                      class="player__slot-select-chevron"
-                                      aria-hidden="true"
-                                    ></span>
-                                  </span>
-                                </label>
-                              } @else {
-                                {{ 'player.spells.noSlots' | transloco }}
-                              }
-                            } @else {
-                              {{ 'player.spells.legacyCounter' | transloco }}: {{ getSpellUsesRemaining(spell) }} /
-                              {{ getSpellMaxUses(spell) }}
-                            }
-                          </span>
-                          <button
-                            class="player__inventory-btn player__spell-use-btn"
-                            [disabled]="!canUseSpell(spell) || usingSpellId() !== null"
-                            (click)="useSpell(spell)"
-                          >
-                            {{ (usingSpellId() === spell.id ? 'player.spells.using' : 'common.use') | transloco }}
-                          </button>
-                        </div>
-                        @if (linkedSpellResources(spell).length > 0) {
-                          <div class="player__spell-free-casts">
-                            @for (resource of linkedSpellResources(spell); track resource.id) {
-                              <button
-                                type="button"
-                                class="player__inventory-btn player__inventory-btn--info"
-                                [disabled]="usingSpellId() !== null"
-                                (click)="useSpellWithResource(spell, resource)"
-                              >
-                                {{ 'player.spells.withoutSlot' | transloco }} · {{ resource.current }}/{{ resource.max }}
-                              </button>
-                            }
-                          </div>
-                        }
-                      </div>
-                    }
-                  </div>
-                  @if (spellUseError()) {
-                    <p class="player__spell-error" role="alert">{{ spellUseError() }}</p>
-                  }
-                </div>
+              @if ((char.resources?.length ?? 0) === 0) {
+                <p class="bf-empty-state">{{ 'workspace.emptySection' | transloco }}</p>
               }
-
+            </ng-template>
+            <ng-template
+              bfWorkspaceTool="abilities"
+              [title]="'common.abilities' | transloco"
+              [hint]="'workspace.abilitiesHint' | transloco"
+              icon="📜"
+              [badge]="char.abilities.length"
+            >
               @if (char.abilities.length > 0) {
                 <div class="player__abilities">
                   <h2 class="player__panel-title">📜 {{ 'common.abilities' | transloco }}</h2>
@@ -497,12 +623,17 @@
                         class="player__ability-item"
                         [class.player__ability-item--expanded]="expandedAbility() === ability.name"
                       >
-                        <div class="player__ability-header" (click)="toggleAbility(ability.name)">
+                        <button
+                          type="button"
+                          class="player__ability-header"
+                          [attr.aria-expanded]="expandedAbility() === ability.name"
+                          (click)="toggleAbility(ability.name)"
+                        >
                           <span class="player__ability-name">{{ ability.name }}</span>
                           <span class="player__ability-toggle">
                             {{ expandedAbility() === ability.name ? '▾' : '▸' }}
                           </span>
-                        </div>
+                        </button>
                         @if (expandedAbility() === ability.name) {
                           <div class="player__ability-description">{{ ability.description }}</div>
                         }
@@ -511,177 +642,213 @@
                   </div>
                 </div>
               }
-            </section>
-          </div>
+              @if (char.abilities.length === 0) {
+                <p class="bf-empty-state">{{ 'workspace.emptySection' | transloco }}</p>
+              }
+            </ng-template>
+            <p class="bf-empty-state">{{ 'workspace.characterHint' | transloco }}</p>
+          </bf-workspace>
         </div>
       }
 
       @if (activeTab() === 'arena') {
         <div class="player__arena-view">
           <div class="player__arena-header">
-            <span class="player__arena-round">{{ 'common.roundValue' | transloco: { round: currentRound() } }}</span>
+            <span class="player__arena-round">{{
+              'common.roundValue' | transloco: { round: currentRound() }
+            }}</span>
             <span class="player__arena-combatants">
-              {{ 'player.arena.counts' | transloco: { combatants: combatantsInTurnOrder().length, enemies: aliveEnemies().length } }}
+              {{
+                'player.arena.counts'
+                  | transloco
+                    : { combatants: combatantsInTurnOrder().length, enemies: aliveEnemies().length }
+              }}
             </span>
           </div>
 
-          <h2 class="player__turn-order-title">{{ 'player.arena.turnOrder' | transloco }}</h2>
+          <div class="player__combat-layout">
+            <section class="player__turn-roster">
+              <h2 class="player__turn-order-title">{{ 'player.arena.turnOrder' | transloco }}</h2>
 
-          <div class="player__combatant-grid">
-            @for (
-              combatant of combatantsInTurnOrder();
-              track combatant.id;
-              let turnIndex = $index
-            ) {
-              <div
-                class="player__combatant-card"
-                [class.player__combatant-card--player]="combatant.type === COMBATANT_TYPE.PLAYER"
-                [class.player__combatant-card--enemy]="combatant.type === COMBATANT_TYPE.ENEMY"
-                [class.player__combatant-card--selectable]="isSelectableEnemy(combatant)"
-                [class.player__combatant-card--selected]="selectedEnemyId() === combatant.id"
-                [class.player__combatant-card--current]="currentCombatant()?.id === combatant.id"
-                [attr.role]="isSelectableEnemy(combatant) ? 'button' : null"
-                [attr.tabindex]="isSelectableEnemy(combatant) ? 0 : null"
-                [attr.aria-label]="
-                  isSelectableEnemy(combatant) ? ('player.arena.selectTarget' | transloco: { name: combatant.name }) : null
-                "
-                (click)="selectCombatant(combatant)"
-                (keydown.enter)="selectCombatant(combatant)"
-                (keydown.space)="selectCombatant(combatant); $event.preventDefault()"
-              >
-                <span class="player__combatant-order" [attr.aria-label]="'player.arena.position' | transloco">
-                  {{ turnIndex + 1 }}
-                </span>
-                <div class="player__combatant-header">
-                  <div class="player__combatant-name">
-                    @if (combatant.emoji) {
-                      <span aria-hidden="true">{{ combatant.emoji }}</span>
-                    }
-                    {{ combatant.name }}
-                  </div>
-                  <span
-                    class="player__combatant-kind"
-                    [class.player__combatant-kind--player]="
+              <div class="player__combatant-grid">
+                @for (
+                  combatant of combatantsInTurnOrder();
+                  track combatant.id;
+                  let turnIndex = $index
+                ) {
+                  <div
+                    class="player__combatant-card"
+                    [class.player__combatant-card--player]="
                       combatant.type === COMBATANT_TYPE.PLAYER
                     "
-                  >
-                    {{ (combatant.type === COMBATANT_TYPE.PLAYER ? 'combatant.type.player' : 'combatant.type.enemy') | transloco }}
-                  </span>
-                </div>
-                <div class="player__combatant-hp">
-                  <span
-                    class="player__combatant-hp-bar"
-                    [style.width.%]="
-                      combatant.maxHp > 0 ? (combatant.currentHp / combatant.maxHp) * 100 : 0
+                    [class.player__combatant-card--enemy]="combatant.type === COMBATANT_TYPE.ENEMY"
+                    [class.player__combatant-card--selectable]="isSelectableEnemy(combatant)"
+                    [class.player__combatant-card--selected]="selectedEnemyId() === combatant.id"
+                    [class.player__combatant-card--current]="
+                      currentCombatant()?.id === combatant.id
                     "
-                  ></span>
-                  <span class="player__combatant-hp-text"
-                    >{{ combatant.currentHp }} / {{ combatant.maxHp }}</span
+                    [attr.role]="isSelectableEnemy(combatant) ? 'button' : null"
+                    [attr.tabindex]="isSelectableEnemy(combatant) ? 0 : null"
+                    [attr.aria-label]="
+                      isSelectableEnemy(combatant)
+                        ? ('player.arena.selectTarget' | transloco: { name: combatant.name })
+                        : null
+                    "
+                    (click)="selectCombatant(combatant)"
+                    (keydown.enter)="selectCombatant(combatant)"
+                    (keydown.space)="selectCombatant(combatant); $event.preventDefault()"
                   >
-                </div>
-                <div class="player__combatant-stats">
-                  <span>{{ 'common.ac' | transloco }} {{ combatant.ac }}</span>
-                  <span>{{ 'common.initiativeShort' | transloco }} {{ combatant.initiative }}</span>
-                  @if ((combatant.temporaryHp ?? 0) > 0) {
-                    <span>🛡️ {{ combatant.temporaryHp }} {{ 'common.temporaryHpShort' | transloco }}</span>
-                  }
-                </div>
-                @if (currentCombatant()?.id === combatant.id) {
-                  <div class="player__combatant-turn">⚔️ {{ 'common.currentTurn' | transloco }}</div>
+                    <span
+                      class="player__combatant-order"
+                      [attr.aria-label]="'player.arena.position' | transloco"
+                    >
+                      {{ turnIndex + 1 }}
+                    </span>
+                    <div class="player__combatant-header">
+                      <div class="player__combatant-name">
+                        @if (combatant.emoji) {
+                          <span aria-hidden="true">{{ combatant.emoji }}</span>
+                        }
+                        {{ combatant.name }}
+                      </div>
+                      <span
+                        class="player__combatant-kind"
+                        [class.player__combatant-kind--player]="
+                          combatant.type === COMBATANT_TYPE.PLAYER
+                        "
+                      >
+                        {{
+                          (combatant.type === COMBATANT_TYPE.PLAYER
+                            ? 'combatant.type.player'
+                            : 'combatant.type.enemy'
+                          ) | transloco
+                        }}
+                      </span>
+                    </div>
+                    <div class="player__combatant-hp">
+                      <span
+                        class="player__combatant-hp-bar"
+                        [style.width.%]="
+                          combatant.maxHp > 0 ? (combatant.currentHp / combatant.maxHp) * 100 : 0
+                        "
+                      ></span>
+                      <span class="player__combatant-hp-text"
+                        >{{ combatant.currentHp }} / {{ combatant.maxHp }}</span
+                      >
+                    </div>
+                    <div class="player__combatant-stats">
+                      <span>{{ 'common.ac' | transloco }} {{ combatant.ac }}</span>
+                      <span
+                        >{{ 'common.initiativeShort' | transloco }} {{ combatant.initiative }}</span
+                      >
+                      @if ((combatant.temporaryHp ?? 0) > 0) {
+                        <span
+                          >🛡️ {{ combatant.temporaryHp }}
+                          {{ 'common.temporaryHpShort' | transloco }}</span
+                        >
+                      }
+                    </div>
+                    @if (currentCombatant()?.id === combatant.id) {
+                      <div class="player__combatant-turn">
+                        ⚔️ {{ 'common.currentTurn' | transloco }}
+                      </div>
+                    }
+                  </div>
+                } @empty {
+                  <div class="player__combatant-empty">{{ 'player.arena.empty' | transloco }}</div>
                 }
               </div>
-            } @empty {
-              <div class="player__combatant-empty">{{ 'player.arena.empty' | transloco }}</div>
+            </section>
+            @if (selectedEnemy(); as enemy) {
+              <div class="player__attack-panel">
+                <h3 class="player__attack-title">
+                  {{
+                    (attackMode() === 'main' ? 'player.attack.main' : 'player.attack.additional')
+                      | transloco
+                  }}
+                </h3>
+                <div
+                  class="player__attack-tabs"
+                  role="group"
+                  [attr.aria-label]="'player.attack.type' | transloco"
+                >
+                  <button
+                    type="button"
+                    class="player__attack-cancel"
+                    [class.player__attack-tab--active]="attackMode() === 'main'"
+                    (click)="setAttackMode('main')"
+                  >
+                    {{ 'player.attack.mainHit' | transloco }}
+                  </button>
+                  <button
+                    type="button"
+                    class="player__attack-cancel"
+                    [class.player__attack-tab--active]="attackMode() === 'additional'"
+                    (click)="setAttackMode('additional')"
+                  >
+                    + {{ 'player.attack.additionalShort' | transloco }}
+                  </button>
+                </div>
+                <div class="player__attack-row">
+                  <span class="player__attack-target"
+                    >{{ 'player.attack.target' | transloco }}: {{ enemy.name }}</span
+                  >
+                </div>
+                <div class="player__attack-row">
+                  <label class="player__attack-label">{{
+                    'player.sheet.weapons' | transloco
+                  }}</label>
+                  <select
+                    class="player__attack-select"
+                    [value]="selectedWeaponIndex()"
+                    (change)="onWeaponChange($event)"
+                  >
+                    @for (weapon of weapons(); track weapon.name; let i = $index) {
+                      <option [value]="i">
+                        {{ weapon.name }} ({{ weapon.damage }} {{ weapon.damageType }})
+                      </option>
+                    }
+                  </select>
+                  @if (selectedWeaponAttackBonus(); as attackBonus) {
+                    <span class="player__attack-bonus">
+                      {{ 'player.attack.bonus' | transloco }}
+                      <strong>{{ attackBonus }}</strong>
+                    </span>
+                  }
+                </div>
+                <div class="player__attack-row">
+                  <label class="player__attack-label">{{
+                    'player.attack.damage' | transloco
+                  }}</label>
+                  <input
+                    type="number"
+                    class="player__attack-input"
+                    min="0"
+                    [value]="damageAmount()"
+                    (input)="onDamageInput($event)"
+                  />
+                </div>
+                <div class="player__attack-row">
+                  <button class="player__attack-btn" [disabled]="!canAttack()" (click)="attack()">
+                    ⚔️ {{ 'player.attack.submit' | transloco }}
+                  </button>
+                  <button class="player__attack-cancel" (click)="clearSelection()">
+                    {{ 'common.cancel' | transloco }}
+                  </button>
+                </div>
+                <p class="player__attack-hint">
+                  {{ 'player.attack.hint' | transloco }}
+                </p>
+              </div>
+            } @else {
+              <div class="player__attack-placeholder">
+                <span aria-hidden="true">⚔</span>
+                <p>{{ 'player.attack.selectEnemy' | transloco }}</p>
+              </div>
             }
           </div>
-
-          @if (selectedEnemy(); as enemy) {
-            <div class="player__attack-panel">
-              <h3 class="player__attack-title">
-                {{ (attackMode() === 'main' ? 'player.attack.main' : 'player.attack.additional') | transloco }}
-              </h3>
-              <div class="player__attack-tabs" role="group" [attr.aria-label]="'player.attack.type' | transloco">
-                <button
-                  type="button"
-                  class="player__attack-cancel"
-                  [class.player__attack-tab--active]="attackMode() === 'main'"
-                  (click)="setAttackMode('main')"
-                >
-                  {{ 'player.attack.mainHit' | transloco }}
-                </button>
-                <button
-                  type="button"
-                  class="player__attack-cancel"
-                  [class.player__attack-tab--active]="attackMode() === 'additional'"
-                  (click)="setAttackMode('additional')"
-                >
-                  + {{ 'player.attack.additionalShort' | transloco }}
-                </button>
-              </div>
-              <div class="player__attack-row">
-                <span class="player__attack-target">{{ 'player.attack.target' | transloco }}: {{ enemy.name }}</span>
-              </div>
-              <div class="player__attack-row">
-                <label class="player__attack-label">{{ 'player.sheet.weapons' | transloco }}</label>
-                <select
-                  class="player__attack-select"
-                  [value]="selectedWeaponIndex()"
-                  (change)="onWeaponChange($event)"
-                >
-                  @for (weapon of weapons(); track weapon.name; let i = $index) {
-                    <option [value]="i">
-                      {{ weapon.name }} ({{ weapon.damage }} {{ weapon.damageType }})
-                    </option>
-                  }
-                </select>
-                @if (selectedWeaponAttackBonus(); as attackBonus) {
-                  <span class="player__attack-bonus">
-                    {{ 'player.attack.bonus' | transloco }}
-                    <strong>{{ attackBonus }}</strong>
-                  </span>
-                }
-              </div>
-              <div class="player__attack-row">
-                <label class="player__attack-label">{{ 'player.attack.damage' | transloco }}</label>
-                <input
-                  type="number"
-                  class="player__attack-input"
-                  min="0"
-                  [value]="damageAmount()"
-                  (input)="onDamageInput($event)"
-                />
-              </div>
-              <div class="player__attack-row">
-                <button class="player__attack-btn" [disabled]="!canAttack()" (click)="attack()">
-                  ⚔️ {{ 'player.attack.submit' | transloco }}
-                </button>
-                <button class="player__attack-cancel" (click)="clearSelection()">{{ 'common.cancel' | transloco }}</button>
-              </div>
-              <p class="player__attack-hint">
-                {{ 'player.attack.hint' | transloco }}
-              </p>
-            </div>
-          } @else {
-            <div class="player__attack-placeholder">
-              <p>{{ 'player.attack.selectEnemy' | transloco }}</p>
-            </div>
-          }
         </div>
       }
-
-      <footer class="player__footer">
-        <label class="player__reset-btn">
-          <input
-            class="player__reimport-input"
-            type="file"
-            accept=".json"
-            (change)="onFileSelected($event)"
-            hidden
-          />
-          📂 {{ 'player.footer.updateJson' | transloco }}
-        </label>
-        <button type="button" class="player__reset-btn" (click)="logout()">{{ 'player.footer.logout' | transloco }}</button>
-      </footer>
     </div>
   }
 </div>
@@ -718,10 +885,17 @@
         </div>
       }
 
+      @if (itemUseError()) {
+        <p class="item-use-error" role="alert">{{ itemUseError() }}</p>
+      }
       <div class="modal-actions">
         @if (modalMode() === 'use') {
-          <button class="modal-btn modal-btn--confirm" (click)="confirmAndUseItem()">
-            {{ 'common.apply' | transloco }}
+          <button
+            class="modal-btn modal-btn--confirm"
+            [disabled]="usingItem()"
+            (click)="confirmAndUseItem()"
+          >
+            {{ (usingItem() ? 'player.items.using' : 'common.apply') | transloco }}
           </button>
         }
         <button class="modal-btn modal-btn--cancel" (click)="closeUseModal()">
@@ -734,6 +908,34 @@
       </div>
     </div>
   </div>
+}
+
+@if (itemUseConfirmation(); as confirmation) {
+  <dialog
+    #itemConfirmationDialog
+    class="modal-content spell-confirmation item-confirmation"
+    aria-labelledby="item-confirmation-title"
+    aria-describedby="item-confirmation-result"
+    (cancel)="$event.preventDefault(); closeItemUseConfirmation()"
+  >
+    <div class="spell-confirmation__sigil" aria-hidden="true">{{ confirmation.icon }}</div>
+    <p class="spell-confirmation__eyebrow">{{ 'player.items.used' | transloco }}</p>
+    <h3 id="item-confirmation-title" class="modal-title spell-confirmation__title">
+      {{ confirmation.itemName }}
+    </h3>
+    <div id="item-confirmation-result" class="spell-confirmation__result">
+      <span>{{ 'player.items.quantityUsed' | transloco }}</span>
+      <strong>{{ confirmation.quantity }}</strong>
+    </div>
+    <button
+      type="button"
+      autofocus
+      class="modal-btn modal-btn--confirm spell-confirmation__close"
+      (click)="closeItemUseConfirmation()"
+    >
+      {{ 'common.continue' | transloco }}
+    </button>
+  </dialog>
 }
 
 @if (resourceUseConfirmation(); as confirmation) {
@@ -759,7 +961,9 @@
           <span>{{ 'player.resources.notSpent' | transloco }}</span>
           <strong>∞ {{ 'player.resources.unlimited' | transloco }}</strong>
         } @else {
-          <span>{{ 'player.resources.spentRemaining' | transloco: { spent: confirmation.spent } }}</span>
+          <span>{{
+            'player.resources.spentRemaining' | transloco: { spent: confirmation.spent }
+          }}</span>
           <strong>{{ confirmation.remaining }} / {{ confirmation.max }}</strong>
         }
         @if (confirmation.activated) {
@@ -802,7 +1006,10 @@
           [value]="resourceUseAmount()"
           (input)="setResourceUseAmount($event)"
         />
-        <small>{{ 'player.resources.available' | transloco }}: {{ resource.current }} / {{ resource.max }}</small>
+        <small
+          >{{ 'player.resources.available' | transloco }}: {{ resource.current }} /
+          {{ resource.max }}</small
+        >
       </label>
       <div class="modal-actions">
         <button type="button" class="modal-btn modal-btn--confirm" (click)="confirmResourceUse()">

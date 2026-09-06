@@ -1,10 +1,17 @@
 import {
+  WorkspaceComponent,
+  WorkspaceToolDirective,
+} from '../../shared/ui/workspace/workspace.component';
+import {
   ChangeDetectionStrategy,
   Component,
   inject,
   signal,
   computed,
   OnDestroy,
+  ElementRef,
+  viewChild,
+  afterRenderEffect,
 } from '@angular/core';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { CharacterService } from '../../core/services/character.service';
@@ -16,10 +23,7 @@ import { CharacterParserService } from '../../core/services/characterParser.serv
 import { ParsedCharacter } from '../../core/models/character.model';
 import { CharacterResource } from '../../core/models/character-resource.model';
 import { LssCharacterSheet } from '../../core/models/lss-character.model';
-import {
-  CharacterSkill,
-  CharacterStatKey,
-} from '../../core/models/character-skill.model';
+import { CharacterSkill, CharacterStatKey } from '../../core/models/character-skill.model';
 import { InventoryItem } from '../../core/models/inventory-item.model';
 import { ActiveStatusEffect, Combatant, SpellData } from '../../core/models/combatant.model';
 import { COMBATANT_STATUS, COMBATANT_TYPE } from '../../core/constants/combatant.constants';
@@ -43,6 +47,7 @@ import {
 } from './player.constants';
 import {
   CharacterWeaponView,
+  ItemUseConfirmation,
   ResourceEffectConfirmation,
   ResourceUseConfirmation,
   SpellDescriptionPart,
@@ -53,6 +58,8 @@ import {
   selector: 'app-player',
   standalone: true,
   imports: [
+    WorkspaceComponent,
+    WorkspaceToolDirective,
     TranslocoPipe,
     StatusEffectListComponent,
     CombatantLifeStateComponent,
@@ -63,6 +70,7 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PlayerComponent implements OnDestroy {
+  readonly sheetTool = signal<string | null>(null);
   // --- Внедрённые сервисы ---
   private readonly parser = inject(CharacterParserService);
   private readonly characterService = inject(CharacterService);
@@ -108,13 +116,20 @@ export class PlayerComponent implements OnDestroy {
   readonly selectedResourceForUse = signal<CharacterResource | null>(null);
   readonly resourceUseAmount = signal(1);
 
-  // --- Состояние модального окна использования предмета ---
+  readonly usingItem = signal(false);
+  readonly itemUseError = signal<string | null>(null);
+  readonly itemUseConfirmation = signal<ItemUseConfirmation | null>(null);
+  private readonly itemConfirmationDialog =
+    viewChild<ElementRef<HTMLDialogElement>>('itemConfirmationDialog');
+  private readonly syncItemConfirmation = afterRenderEffect(() => {
+    const dialog = this.itemConfirmationDialog()?.nativeElement;
+    if (dialog && !dialog.open) dialog.showModal();
+  });
   readonly modalMode = signal<'use' | 'examine'>('use');
   readonly showUseModal = signal(false);
   readonly useQuantity = signal(1);
   readonly selectedItemForUse = signal<InventoryItem | null>(null);
 
-  // --- Данные из BattleService ---
   readonly COMBATANT_TYPE = COMBATANT_TYPE;
   readonly COMBATANT_STATUS = COMBATANT_STATUS;
   readonly CHARACTER_STATS = CHARACTER_STATS;
@@ -123,7 +138,6 @@ export class PlayerComponent implements OnDestroy {
   readonly currentCombatant = this.battleService.currentCombatant;
   readonly currentRound = this.battleService.currentRound;
 
-  // --- Производные значения ---
   readonly weapons = computed(() => this.character()?.weapons ?? []);
   readonly weaponCards = computed<CharacterWeaponView[]>(() => {
     const character = this.character();
@@ -309,6 +323,9 @@ export class PlayerComponent implements OnDestroy {
   }
 
   logout(): void {
+    this.sheetTool.set(null);
+    this.closeItemUseConfirmation();
+    this.closeUseModal();
     this.characterSubscription?.unsubscribe();
     this.character.set(null);
     this.isLoggedIn.set(false);
@@ -459,7 +476,8 @@ export class PlayerComponent implements OnDestroy {
       !spell.isPrepared ||
       (!resource.isUnlimited && resource.current < amount) ||
       this.usingSpellId() !== null
-    ) return;
+    )
+      return;
 
     this.usingSpellId.set(spell.id);
     this.spellUseError.set(null);
@@ -493,7 +511,8 @@ export class PlayerComponent implements OnDestroy {
       !resource ||
       (!resource.isUnlimited && resource.current <= 0) ||
       this.usingResourceId()
-    ) return;
+    )
+      return;
     if (this.activeResourceEffect(resource.id)) return;
 
     if (resource.spendMode === 'variable' && requestedAmount === undefined) {
@@ -635,9 +654,10 @@ export class PlayerComponent implements OnDestroy {
     const rounds = effect.duration === 'rounds' ? Math.max(1, effect.rounds ?? 1) : 1;
     return {
       triggers: rounds + (ownTurnIsActive ? 1 : 0),
-      label: effect.duration === 'until-next-turn-end'
-        ? this.i18n.translate('player.duration.untilNextTurnEnd')
-        : this.i18n.translate('player.duration.rounds', { rounds }),
+      label:
+        effect.duration === 'until-next-turn-end'
+          ? this.i18n.translate('player.duration.untilNextTurnEnd')
+          : this.i18n.translate('player.duration.rounds', { rounds }),
     };
   }
 
@@ -684,6 +704,8 @@ export class PlayerComponent implements OnDestroy {
   }
 
   useItem(item: InventoryItem): void {
+    if (this.usingItem()) return;
+    this.itemUseError.set(null);
     this.selectedItemForUse.set(item);
     this.useQuantity.set(1);
     this.modalMode.set('use');
@@ -693,23 +715,39 @@ export class PlayerComponent implements OnDestroy {
   confirmAndUseItem(): void {
     const item = this.selectedItemForUse();
     const char = this.character();
-    if (!item || this.modalMode() !== 'use' || !char) return;
+    if (!item || this.modalMode() !== 'use' || !char || this.usingItem()) return;
     const quantity = this.useQuantity();
+    this.usingItem.set(true);
+    this.itemUseError.set(null);
 
     this.inventoryService
       .consumeItem(char.name, item.id, quantity)
       .then((success) => {
+        // A completed request must not reopen a dialog after logout or navigation away.
+        if (this.character()?.name !== char.name || this.selectedItemForUse()?.id !== item.id)
+          return;
         if (!success) {
-          alert(this.i18n.translate('player.error.notEnoughItems'));
+          this.itemUseError.set(this.i18n.translate('player.error.notEnoughItems'));
           return;
         }
         this.closeUseModal();
+        this.itemUseConfirmation.set({ itemName: item.name, icon: item.icon || '🎒', quantity });
       })
-      .catch((error: unknown) => this.logger.error('PlayerComponent.confirmAndUseItem', error));
+      .catch((error: unknown) => {
+        this.logger.error('PlayerComponent.confirmAndUseItem', error);
+        this.itemUseError.set(this.i18n.translate('player.items.useError'));
+      })
+      .finally(() => this.usingItem.set(false));
+  }
+
+  closeItemUseConfirmation(): void {
+    this.itemConfirmationDialog()?.nativeElement.close();
+    this.itemUseConfirmation.set(null);
   }
 
   closeUseModal(): void {
     this.showUseModal.set(false);
+    this.itemUseError.set(null);
     this.selectedItemForUse.set(null);
     this.useQuantity.set(1);
     this.modalMode.set('use');

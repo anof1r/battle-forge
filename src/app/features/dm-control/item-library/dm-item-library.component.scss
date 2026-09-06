@@ -250,3 +250,14 @@
   }
 }
 
+.item-library {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.item-library > h3 {
+  margin: 0 0 var(--bf-space-4);
+  color: var(--bf-gold);
+  font-size: 1rem;
+}

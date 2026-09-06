@@ -1,4 +1,46 @@
 {
+  "workspace": {
+    "back": "All sections",
+    "party": "Party and rewards",
+    "rewardsHint": "Choose what to prepare or give to a player.",
+    "items": "Item library",
+    "itemsHint": "Equipment templates and quick grants",
+    "grant": "One-off reward",
+    "grantHint": "Create an item during the session",
+    "spells": "Grant a spell",
+    "grantSpellHint": "Prepare a spell for a character",
+    "resourcesHint": "Spell slots, class resources and recovery",
+    "chooseReward": "Choose a card to open a tool.",
+    "sceneHint": "Assemble opponents into a ready scene",
+    "creaturesHint": "Browse, edit or add to battle",
+    "creatureEditor": "Creature editor",
+    "creatureEditorHint": "Stats, attacks and abilities",
+    "equipment": "Equipment",
+    "equipmentHint": "Weapons, items and consumables",
+    "statsHint": "Ability scores, skills and resistances",
+    "spellsHint": "Prepared spells and shared slots",
+    "playerResourcesHint": "Use abilities and manage active effects",
+    "abilitiesHint": "Class features and descriptions",
+    "emptySection": "Nothing in this section yet.",
+    "characterHint": "Everything within reach. Choose a section of your character sheet.",
+    "adventure": "Your place at the table",
+    "welcome": "Every story starts with a hero",
+    "welcomeHint": "Your character sheet, equipment and battle actions in one place. Enter your name to return to the adventure.",
+    "catalogSpells": "Find, translate and save",
+    "catalogWeapons": "Prepare creature attacks",
+    "catalogCreatures": "Expand your bestiary",
+    "savedSpells": "Saved spells",
+    "savedSpellsHint": "Grant a spell from your library",
+    "noSavedSpells": "Save a spell from search to see it here.",
+    "noEnemies": "No active opponents remain on the battlefield.",
+    "waitingSlide": "Waiting for an illustration from the DM",
+    "preferences": "Workspace preferences",
+    "dmSettingsHint": "Choose the interface language for this tab.",
+    "playerSettingsHint": "Interface language and character management.",
+    "session": "Current session",
+    "characterManagement": "Character and import",
+    "displayHint": "Shared screen for the party"
+  },
   "language": {
     "label": "Language"
   },
@@ -303,6 +345,12 @@
     "settings": {
       "title": "Settings",
       "description": "Interface language for this device."
+    },
+    "items": {
+      "used": "Item used",
+      "quantityUsed": "Quantity used",
+      "using": "Using…",
+      "useError": "Could not use the item. Please try again."
     }
   },
   "dmControls": {
@@ -590,7 +638,7 @@
   },
   "story": {
     "eyebrow": "Local presentation and teleprompter",
-    "intro": "Images stay on this device, while story notes are stored locally in MongoDB.",
+    "intro": "Prepare illustrations and notes for your session. Select a slide to show it to your players.",
     "controls": "Story presentation controls",
     "show": "Show story",
     "previous": "Previous",

@@ -5,8 +5,8 @@
   "display": "standalone",
   "background_color": "#191919",
   "theme_color": "#191919",
-  "scope": "/battle-forge/",
-  "start_url": "/battle-forge/",
+  "scope": "./",
+  "start_url": "./player",
   "icons": [
     {
       "src": "icons/icon-72x72.png",
@@ -68,5 +68,6 @@
       "type": "image/png",
       "purpose": "maskable"
     }
-  ]
+  ],
+  "id": "./"
 }

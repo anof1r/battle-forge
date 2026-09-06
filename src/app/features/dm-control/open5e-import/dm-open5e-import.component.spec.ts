@@ -22,7 +22,10 @@ describe('DmOpen5eImportComponent', () => {
     searchWeapons: ReturnType<typeof vi.fn>;
     searchCreatures: ReturnType<typeof vi.fn>;
   };
-  let spellLibrary: { spells: ReturnType<typeof signal<never[]>>; saveSpell: ReturnType<typeof vi.fn> };
+  let spellLibrary: {
+    spells: ReturnType<typeof signal<never[]>>;
+    saveSpell: ReturnType<typeof vi.fn>;
+  };
   let character: { updatePlayerSpells: ReturnType<typeof vi.fn> };
 
   const magicMissile: Open5eSpell = {
@@ -64,7 +67,10 @@ describe('DmOpen5eImportComponent', () => {
         },
         {
           provide: SceneLibraryService,
-          useValue: { creatures: signal([]), saveCreature: vi.fn().mockResolvedValue('creature-id') },
+          useValue: {
+            creatures: signal([]),
+            saveCreature: vi.fn().mockResolvedValue('creature-id'),
+          },
         },
         { provide: CharacterService, useValue: character },
         {
@@ -146,5 +152,20 @@ describe('DmOpen5eImportComponent', () => {
         }),
       }),
     );
+  });
+  it('separates saved spells from search and returns to the selected category', () => {
+    fixture.detectChanges();
+    const cards: NodeListOf<HTMLButtonElement> = fixture.nativeElement.querySelectorAll(
+      '.open5e-import__tabs button',
+    );
+    cards[3].click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.open5e-saved')).toBeVisible();
+    expect(fixture.nativeElement.querySelector('.open5e-catalog')).not.toBeVisible();
+    cards[0].click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.open5e-catalog')).toBeVisible();
+    expect(component.kind()).toBe('spell');
+    expect(open5e.searchSpells).not.toHaveBeenCalled();
   });
 });

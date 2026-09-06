@@ -74,9 +74,7 @@ describe('DmStoryComponent', () => {
     };
     scripts = {
       section: vi.fn((id: string) =>
-        id === '1'
-          ? { id: '1', text: '# Таверна', createdAt: 100, lastUpdated: 100 }
-          : null,
+        id === '1' ? { id: '1', text: '# Таверна', createdAt: 100, lastUpdated: 100 } : null,
       ),
       saveSection: vi.fn().mockResolvedValue(undefined),
     };
@@ -112,7 +110,7 @@ describe('DmStoryComponent', () => {
     expect(component.uploadMessage()).toBe('Добавлено изображений: 2');
   });
 
-  it('renders an expandable deck and delegates selection, ordering and removal', () => {
+  it('keeps the deck visible beside the script and delegates slide actions', () => {
     slides.set([tavern, forest]);
     activeSlide.set(tavern);
     story.activeSlideId.set('tavern');
@@ -121,9 +119,9 @@ describe('DmStoryComponent', () => {
     story.canGoNext.set(true);
     fixture.detectChanges();
 
-    const deck = fixture.nativeElement.querySelector<HTMLDetailsElement>('.story-deck');
+    const deck = fixture.nativeElement.querySelector<HTMLElement>('.story-deck');
     const cards = fixture.nativeElement.querySelectorAll<HTMLElement>('.story-slide');
-    expect(deck?.open).toBe(true);
+    expect(deck).toBeVisible();
     expect(cards).toHaveLength(2);
     expect(cards[0]).toHaveClass('story-slide--active');
     expect(cards[0]).toHaveTextContent('Сюжет: 1');

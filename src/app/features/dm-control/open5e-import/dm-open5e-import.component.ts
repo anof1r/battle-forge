@@ -1,3 +1,4 @@
+import { generateUuid } from '../../../core/utils/uuid.util';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -48,6 +49,7 @@ export class DmOpen5eImportComponent {
   private readonly language = inject(LanguageService);
   private searchSequence = 0;
 
+  readonly libraryView = signal<'search' | 'saved'>('search');
   readonly kind = signal<Open5eContentKind>('spell');
   readonly query = signal('');
   readonly documentKey = signal('srd-2024');
@@ -112,12 +114,15 @@ export class DmOpen5eImportComponent {
     if (entry?.kind === 'spell') return this.spellName().trim().length > 0;
     if (entry?.kind === 'weapon') return this.weaponName().trim().length > 0;
     if (entry?.kind === 'creature') {
-      return this.creatureName().trim().length > 0 && this.creatureMaxHp() > 0 && this.creatureAc() > 0;
+      return (
+        this.creatureName().trim().length > 0 && this.creatureMaxHp() > 0 && this.creatureAc() > 0
+      );
     }
     return false;
   });
 
   setKind(kind: Open5eContentKind): void {
+    this.libraryView.set('search');
     if (this.kind() === kind) return;
     this.searchSequence += 1;
     this.searching.set(false);
@@ -157,17 +162,19 @@ export class DmOpen5eImportComponent {
     const sequence = ++this.searchSequence;
     this.searching.set(true);
     this.clearMessages();
-    const request: Observable<Open5eEntry[]> = this.kind() === 'spell'
-      ? this.open5e.searchSpells(query, this.documentKey())
-      : this.kind() === 'creature'
-        ? this.open5e.searchCreatures(query, this.documentKey())
-        : this.open5e.searchWeapons(query, this.documentKey());
+    const request: Observable<Open5eEntry[]> =
+      this.kind() === 'spell'
+        ? this.open5e.searchSpells(query, this.documentKey())
+        : this.kind() === 'creature'
+          ? this.open5e.searchCreatures(query, this.documentKey())
+          : this.open5e.searchWeapons(query, this.documentKey());
     firstValueFrom(request)
       .then((results) => {
         if (sequence !== this.searchSequence) return;
         this.results.set(results);
         this.selected.set(null);
-        if (results.length === 0) this.feedback.set(this.i18n.translate('open5e.feedback.notFound'));
+        if (results.length === 0)
+          this.feedback.set(this.i18n.translate('open5e.feedback.notFound'));
       })
       .catch((error: unknown) => {
         if (sequence !== this.searchSequence) return;
@@ -190,14 +197,18 @@ export class DmOpen5eImportComponent {
   updateCreatureAction(index: number, field: keyof EnemyAction, event: Event): void {
     const value = (event.target as HTMLInputElement | HTMLTextAreaElement).value;
     this.creatureActions.update((actions) =>
-      actions.map((action, actionIndex) => actionIndex === index ? { ...action, [field]: value } : action),
+      actions.map((action, actionIndex) =>
+        actionIndex === index ? { ...action, [field]: value } : action,
+      ),
     );
   }
 
   updateCreatureAbility(index: number, field: keyof EnemyAbility, event: Event): void {
     const value = (event.target as HTMLInputElement | HTMLTextAreaElement).value;
     this.creatureAbilities.update((abilities) =>
-      abilities.map((ability, abilityIndex) => abilityIndex === index ? { ...ability, [field]: value } : ability),
+      abilities.map((ability, abilityIndex) =>
+        abilityIndex === index ? { ...ability, [field]: value } : ability,
+      ),
     );
   }
 
@@ -211,13 +222,15 @@ export class DmOpen5eImportComponent {
     if (!entry || !this.canSave() || this.saving()) return;
     this.saving.set(true);
     this.clearMessages();
-    const save = entry.kind === 'spell'
-      ? this.saveSpell(entry)
-      : entry.kind === 'weapon'
-        ? this.saveWeapon(entry)
-        : this.saveCreature(entry);
+    const save =
+      entry.kind === 'spell'
+        ? this.saveSpell(entry)
+        : entry.kind === 'weapon'
+          ? this.saveWeapon(entry)
+          : this.saveCreature(entry);
     save
-      .then(() => this.feedback.set(this.i18n.translate('open5e.feedback.saved.' + entry.kind))).catch((error: unknown) => {
+      .then(() => this.feedback.set(this.i18n.translate('open5e.feedback.saved.' + entry.kind)))
+      .catch((error: unknown) => {
         this.logger.error('DmOpen5eImportComponent.saveSelected', error);
         this.error.set(this.i18n.translate('open5e.error.save'));
       })
@@ -304,7 +317,9 @@ export class DmOpen5eImportComponent {
     this.weaponToHit.set('');
     this.weaponDamage.set(weapon.damageFormula);
     this.weaponDamageType.set(weapon.damageType);
-    this.weaponFullText.set([weapon.description, weapon.range ? `Range: ${weapon.range}` : ''].filter(Boolean).join('\n'));
+    this.weaponFullText.set(
+      [weapon.description, weapon.range ? `Range: ${weapon.range}` : ''].filter(Boolean).join('\n'),
+    );
   }
 
   private loadCreatureDraft(creature: Open5eCreature): void {
@@ -350,7 +365,12 @@ export class DmOpen5eImportComponent {
       toHit: this.weaponToHit().trim(),
       damage: this.localizedValue(weapon.damageFormula, this.weaponDamage()),
       damageType: this.localizedValue(weapon.damageType, this.weaponDamageType()),
-      fullText: this.localizedValue([weapon.description, weapon.range ? `Range: ${weapon.range}` : ''].filter(Boolean).join('\n'), this.weaponFullText()),
+      fullText: this.localizedValue(
+        [weapon.description, weapon.range ? `Range: ${weapon.range}` : '']
+          .filter(Boolean)
+          .join('\n'),
+        this.weaponFullText(),
+      ),
       source: this.source(weapon),
     });
   }
@@ -362,8 +382,12 @@ export class DmOpen5eImportComponent {
       subtype: this.localizedValue(creature.subtype, this.creatureSubtype()),
       maxHp: this.creatureMaxHp(),
       ac: this.creatureAc(),
-      actions: (this.translationMode() ? this.creatureActions() : creature.actions).map((action) => ({ ...action })),
-      abilities: (this.translationMode() ? this.creatureAbilities() : creature.abilities).map((ability) => ({ ...ability })),
+      actions: (this.translationMode() ? this.creatureActions() : creature.actions).map(
+        (action) => ({ ...action }),
+      ),
+      abilities: (this.translationMode() ? this.creatureAbilities() : creature.abilities).map(
+        (ability) => ({ ...ability }),
+      ),
       resistances: this.translationMode()
         ? this.parseList(this.creatureResistances())
         : [...creature.resistances],
@@ -376,7 +400,7 @@ export class DmOpen5eImportComponent {
     const player = this.players().find((candidate) => candidate.id === this.selectedPlayerId());
     if (!player?.playerName) return Promise.reject(new Error('Player is not selected'));
     const spell: SpellData = {
-      id: `spell-${crypto.randomUUID()}`,
+      id: `spell-${generateUuid()}`,
       librarySpellId: template.id,
       sourceKey: template.source.key,
       name: template.name,
@@ -422,7 +446,10 @@ export class DmOpen5eImportComponent {
   }
 
   private parseList(value: string): string[] {
-    return value.split(/[,;]/).map((item) => item.trim()).filter(Boolean);
+    return value
+      .split(/[,;]/)
+      .map((item) => item.trim())
+      .filter(Boolean);
   }
 
   private clearMessages(): void {

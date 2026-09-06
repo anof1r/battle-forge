@@ -1,3 +1,4 @@
+import { generateUuid } from '../../../core/utils/uuid.util';
 import { Injectable, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import {
@@ -45,7 +46,7 @@ export class SceneLibraryService {
 
   async saveCreature(draft: CreatureTemplateDraft): Promise<string> {
     const now = Date.now();
-    const id = draft.id || `creature_${crypto.randomUUID()}`;
+    const id = draft.id || `creature_${generateUuid()}`;
     const existing = this.creatureRecords()?.[id];
     const source = draft.source ?? existing?.source;
     const creature: CreatureTemplate = {
@@ -76,7 +77,7 @@ export class SceneLibraryService {
 
   async saveScene(draft: ScenePresetDraft): Promise<string> {
     const now = Date.now();
-    const id = draft.id || `scene_${crypto.randomUUID()}`;
+    const id = draft.id || `scene_${generateUuid()}`;
     const existing = this.sceneRecords()?.[id];
     const scene: ScenePreset = {
       id,

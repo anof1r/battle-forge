@@ -124,7 +124,8 @@
     <app-dm-story />
   }
   @if (activePanel() === 'settings') {
-    <section class="dm-settings-panel">
+    <section class="dm-settings-panel bf-settings">
+      <span class="bf-eyebrow">{{ 'workspace.preferences' | transloco }}</span>
       <h2 class="dm-settings-panel__title">{{ 'dm.settings.title' | transloco }}</h2>
       <p class="dm-settings-panel__description">{{ 'dm.settings.description' | transloco }}</p>
       <bf-language-switcher />
@@ -132,16 +133,51 @@
   }
 
   <div class="dm-battle-workspace-host" [hidden]="activePanel() !== 'battle'">
-    <app-dm-battle-workspace [active]="activePanel() === 'battle'" (sceneFinished)="activePanel.set('scenes')" />
+    <app-dm-battle-workspace
+      [active]="activePanel() === 'battle'"
+      (sceneFinished)="activePanel.set('scenes')"
+    />
   </div>
 
   @if (activePanel() === 'rewards') {
-    <div class="dm-rewards-grid">
-      <app-dm-character-resources />
-      <app-dm-item-library />
-      <app-dm-item-grant />
-      <app-dm-spell-grant />
-    </div>
+    <section class="dm-rewards-workspace">
+      <header class="bf-page-intro">
+        <span class="bf-eyebrow">{{ 'workspace.party' | transloco }}</span>
+        <h2>{{ 'dm.tabs.rewards' | transloco }}</h2>
+        <p>{{ 'workspace.rewardsHint' | transloco }}</p>
+      </header>
+      <bf-workspace [label]="'dm.tabs.rewards' | transloco">
+        <ng-template
+          bfWorkspaceTool="items"
+          [title]="'workspace.items' | transloco"
+          [hint]="'workspace.itemsHint' | transloco"
+          icon="🎒"
+          ><app-dm-item-library
+        /></ng-template>
+        <ng-template
+          bfWorkspaceTool="grant"
+          [title]="'workspace.grant' | transloco"
+          [hint]="'workspace.grantHint' | transloco"
+          icon="🎁"
+          ><app-dm-item-grant
+        /></ng-template>
+        <ng-template
+          bfWorkspaceTool="spells"
+          [title]="'workspace.spells' | transloco"
+          [hint]="'workspace.grantSpellHint' | transloco"
+          icon="✦"
+          ><app-dm-spell-grant
+        /></ng-template>
+        <ng-template
+          bfWorkspaceTool="resources"
+          [title]="'player.resources.title' | transloco"
+          [hint]="'workspace.resourcesHint' | transloco"
+          icon="◈"
+          ><app-dm-character-resources
+        /></ng-template>
+        <p class="bf-empty-state">{{ 'workspace.chooseReward' | transloco }}</p>
+      </bf-workspace>
+    </section>
   }
 
   @if (activePanel() !== 'battle') {

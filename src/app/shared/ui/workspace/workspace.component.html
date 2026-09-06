@@ -1,0 +1,54 @@
+<nav
+  class="workspace-tools"
+  [class.workspace-tools--compact]="active() !== undefined"
+  [attr.aria-label]="label()"
+>
+  @for (tool of tools(); track tool.id()) {
+    <button
+      type="button"
+      class="workspace-tool"
+      [class.workspace-tool--active]="activeTool() === tool.id()"
+      [attr.aria-expanded]="activeTool() === tool.id()"
+      [attr.aria-controls]="panelId + '-' + tool.id()"
+      [attr.data-tool]="tool.id()"
+      (click)="selectTool(tool.id(), $event)"
+    >
+      <span class="workspace-tool__top"
+        ><span class="workspace-tool__icon" aria-hidden="true">{{ tool.icon() }}</span>
+        @if (tool.badge() !== null) {
+          <span class="workspace-tool__badge">{{ tool.badge() }}</span>
+        }
+      </span>
+      <strong>{{ tool.title() }} <span aria-hidden="true">→</span></strong>
+      <small>{{ tool.hint() }}</small>
+    </button>
+  }
+</nav>
+<div class="workspace-overview" [hidden]="active() !== undefined">
+  <ng-content />
+</div>
+<section
+  class="workspace-panel"
+  [hidden]="active() === undefined"
+  [attr.aria-label]="active()?.title()"
+  (keydown)="onKeydown($event)"
+>
+  <header class="workspace-panel__header">
+    <div>
+      <span>{{ label() }}</span>
+      <h2>{{ active()?.title() }}</h2>
+    </div>
+    <button type="button" class="workspace-panel__close" (click)="close()">
+      ← {{ 'workspace.back' | transloco }}
+    </button>
+  </header>
+  @for (tool of tools(); track tool.id()) {
+    <div
+      class="workspace-panel__content"
+      [id]="panelId + '-' + tool.id()"
+      [hidden]="activeTool() !== tool.id()"
+    >
+      <ng-container [ngTemplateOutlet]="tool.template" />
+    </div>
+  }
+</section>

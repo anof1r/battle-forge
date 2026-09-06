@@ -1,4 +1,8 @@
 import {
+  WorkspaceComponent,
+  WorkspaceToolDirective,
+} from '../../../shared/ui/workspace/workspace.component';
+import {
   ChangeDetectionStrategy,
   Component,
   WritableSignal,
@@ -22,7 +26,7 @@ import {
 @Component({
   selector: 'app-dm-scene-library',
   standalone: true,
-  imports: [TranslocoPipe],
+  imports: [WorkspaceComponent, WorkspaceToolDirective, TranslocoPipe],
   templateUrl: './dm-scene-library.component.html',
   styleUrl: './dm-scene-library.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -33,6 +37,8 @@ export class DmSceneLibraryComponent {
   private readonly logger = inject(LoggerService);
   private readonly actionLibrary = inject(EnemyActionLibraryService);
   private readonly i18n = inject(TranslocoService);
+
+  readonly activeTool = signal<string | null>(null);
 
   readonly creatures = this.library.creatures;
   readonly scenes = this.library.scenes;
@@ -72,7 +78,8 @@ export class DmSceneLibraryComponent {
   readonly error = signal<string | null>(null);
 
   readonly canSaveCreature = computed(
-    () => this.creatureName().trim().length > 0 && this.creatureMaxHp() > 0 && this.creatureAc() > 0,
+    () =>
+      this.creatureName().trim().length > 0 && this.creatureMaxHp() > 0 && this.creatureAc() > 0,
   );
   readonly canSaveScene = computed(
     () => this.sceneName().trim().length > 0 && this.sceneEntries().length > 0,
@@ -140,7 +147,9 @@ export class DmSceneLibraryComponent {
   }
 
   removeAction(index: number): void {
-    this.creatureActions.update((actions) => actions.filter((_, actionIndex) => actionIndex !== index));
+    this.creatureActions.update((actions) =>
+      actions.filter((_, actionIndex) => actionIndex !== index),
+    );
   }
 
   addAbility(): void {
@@ -177,7 +186,9 @@ export class DmSceneLibraryComponent {
       .then(() => {
         this.feedback.set(
           this.i18n.translate(
-            this.creatureId() ? 'sceneLibrary.feedback.creatureUpdated' : 'sceneLibrary.feedback.creatureSaved',
+            this.creatureId()
+              ? 'sceneLibrary.feedback.creatureUpdated'
+              : 'sceneLibrary.feedback.creatureSaved',
           ),
         );
         this.resetCreatureEditor();
@@ -190,6 +201,7 @@ export class DmSceneLibraryComponent {
   }
 
   editCreature(creature: CreatureTemplate): void {
+    this.activeTool.set('creature-editor');
     this.creatureId.set(creature.id);
     this.creatureName.set(creature.name);
     this.creatureSubtype.set(creature.subtype);
@@ -203,7 +215,10 @@ export class DmSceneLibraryComponent {
   }
 
   deleteCreature(creature: CreatureTemplate): void {
-    if (!confirm(this.i18n.translate('sceneLibrary.confirmDeleteCreature', { name: creature.name }))) return;
+    if (
+      !confirm(this.i18n.translate('sceneLibrary.confirmDeleteCreature', { name: creature.name }))
+    )
+      return;
     this.clearMessages();
     this.library
       .deleteCreature(creature.id)
@@ -255,7 +270,9 @@ export class DmSceneLibraryComponent {
   }
 
   removeSceneEntry(templateId: string): void {
-    this.sceneEntries.update((entries) => entries.filter((entry) => entry.templateId !== templateId));
+    this.sceneEntries.update((entries) =>
+      entries.filter((entry) => entry.templateId !== templateId),
+    );
   }
 
   saveScene(): void {
@@ -272,7 +289,9 @@ export class DmSceneLibraryComponent {
       .then(() => {
         this.feedback.set(
           this.i18n.translate(
-            this.sceneId() ? 'sceneLibrary.feedback.sceneUpdated' : 'sceneLibrary.feedback.sceneSaved',
+            this.sceneId()
+              ? 'sceneLibrary.feedback.sceneUpdated'
+              : 'sceneLibrary.feedback.sceneSaved',
           ),
         );
         this.resetSceneEditor();
@@ -285,6 +304,7 @@ export class DmSceneLibraryComponent {
   }
 
   editScene(scene: ScenePreset): void {
+    this.activeTool.set('scene-editor');
     this.sceneId.set(scene.id);
     this.sceneName.set(scene.name);
     this.sceneDescription.set(scene.description);
@@ -319,7 +339,8 @@ export class DmSceneLibraryComponent {
   }
 
   deleteScene(scene: ScenePreset): void {
-    if (!confirm(this.i18n.translate('sceneLibrary.confirmDeleteScene', { name: scene.name }))) return;
+    if (!confirm(this.i18n.translate('sceneLibrary.confirmDeleteScene', { name: scene.name })))
+      return;
     this.clearMessages();
     this.library
       .deleteScene(scene.id)

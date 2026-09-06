@@ -1,0 +1,38 @@
+.bf-page-intro {
+  display: grid;
+  gap: var(--bf-space-2);
+  margin-bottom: var(--bf-space-5);
+  padding: var(--bf-space-5);
+  border-left: 3px solid var(--bf-gold);
+  background: linear-gradient(110deg, var(--bf-bg-elevated), transparent);
+  border-radius: var(--bf-radius-md);
+}
+.bf-page-intro h2 {
+  font-size: 1.35rem;
+  color: var(--bf-text-primary);
+}
+.bf-page-intro p {
+  color: var(--bf-text-muted);
+  line-height: 1.6;
+}
+.bf-eyebrow {
+  color: var(--bf-gold);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+}
+.bf-empty-state {
+  border: 1px dashed var(--bf-border);
+  border-radius: var(--bf-radius-md);
+  padding: var(--bf-space-6);
+  text-align: center;
+  color: var(--bf-text-muted);
+  line-height: 1.7;
+}
+@media (max-width: 600px) {
+  .bf-page-intro {
+    padding: var(--bf-space-4);
+  }
+  .bf-empty-state {
+    padding: var(--bf-space-5);
+  }
+}

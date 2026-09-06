@@ -21,5 +21,5 @@ export const routes: Routes = [
       import('./features/player/player.component').then((m) => m.PlayerComponent),
   },
 
-  { path: '**', redirectTo: '/display' },
+  { path: '**', redirectTo: '/player' },
 ];

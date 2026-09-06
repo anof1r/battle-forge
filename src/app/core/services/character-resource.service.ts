@@ -1,3 +1,4 @@
+import { generateUuid } from '../utils/uuid.util';
 import { Injectable } from '@angular/core';
 import {
   CharacterResource,
@@ -17,7 +18,7 @@ export class CharacterResourceService {
     const normalized = normalizeCharacterResources([
       {
         ...resource,
-        id: resource.id || `resource_${crypto.randomUUID()}`,
+        id: resource.id || `resource_${generateUuid()}`,
       },
     ])[0];
     if (!normalized?.name) return resources;

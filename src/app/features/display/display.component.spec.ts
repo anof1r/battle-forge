@@ -108,9 +108,9 @@ describe('DisplayComponent', () => {
     expect(fixture.nativeElement.querySelector('.bestiary-card__abilities')).toHaveTextContent(
       'Nimble Escape',
     );
-    expect(fixture.nativeElement.querySelector('.bestiary-card__abilities-wrapper')).toHaveTextContent(
-      'Abilities',
-    );
+    expect(
+      fixture.nativeElement.querySelector('.bestiary-card__abilities-wrapper'),
+    ).toHaveTextContent('Abilities');
   });
 
   it('renders immersive enemy effects and a compact player effect roster', () => {
@@ -143,7 +143,9 @@ describe('DisplayComponent', () => {
       'Burning',
     );
     expect(fixture.nativeElement.querySelector('.arena__party-effects')).toHaveTextContent('Aria');
-    expect(fixture.nativeElement.querySelector('.arena__party-effects')).toHaveTextContent('Frightened');
+    expect(fixture.nativeElement.querySelector('.arena__party-effects')).toHaveTextContent(
+      'Frightened',
+    );
     expect(fixture.nativeElement.querySelector('.arena__party-effects')).toHaveTextContent(
       'Unconscious',
     );
@@ -179,5 +181,32 @@ describe('DisplayComponent', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.story-display')).toBeNull();
     expect(fixture.nativeElement.querySelector('.arena')).not.toBeNull();
+  });
+  it('shows the full initiative queue and puts the current participant in the header', () => {
+    status.set(BATTLE_STATUS.BATTLE);
+    const player: Combatant = {
+      ...enemy,
+      id: 'player_Aria',
+      type: COMBATANT_TYPE.PLAYER,
+      name: 'Aria',
+    };
+    combatants.set([player, enemy]);
+    enemies.set([enemy]);
+    current.set(player);
+    const fixture = TestBed.createComponent(DisplayComponent);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.arena__title')).toHaveTextContent('Aria');
+    expect(fixture.nativeElement.querySelectorAll('.arena__initiative-entry')).toHaveLength(2);
+    expect(
+      fixture.nativeElement.querySelector('.arena__initiative-entry--current'),
+    ).toHaveTextContent('Aria');
+  });
+
+  it('shows a waiting state when story mode has no active image', () => {
+    presentationMode.set('story');
+    const fixture = TestBed.createComponent(DisplayComponent);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.story-display__empty')).toBeVisible();
+    expect(fixture.nativeElement.querySelector('.arena')).toBeNull();
   });
 });

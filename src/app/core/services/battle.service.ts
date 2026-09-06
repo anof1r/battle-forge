@@ -1,3 +1,4 @@
+import { generateUuid } from '../utils/uuid.util';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { tap } from 'rxjs';
@@ -119,7 +120,7 @@ export class BattleService {
   async addEnemy(
     enemyData: Omit<Combatant, 'id' | 'initiative' | 'currentHp' | 'status' | 'lastUpdated'>,
   ): Promise<string> {
-    const id = `enemy_${crypto.randomUUID()}`;
+    const id = `enemy_${generateUuid()}`;
     const combatant: Combatant = {
       id,
       initiative: 0,
@@ -143,7 +144,7 @@ export class BattleService {
 
     for (const { template, quantity } of validStacks) {
       for (let index = 0; index < quantity; index += 1) {
-        const id = `enemy_${crypto.randomUUID()}`;
+        const id = `enemy_${generateUuid()}`;
         ids.push(id);
         updates[`combatants/${id}`] = {
           id,
@@ -625,7 +626,7 @@ export class BattleService {
     const durationTriggers = Math.max(0, Math.floor(options.durationTriggers ?? 0));
     const hasTurnBehavior = damagePerTrigger > 0 || durationTriggers > 0;
     const effect: ActiveStatusEffect = {
-      id: `effect_${crypto.randomUUID()}`,
+      id: `effect_${generateUuid()}`,
       type,
       appliedAt: Date.now(),
       ...(damagePerTrigger > 0 ? { damagePerTrigger } : {}),
@@ -1094,7 +1095,7 @@ export class BattleService {
     },
   ): BattleAction[] {
     const entry: BattleAction = {
-      id: crypto.randomUUID(),
+      id: generateUuid(),
       timestamp: Date.now(),
       reversible: true,
       ...action,

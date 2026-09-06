@@ -1,5 +1,5 @@
-<details class="resource-manager" open>
-  <summary>🎲 {{ 'resourceManager.title' | transloco }}</summary>
+<section class="resource-manager">
+  <h3>🎲 {{ 'resourceManager.title' | transloco }}</h3>
   <div class="resource-manager__content">
     <label>
       <span>{{ 'common.player' | transloco }}</span>
@@ -32,9 +32,31 @@
           }
         </div>
         <div class="resource-manager__form">
-          <label><span>{{ 'common.level' | transloco }}</span><input type="number" min="1" max="9" [value]="slotLevel()" (input)="setNumber('slotLevel', $event)" /></label>
-          <label><span>{{ 'common.remaining' | transloco }}</span><input type="number" min="0" [value]="slotCurrent()" (input)="setNumber('slotCurrent', $event)" /></label>
-          <label><span>{{ 'common.maximum' | transloco }}</span><input type="number" min="0" [value]="slotMax()" (input)="setNumber('slotMax', $event)" /></label>
+          <label
+            ><span>{{ 'common.level' | transloco }}</span
+            ><input
+              type="number"
+              min="1"
+              max="9"
+              [value]="slotLevel()"
+              (input)="setNumber('slotLevel', $event)"
+          /></label>
+          <label
+            ><span>{{ 'common.remaining' | transloco }}</span
+            ><input
+              type="number"
+              min="0"
+              [value]="slotCurrent()"
+              (input)="setNumber('slotCurrent', $event)"
+          /></label>
+          <label
+            ><span>{{ 'common.maximum' | transloco }}</span
+            ><input
+              type="number"
+              min="0"
+              [value]="slotMax()"
+              (input)="setNumber('slotMax', $event)"
+          /></label>
           <label>
             <span>{{ 'resourceManager.recovery' | transloco }}</span>
             <select [value]="slotRecovery()" (change)="setSlotRecovery($event)">
@@ -42,7 +64,9 @@
               <option value="short-rest">{{ 'resourceManager.pactShortRest' | transloco }}</option>
             </select>
           </label>
-          <button type="button" [disabled]="saving()" (click)="saveSlot()">{{ 'resourceManager.saveSlots' | transloco }}</button>
+          <button type="button" [disabled]="saving()" (click)="saveSlot()">
+            {{ 'resourceManager.saveSlots' | transloco }}
+          </button>
         </div>
       </section>
 
@@ -53,7 +77,9 @@
             <p class="resource-manager__hint">{{ 'resourceManager.resourcesHint' | transloco }}</p>
           </div>
           @if (resourceId()) {
-            <button type="button" class="secondary" (click)="resetResourceEditor()">+ {{ 'resourceManager.newResource' | transloco }}</button>
+            <button type="button" class="secondary" (click)="resetResourceEditor()">
+              + {{ 'resourceManager.newResource' | transloco }}
+            </button>
           }
         </div>
 
@@ -70,20 +96,31 @@
                 (click)="editResource(resource)"
               >
                 <span class="resource-manager__resource-title">
-                  <strong>{{ resource.icon || resource.activeEffect?.icon || '⚡' }} {{ resource.name }}</strong>
+                  <strong
+                    >{{ resource.icon || resource.activeEffect?.icon || '⚡' }}
+                    {{ resource.name }}</strong
+                  >
                   <b>{{ resource.isUnlimited ? '∞' : resource.current + ' / ' + resource.max }}</b>
                 </span>
                 @if (resource.description) {
-                  <span class="resource-manager__resource-description">{{ resource.description }}</span>
+                  <span class="resource-manager__resource-description">{{
+                    resource.description
+                  }}</span>
                 }
                 <span class="resource-manager__resource-recovery">
                   @if (resource.isUnlimited) {
                     {{ 'resourceManager.notConsumed' | transloco }}
                   } @else {
                     @switch (resource.recovery) {
-                      @case ('short-rest') { {{ 'recovery.shortRest' | transloco }} }
-                      @case ('long-rest') { {{ 'recovery.longRest' | transloco }} }
-                      @default { {{ 'resourceManager.manualOnly' | transloco }} }
+                      @case ('short-rest') {
+                        {{ 'recovery.shortRest' | transloco }}
+                      }
+                      @case ('long-rest') {
+                        {{ 'recovery.longRest' | transloco }}
+                      }
+                      @default {
+                        {{ 'resourceManager.manualOnly' | transloco }}
+                      }
                     }
                   }
                   @if ((resource.shortRestRestore ?? 0) > 0) {
@@ -102,7 +139,9 @@
                 type="button"
                 class="resource-manager__delete"
                 [disabled]="saving()"
-                [attr.aria-label]="'resourceManager.deleteNamed' | transloco: { name: resource.name }"
+                [attr.aria-label]="
+                  'resourceManager.deleteNamed' | transloco: { name: resource.name }
+                "
                 [title]="'resourceManager.deleteResource' | transloco"
                 (click)="deleteResource(resource)"
               >
@@ -115,18 +154,31 @@
         </div>
 
         <div class="resource-manager__form resource-manager__form--resource">
-          <h4>{{ (resourceId() ? 'resourceManager.editResource' : 'resourceManager.newResource') | transloco }}</h4>
-          <div class="resource-manager__presets" [attr.aria-label]="'resourceManager.presets' | transloco">
+          <h4>
+            {{
+              (resourceId() ? 'resourceManager.editResource' : 'resourceManager.newResource')
+                | transloco
+            }}
+          </h4>
+          <div
+            class="resource-manager__presets"
+            [attr.aria-label]="'resourceManager.presets' | transloco"
+          >
             <span>{{ 'resourceManager.quickPresets' | transloco }}</span>
             @for (preset of resourcePresets; track preset.id) {
               <button type="button" class="secondary" (click)="applyResourcePreset(preset.id)">
-                {{ ('resourceManager.preset.' + preset.id) | transloco }}
+                {{ 'resourceManager.preset.' + preset.id | transloco }}
               </button>
             }
           </div>
           <label class="resource-manager__field--name">
             <span>{{ 'common.name' | transloco }}</span>
-            <input type="text" [value]="resourceName()" (input)="setResourceName($event)" [placeholder]="'resourceManager.namePlaceholder' | transloco" />
+            <input
+              type="text"
+              [value]="resourceName()"
+              (input)="setResourceName($event)"
+              [placeholder]="'resourceManager.namePlaceholder' | transloco"
+            />
           </label>
           <label class="resource-manager__field--icon">
             <span>{{ 'resourceManager.icon' | transloco }}</span>
@@ -160,8 +212,23 @@
             </span>
           </label>
           @if (!resourceUnlimited()) {
-            <label><span>{{ 'common.maximum' | transloco }}</span><input type="number" min="0" [value]="resourceMax()" (input)="setNumber('resourceMax', $event)" /></label>
-            <label><span>{{ 'common.remaining' | transloco }}</span><input type="number" min="0" [max]="resourceMax()" [value]="resourceCurrent()" (input)="setNumber('resourceCurrent', $event)" /></label>
+            <label
+              ><span>{{ 'common.maximum' | transloco }}</span
+              ><input
+                type="number"
+                min="0"
+                [value]="resourceMax()"
+                (input)="setNumber('resourceMax', $event)"
+            /></label>
+            <label
+              ><span>{{ 'common.remaining' | transloco }}</span
+              ><input
+                type="number"
+                min="0"
+                [max]="resourceMax()"
+                [value]="resourceCurrent()"
+                (input)="setNumber('resourceCurrent', $event)"
+            /></label>
             <label>
               <span>{{ 'resourceManager.recovery' | transloco }}</span>
               <select [value]="resourceRecovery()" (change)="setRecovery($event)">
@@ -235,7 +302,9 @@
                   <span>{{ 'open5e.fields.duration' | transloco }}</span>
                   <select [value]="resourceEffectDuration()" (change)="setEffectDuration($event)">
                     <option value="manual">{{ 'resourceManager.untilManual' | transloco }}</option>
-                    <option value="until-next-turn-end">{{ 'resourceManager.untilNextTurn' | transloco }}</option>
+                    <option value="until-next-turn-end">
+                      {{ 'resourceManager.untilNextTurn' | transloco }}
+                    </option>
                     <option value="rounds">{{ 'resourceManager.roundCount' | transloco }}</option>
                   </select>
                 </label>
@@ -255,22 +324,39 @@
           </details>
           <div class="resource-manager__form-actions">
             @if (!resourceUnlimited()) {
-              <button type="button" class="secondary" [disabled]="resourceMax() <= 0" (click)="fillResourceToMax()">
+              <button
+                type="button"
+                class="secondary"
+                [disabled]="resourceMax() <= 0"
+                (click)="fillResourceToMax()"
+              >
                 {{ 'resourceManager.fillMaximum' | transloco }}
               </button>
             }
-            <button type="button" [disabled]="saving() || !resourceName().trim()" (click)="saveResource()">
-              {{ (resourceId() ? 'common.saveChanges' : 'resourceManager.addResource') | transloco }}
+            <button
+              type="button"
+              [disabled]="saving() || !resourceName().trim()"
+              (click)="saveResource()"
+            >
+              {{
+                (resourceId() ? 'common.saveChanges' : 'resourceManager.addResource') | transloco
+              }}
             </button>
             @if (resourceId()) {
-              <button type="button" class="secondary" (click)="resetResourceEditor()">{{ 'common.cancel' | transloco }}</button>
+              <button type="button" class="secondary" (click)="resetResourceEditor()">
+                {{ 'common.cancel' | transloco }}
+              </button>
             }
           </div>
         </div>
       </section>
     }
 
-    @if (message()) { <p class="success" role="status">{{ message() }}</p> }
-    @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+    @if (message()) {
+      <p class="success" role="status">{{ message() }}</p>
+    }
+    @if (error()) {
+      <p class="error" role="alert">{{ error() }}</p>
+    }
   </div>
-</details>
+</section>

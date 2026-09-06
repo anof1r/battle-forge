@@ -1,3 +1,4 @@
+import { generateUuid } from '../../../core/utils/uuid.util';
 import { Injectable, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { DATA_ROOT, itemTemplatePath } from '../../../core/constants/data-paths.constants';
@@ -21,7 +22,7 @@ export class ItemLibraryService {
 
   async saveItem(draft: ItemTemplateDraft): Promise<string> {
     const now = Date.now();
-    const id = draft.id || `item_${crypto.randomUUID()}`;
+    const id = draft.id || `item_${generateUuid()}`;
     const existing = this.records()?.[id];
     const item: ItemTemplate = {
       ...draft,

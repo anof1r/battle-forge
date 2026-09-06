@@ -129,7 +129,9 @@ describe('DmControlComponent', () => {
     expect(component.activePanel()).toBe('scenes');
     expect(fixture.nativeElement.querySelector('app-dm-scene-library')).toBeInTheDocument();
     expect(fixture.nativeElement.querySelector('app-dm-battle-controls')).toBeInTheDocument();
-    expect(fixture.nativeElement.querySelector('.dm-battle-workspace-host')).toHaveAttribute('hidden');
+    expect(fixture.nativeElement.querySelector('.dm-battle-workspace-host')).toHaveAttribute(
+      'hidden',
+    );
     expect(fixture.nativeElement.querySelectorAll('.dm-workspace-tabs button')).toHaveLength(6);
   });
 
@@ -158,7 +160,9 @@ describe('DmControlComponent', () => {
   function mountBattle() {
     component.activePanel.set('battle');
     fixture.detectChanges();
-    const workspace: DmBattleWorkspaceComponent = fixture.debugElement.query(By.directive(DmBattleWorkspaceComponent)).componentInstance;
+    const workspace: DmBattleWorkspaceComponent = fixture.debugElement.query(
+      By.directive(DmBattleWorkspaceComponent),
+    ).componentInstance;
     const dialog: HTMLDialogElement = fixture.nativeElement.querySelector('dialog');
     // jsdom has no native dialog API or layout; emulate only the open state.
     dialog.show = vi.fn(() => dialog.setAttribute('open', ''));
@@ -186,7 +190,8 @@ describe('DmControlComponent', () => {
 
   it('opens one tool at a time, preserves effect drafts, and restores focus on Escape', () => {
     const { dialog } = mountBattle();
-    const cards: NodeListOf<HTMLButtonElement> = fixture.nativeElement.querySelectorAll('.dm-battle-tool');
+    const cards: NodeListOf<HTMLButtonElement> =
+      fixture.nativeElement.querySelectorAll('.dm-battle-tool');
     expect(cards).toHaveLength(4);
     expect(dialog).not.toHaveAttribute('open');
 
@@ -199,7 +204,9 @@ describe('DmControlComponent', () => {
     expect(dialog.querySelector('app-dm-combatant-roster')).not.toBeVisible();
     expect(fixture.nativeElement.querySelector('.dm-battle-bar')).toBeVisible();
     expect(fixture.nativeElement.querySelector('app-dm-hp-control')).toBeVisible();
-    const effects: DmStatusEffectsComponent = fixture.debugElement.query(By.directive(DmStatusEffectsComponent)).componentInstance;
+    const effects: DmStatusEffectsComponent = fixture.debugElement.query(
+      By.directive(DmStatusEffectsComponent),
+    ).componentInstance;
     effects.notes.set('Keep this draft');
 
     cards[3].click();
@@ -247,24 +254,36 @@ describe('DmControlComponent', () => {
     const { workspace } = mountBattle();
     const battle = TestBed.inject(BattleService);
     const aria: Combatant = {
-      id: 'player_Aria', name: 'Aria', type: COMBATANT_TYPE.PLAYER,
-      status: COMBATANT_STATUS.ALIVE, currentHp: 20, maxHp: 24, ac: 14, initiative: 12,
+      id: 'player_Aria',
+      name: 'Aria',
+      type: COMBATANT_TYPE.PLAYER,
+      status: COMBATANT_STATUS.ALIVE,
+      currentHp: 20,
+      maxHp: 24,
+      ac: 14,
+      initiative: 12,
       activeEffects: [{ id: 'poison', type: STATUS_EFFECT_TYPE.POISONED, appliedAt: 1 }],
     };
     (battle.sortedCombatants as WritableSignal<Combatant[]>).set([aria]);
     (battle.combatants as WritableSignal<Record<string, Combatant>>).set({ [aria.id]: aria });
     (battle.playersInBattle as WritableSignal<Record<string, Combatant>>).set({ [aria.id]: aria });
     fixture.detectChanges();
-    const target: HTMLButtonElement = fixture.nativeElement.querySelector('.dm-battle-combatant__target');
+    const target: HTMLButtonElement = fixture.nativeElement.querySelector(
+      '.dm-battle-combatant__target',
+    );
     target.click();
     fixture.detectChanges();
-    const hp: DmHpControlComponent = fixture.debugElement.query(By.directive(DmHpControlComponent)).componentInstance;
+    const hp: DmHpControlComponent = fixture.debugElement.query(
+      By.directive(DmHpControlComponent),
+    ).componentInstance;
     expect(hp.targetId()).toBe(aria.id);
     expect(hp.targetType()).toBe('players');
     expect(target).toHaveAttribute('aria-pressed', 'true');
     expect(workspace.effectCount()).toBe(1);
     expect(workspace.playerCount()).toBe(1);
-    expect(fixture.nativeElement.querySelector('bf-status-effect-list')).toHaveTextContent('Отравление');
+    expect(fixture.nativeElement.querySelector('bf-status-effect-list')).toHaveTextContent(
+      'Отравление',
+    );
     (battle.sortedCombatants as WritableSignal<Combatant[]>).set([{ ...aria, activeEffects: [] }]);
     fixture.detectChanges();
     expect(workspace.effectCount()).toBe(0);
@@ -273,7 +292,9 @@ describe('DmControlComponent', () => {
   it('shows preparation actions before battle and guards repeated next-turn clicks', async () => {
     mountBattle();
     const battle = TestBed.inject(BattleService);
-    let buttons: HTMLButtonElement[] = Array.from(fixture.nativeElement.querySelectorAll('.dm-battle-quick-actions button'));
+    let buttons: HTMLButtonElement[] = Array.from(
+      fixture.nativeElement.querySelectorAll('.dm-battle-quick-actions button'),
+    );
     expect(buttons).toHaveLength(3);
     buttons[1].click();
     expect(battle.startBattle).toHaveBeenCalledOnce();
@@ -282,9 +303,12 @@ describe('DmControlComponent', () => {
     buttons = Array.from(fixture.nativeElement.querySelectorAll('.dm-battle-quick-actions button'));
     expect(buttons).toHaveLength(2);
     let finishTurn!: () => void;
-    vi.mocked(battle.nextTurn).mockImplementation(() => new Promise<void>((resolve) => {
-      finishTurn = resolve;
-    }));
+    vi.mocked(battle.nextTurn).mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          finishTurn = resolve;
+        }),
+    );
     buttons[0].click();
     buttons[0].click();
     expect(battle.nextTurn).toHaveBeenCalledOnce();
@@ -318,5 +342,17 @@ describe('DmControlComponent', () => {
     expect(fixture.nativeElement.querySelector('app-dm-item-library')).toBeInTheDocument();
     expect(fixture.nativeElement.querySelector('app-dm-item-grant')).toBeInTheDocument();
     expect(fixture.nativeElement.querySelector('app-dm-spell-grant')).toBeInTheDocument();
+  });
+  it('opens only the selected reward tool', () => {
+    component.activePanel.set('rewards');
+    fixture.detectChanges();
+    const root: HTMLElement = fixture.nativeElement;
+    expect(root.querySelector('.dm-rewards-workspace app-dm-item-grant')).not.toBeVisible();
+    root.querySelector<HTMLButtonElement>('.dm-rewards-workspace [data-tool="grant"]')!.click();
+    fixture.detectChanges();
+    expect(root.querySelector('.dm-rewards-workspace app-dm-item-grant')).toBeVisible();
+    expect(
+      root.querySelector('.dm-rewards-workspace app-dm-character-resources'),
+    ).not.toBeVisible();
   });
 });

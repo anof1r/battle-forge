@@ -48,194 +48,201 @@
     </button>
   </div>
 
-  <details class="story-deck" open>
-    <summary class="story-deck__summary">
-      <span>🖼 {{ 'story.imagesOrder' | transloco }}</span>
-      <small>{{ 'story.imageCount' | transloco: { count: story.slides().length } }}</small>
-    </summary>
+  <div class="story-editor__workspace">
+    <section class="story-deck">
+      <header class="story-deck__summary">
+        <span>🖼 {{ 'story.imagesOrder' | transloco }}</span>
+        <small>{{ 'story.imageCount' | transloco: { count: story.slides().length } }}</small>
+      </header>
 
-    <div class="story-deck__body">
-      <div class="story-deck__toolbar">
-        <p>{{ 'story.fileLink' | transloco }}: <code>1.png</code> → <code>1</code>.</p>
-        <div class="story-deck__add-controls">
-          <label class="story-deck__position">
-            <span>{{ 'story.newPosition' | transloco }}</span>
-            <select
-              [value]="insertBeforeSlideId() ?? ''"
-              (change)="setInsertBeforeSlide($event)"
-            >
-              <option value="">{{ 'story.endOfList' | transloco }}</option>
-              @for (slide of story.slides(); track slide.id; let index = $index) {
-                <option [value]="slide.id">{{ 'story.before' | transloco: { position: index + 1, name: slide.name } }}</option>
-              }
-            </select>
-          </label>
-          <label class="story-editor__upload">
-            <span>＋ {{ 'story.addImages' | transloco }}</span>
-            <input type="file" accept="image/*" multiple (change)="onFilesSelected($event)" />
-          </label>
-        </div>
-      </div>
-
-      @if (uploadMessage(); as message) {
-        <p class="story-editor__message" role="status">{{ message }}</p>
-      }
-
-      @if (story.slides().length === 0) {
-        <div class="story-editor__empty">
-          <span aria-hidden="true">🖼️</span>
-          <strong>{{ 'story.noSlides' | transloco }}</strong>
-          <p>{{ 'story.formats' | transloco }}</p>
-        </div>
-      } @else {
-        <div class="story-editor__grid" [attr.aria-label]="'story.slides' | transloco">
-          @for (slide of story.slides(); track slide.id; let index = $index) {
-            <article
-              class="story-slide"
-              [class.story-slide--active]="story.activeSlideId() === slide.id"
-              [class.story-slide--dragging]="draggedSlideId() === slide.id"
-              draggable="true"
-              tabindex="0"
-              role="button"
-              [attr.aria-label]="'story.selectSlide' | transloco: { position: index + 1, name: slide.name }"
-              (click)="story.selectSlide(slide.id)"
-              (keydown.enter)="story.selectSlide(slide.id)"
-              (dragstart)="onDragStart(slide.id, $event)"
-              (dragover)="onDragOver($event)"
-              (drop)="onDrop(slide.id, $event)"
-              (dragend)="stopDragging()"
-            >
-              <div class="story-slide__preview">
-                <img [src]="slide.objectUrl" [alt]="slide.name" />
-                <span class="story-slide__number">{{ slide.order + 1 }}</span>
-                @if (story.activeSlideId() === slide.id) {
-                  <span class="story-slide__live">{{ 'story.onScreen' | transloco }}</span>
+      <div class="story-deck__body">
+        <div class="story-deck__toolbar">
+          <div class="story-deck__add-controls">
+            <label class="story-deck__position">
+              <span>{{ 'story.newPosition' | transloco }}</span>
+              <select [value]="insertBeforeSlideId() ?? ''" (change)="setInsertBeforeSlide($event)">
+                <option value="">{{ 'story.endOfList' | transloco }}</option>
+                @for (slide of story.slides(); track slide.id; let index = $index) {
+                  <option [value]="slide.id">
+                    {{ 'story.before' | transloco: { position: index + 1, name: slide.name } }}
+                  </option>
                 }
-              </div>
-              <div class="story-slide__identity">
-                <p class="story-slide__name" [attr.title]="slide.name">{{ slide.name }}</p>
-                <small>{{ 'story.script' | transloco }}: {{ storySectionIdFromFileName(slide.name) }}</small>
-              </div>
-              <div class="story-slide__actions">
-                <button
-                  type="button"
-                  [disabled]="$first"
-                  [attr.aria-label]="'story.moveEarlier' | transloco"
-                  (click)="moveSlide(slide.id, -1, $event)"
-                >
-                  ←
-                </button>
-                <button
-                  type="button"
-                  [disabled]="$last"
-                  [attr.aria-label]="'story.moveLater' | transloco"
-                  (click)="moveSlide(slide.id, 1, $event)"
-                >
-                  →
-                </button>
-                <button
-                  type="button"
-                  class="story-slide__remove"
-                  [attr.aria-label]="'story.deleteSlide' | transloco"
-                  (click)="removeSlide(slide.id, $event)"
-                >
-                  ✕
-                </button>
-              </div>
-            </article>
-          }
+              </select>
+            </label>
+            <label class="story-editor__upload">
+              <span>＋ {{ 'story.addImages' | transloco }}</span>
+              <input type="file" accept="image/*" multiple (change)="onFilesSelected($event)" />
+            </label>
+          </div>
         </div>
-      }
-    </div>
-  </details>
 
-  @if (story.activeSlide(); as slide) {
-    <section class="story-script" aria-labelledby="story-script-title">
-      <header class="story-script__header">
-        <div>
-          <p class="story-script__eyebrow">{{ 'story.selectedScript' | transloco }}</p>
-          <h3 id="story-script-title">📜 {{ slide.name }}</h3>
+        @if (uploadMessage(); as message) {
+          <p class="story-editor__message" role="status">{{ message }}</p>
+        }
+
+        @if (story.slides().length === 0) {
+          <div class="story-editor__empty">
+            <span aria-hidden="true">🖼️</span>
+            <strong>{{ 'story.noSlides' | transloco }}</strong>
+            <p>{{ 'story.formats' | transloco }}</p>
+          </div>
+        } @else {
+          <div class="story-editor__grid" [attr.aria-label]="'story.slides' | transloco">
+            @for (slide of story.slides(); track slide.id; let index = $index) {
+              <article
+                class="story-slide"
+                [class.story-slide--active]="story.activeSlideId() === slide.id"
+                [class.story-slide--dragging]="draggedSlideId() === slide.id"
+                draggable="true"
+                tabindex="0"
+                role="button"
+                [attr.aria-label]="
+                  'story.selectSlide' | transloco: { position: index + 1, name: slide.name }
+                "
+                (click)="story.selectSlide(slide.id)"
+                (keydown.enter)="story.selectSlide(slide.id)"
+                (keydown.space)="story.selectSlide(slide.id); $event.preventDefault()"
+                (dragstart)="onDragStart(slide.id, $event)"
+                (dragover)="onDragOver($event)"
+                (drop)="onDrop(slide.id, $event)"
+                (dragend)="stopDragging()"
+              >
+                <div class="story-slide__preview">
+                  <img [src]="slide.objectUrl" [alt]="slide.name" />
+                  <span class="story-slide__number">{{ slide.order + 1 }}</span>
+                  @if (story.activeSlideId() === slide.id) {
+                    <span class="story-slide__live">{{ 'story.onScreen' | transloco }}</span>
+                  }
+                </div>
+                <div class="story-slide__identity">
+                  <p class="story-slide__name" [attr.title]="slide.name">{{ slide.name }}</p>
+                  <small
+                    >{{ 'story.script' | transloco }}:
+                    {{ storySectionIdFromFileName(slide.name) }}</small
+                  >
+                </div>
+                <div class="story-slide__actions">
+                  <button
+                    type="button"
+                    [disabled]="$first"
+                    [attr.aria-label]="'story.moveEarlier' | transloco"
+                    (click)="moveSlide(slide.id, -1, $event)"
+                  >
+                    ←
+                  </button>
+                  <button
+                    type="button"
+                    [disabled]="$last"
+                    [attr.aria-label]="'story.moveLater' | transloco"
+                    (click)="moveSlide(slide.id, 1, $event)"
+                  >
+                    →
+                  </button>
+                  <button
+                    type="button"
+                    class="story-slide__remove"
+                    [attr.aria-label]="'story.deleteSlide' | transloco"
+                    (click)="removeSlide(slide.id, $event)"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </article>
+            }
+          </div>
+        }
+      </div>
+    </section>
+
+    @if (story.activeSlide(); as slide) {
+      <section class="story-script" aria-labelledby="story-script-title">
+        <header class="story-script__header">
+          <div>
+            <p class="story-script__eyebrow">{{ 'story.selectedScript' | transloco }}</p>
+            <h3 id="story-script-title">📜 {{ slide.name }}</h3>
+          </div>
+          <div class="story-script__header-actions">
+            <span class="story-script__key"
+              >{{ 'story.sectionKey' | transloco }}: {{ activeSectionId() }}</span
+            >
+            @if (!scriptEditing()) {
+              <button type="button" class="story-editor__button" (click)="startScriptEditing()">
+                ✎ {{ 'common.edit' | transloco }}
+              </button>
+            }
+          </div>
+        </header>
+
+        @if (hasDuplicateSectionId()) {
+          <p class="story-script__warning" role="alert">
+            {{ 'story.duplicateWarning' | transloco }}
+          </p>
+        }
+
+        <div
+          class="story-script__workspace"
+          [class.story-script__workspace--reading]="!scriptEditing()"
+        >
+          @if (scriptEditing()) {
+            <label class="story-script__editor">
+              <span>{{ 'story.scriptHints' | transloco }}</span>
+              <textarea
+                rows="18"
+                [placeholder]="'story.placeholder' | transloco"
+                [value]="scriptDraft()"
+                (input)="onScriptInput($event)"
+              ></textarea>
+              <small>
+                {{ 'story.markdownHint' | transloco }}: <code>#</code>, <code>**bold**</code>,
+                <code>*italic*</code>, <code>&gt;</code>, <code>-</code>.
+              </small>
+            </label>
+          }
+
+          <article
+            class="story-script__preview"
+            [attr.aria-label]="'story.previewLabel' | transloco"
+          >
+            <span class="story-script__preview-label">{{ 'story.preview' | transloco }}</span>
+            @if (scriptDraft().trim()) {
+              <div class="story-script__markdown" [innerHTML]="scriptPreview()"></div>
+            } @else {
+              <p class="story-script__empty-preview">{{ 'story.emptyScript' | transloco }}</p>
+            }
+          </article>
         </div>
-        <div class="story-script__header-actions">
-          <span class="story-script__key">{{ 'story.sectionKey' | transloco }}: {{ activeSectionId() }}</span>
-          @if (!scriptEditing()) {
+
+        <footer class="story-script__actions">
+          @if (scriptEditing()) {
             <button
               type="button"
               class="story-editor__button"
-              (click)="startScriptEditing()"
+              [disabled]="scriptSaving() || !scriptIsDirty()"
+              (click)="saveScript()"
             >
-              ✎ {{ 'common.edit' | transloco }}
+              {{ (scriptSaving() ? 'common.saving' : 'story.saveScript') | transloco }}
+            </button>
+            <button
+              type="button"
+              class="story-editor__button"
+              [disabled]="scriptSaving()"
+              (click)="resetScriptDraft()"
+            >
+              {{ 'story.cancelChanges' | transloco }}
             </button>
           }
-        </div>
-      </header>
-
-      @if (hasDuplicateSectionId()) {
-        <p class="story-script__warning" role="alert">
-          {{ 'story.duplicateWarning' | transloco }}
-        </p>
-      }
-
-      <div
-        class="story-script__workspace"
-        [class.story-script__workspace--reading]="!scriptEditing()"
-      >
-        @if (scriptEditing()) {
-          <label class="story-script__editor">
-            <span>{{ 'story.scriptHints' | transloco }}</span>
-            <textarea
-              rows="18"
-              [placeholder]="'story.placeholder' | transloco"
-              [value]="scriptDraft()"
-              (input)="onScriptInput($event)"
-            ></textarea>
-            <small>
-              {{ 'story.markdownHint' | transloco }}: <code>#</code>, <code>**bold**</code>, <code>*italic*</code>,
-              <code>&gt;</code>, <code>-</code>.
-            </small>
-          </label>
-        }
-
-        <article class="story-script__preview" [attr.aria-label]="'story.previewLabel' | transloco">
-          <span class="story-script__preview-label">{{ 'story.preview' | transloco }}</span>
-          @if (scriptDraft().trim()) {
-            <div class="story-script__markdown" [innerHTML]="scriptPreview()"></div>
-          } @else {
-            <p class="story-script__empty-preview">{{ 'story.emptyScript' | transloco }}</p>
+          @if (scriptMessage(); as message) {
+            <span class="story-script__success" role="status">{{ message }}</span>
           }
-        </article>
+          @if (scriptError(); as error) {
+            <span class="story-script__error" role="alert">{{ error }}</span>
+          }
+        </footer>
+      </section>
+    } @else {
+      <div class="story-script story-script--empty">
+        {{ 'story.selectImageHint' | transloco }}
       </div>
-
-      <footer class="story-script__actions">
-        @if (scriptEditing()) {
-          <button
-            type="button"
-            class="story-editor__button"
-            [disabled]="scriptSaving() || !scriptIsDirty()"
-            (click)="saveScript()"
-          >
-            {{ (scriptSaving() ? 'common.saving' : 'story.saveScript') | transloco }}
-          </button>
-          <button
-            type="button"
-            class="story-editor__button"
-            [disabled]="scriptSaving()"
-            (click)="resetScriptDraft()"
-          >
-            {{ 'story.cancelChanges' | transloco }}
-          </button>
-        }
-        @if (scriptMessage(); as message) {
-          <span class="story-script__success" role="status">{{ message }}</span>
-        }
-        @if (scriptError(); as error) {
-          <span class="story-script__error" role="alert">{{ error }}</span>
-        }
-      </footer>
-    </section>
-  } @else {
-    <div class="story-script story-script--empty">
-      {{ 'story.selectImageHint' | transloco }}
-    </div>
-  }
+    }
+  </div>
 </section>

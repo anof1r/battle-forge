@@ -281,6 +281,28 @@ describe('BattleService', () => {
     expect(service.canUndo()).toBe(false);
   });
 
+  it('persists damage and undo history over HTTP without crypto.randomUUID', async () => {
+    vi.stubGlobal('crypto', { getRandomValues: (bytes: Uint8Array) => bytes.fill(0x12) });
+    await setup();
+    realtimeData.clearCalls();
+
+    await service.takeDamage('enemy-1', 4);
+
+    expect(realtimeData.updateMock).toHaveBeenCalledWith(ROOM_PATH, expect.objectContaining({
+      'combatants/enemy-1/currentHp': 6,
+      history: [expect.objectContaining({
+        id: '12121212-1212-4212-9212-121212121212',
+        reversible: true,
+      })],
+    }));
+    expect(service.canUndo()).toBe(true);
+    await service.undoLastAction();
+    expect(realtimeData.updateMock).toHaveBeenLastCalledWith(ROOM_PATH, expect.objectContaining({
+      'combatants/enemy-1': expect.objectContaining({ currentHp: 10 }),
+      history: null,
+    }));
+  });
+
   it('clamps player damage at zero and synchronizes character HP', async () => {
     vi.spyOn(Date, 'now').mockReturnValue(NOW);
     vi.spyOn(globalThis.crypto, 'randomUUID').mockReturnValue(UUID);

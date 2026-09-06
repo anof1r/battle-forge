@@ -32,3 +32,9 @@ export interface CharacterWeaponView {
   weapon: CharacterWeapon;
   attackBonus: string | null;
 }
+
+export interface ItemUseConfirmation {
+  itemName: string;
+  icon: string;
+  quantity: number;
+}

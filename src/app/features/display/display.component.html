@@ -5,223 +5,250 @@
         <img [src]="slide.objectUrl" alt="" />
       </div>
       <img class="story-display__image" [src]="slide.objectUrl" [alt]="slide.name" />
+    } @else {
+      <div class="story-display__empty">
+        <span aria-hidden="true">🖼</span>
+        <p>{{ 'workspace.waitingSlide' | transloco }}</p>
+      </div>
     }
   </main>
 } @else {
-@if (battleStatus() !== BATTLE_STATUS.BATTLE) {
-  <div class="stage__intro">
-    <div class="stage__intro-frame">
-      <span class="stage__corner stage__corner--tl"></span>
-      <span class="stage__corner stage__corner--tr"></span>
-      <span class="stage__corner stage__corner--bl"></span>
-      <span class="stage__corner stage__corner--br"></span>
+  @if (battleStatus() !== BATTLE_STATUS.BATTLE) {
+    <div class="stage__intro">
+      <div class="stage__intro-frame">
+        <span class="stage__corner stage__corner--tl"></span>
+        <span class="stage__corner stage__corner--tr"></span>
+        <span class="stage__corner stage__corner--bl"></span>
+        <span class="stage__corner stage__corner--br"></span>
 
-      <div class="stage__intro-content">
-        <h1 class="stage__title">
-          <span class="stage__title-icon">⚔️</span>
-          Battle Forge
-          <span class="stage__title-icon">⚔️</span>
-        </h1>
-        <p class="bf-build-signature">ver 0.0.1 alpha by anof1r</p>
+        <div class="stage__intro-content">
+          <h1 class="stage__title">
+            <span class="stage__title-icon">⚔️</span>
+            Battle Forge
+            <span class="stage__title-icon">⚔️</span>
+          </h1>
+          <p class="bf-build-signature">ver 0.0.1 alpha by anof1r</p>
 
-        <div class="stage__divider">
-          <span class="stage__divider-line"></span>
-          <span class="stage__divider-diamond">✦</span>
-          <span class="stage__divider-line"></span>
+          <div class="stage__divider">
+            <span class="stage__divider-line"></span>
+            <span class="stage__divider-diamond">✦</span>
+            <span class="stage__divider-line"></span>
+          </div>
+
+          @if (battleStatus() === BATTLE_STATUS.PREPARATION) {
+            <p class="stage__subtitle">{{ 'display.awaitingDm' | transloco }}</p>
+          }
+          @if (battleStatus() === BATTLE_STATUS.INITIATIVE) {
+            <p class="stage__subtitle">{{ 'display.rollingInitiative' | transloco }}</p>
+          }
+          @if (battleStatus() === BATTLE_STATUS.ENDED) {
+            <p class="stage__subtitle">{{ 'display.battleEnded' | transloco }}</p>
+          }
         </div>
-
-        @if (battleStatus() === BATTLE_STATUS.PREPARATION) {
-          <p class="stage__subtitle">{{ 'display.awaitingDm' | transloco }}</p>
-        }
-        @if (battleStatus() === BATTLE_STATUS.INITIATIVE) {
-          <p class="stage__subtitle">{{ 'display.rollingInitiative' | transloco }}</p>
-        }
-        @if (battleStatus() === BATTLE_STATUS.ENDED) {
-          <p class="stage__subtitle">{{ 'display.battleEnded' | transloco }}</p>
-        }
       </div>
     </div>
-  </div>
-}
+  }
 
-@if (battleStatus() === BATTLE_STATUS.BATTLE) {
-  <div class="arena">
-    <header class="arena__header">
-      <div class="arena__stat">
-        <span class="arena__stat-label">{{ 'common.round' | transloco }}</span>
-        <span class="arena__stat-value">{{ currentRound() }}</span>
-      </div>
-      <h1 class="arena__title">{{ 'common.battle' | transloco }}</h1>
-      <div class="arena__stat">
-        <span class="arena__stat-label">{{ 'common.enemies' | transloco }}</span>
-        <span class="arena__stat-value">{{ aliveEnemies().length }}</span>
-      </div>
-    </header>
+  @if (battleStatus() === BATTLE_STATUS.BATTLE) {
+    <div class="arena">
+      <header class="arena__header">
+        <div class="arena__stat">
+          <span class="arena__stat-label">{{ 'common.round' | transloco }}</span>
+          <span class="arena__stat-value">{{ currentRound() }}</span>
+        </div>
+        <div class="arena__spotlight">
+          <span>{{ 'common.currentTurn' | transloco }}</span>
+          <h1 class="arena__title">{{ currentEnemy()?.name ?? ('common.battle' | transloco) }}</h1>
+        </div>
+        <div class="arena__stat">
+          <span class="arena__stat-label">{{ 'common.enemies' | transloco }}</span>
+          <span class="arena__stat-value">{{ aliveEnemies().length }}</span>
+        </div>
+      </header>
 
-    @if (partyAlerts().length > 0) {
-      <section class="arena__party-effects" [attr.aria-label]="'display.playerEffects' | transloco">
-        @for (player of partyAlerts(); track player.id) {
-          <div class="party-effect-row">
-            <strong>{{ player.name }}</strong>
-            @if (player.status !== COMBATANT_STATUS.ALIVE) {
-              <bf-combatant-life-state
-                [status]="player.status"
-                [deathSaves]="player.deathSaves"
-              ></bf-combatant-life-state>
-            }
-            @if ((player.activeEffects?.length ?? 0) > 0) {
-              <bf-status-effect-list
-                [effects]="player.activeEffects ?? []"
-              ></bf-status-effect-list>
+      <section class="arena__initiative" [attr.aria-label]="'player.arena.turnOrder' | transloco">
+        @for (combatant of combatantsInTurnOrder(); track combatant.id; let index = $index) {
+          <div
+            class="arena__initiative-entry"
+            [class.arena__initiative-entry--current]="currentEnemy()?.id === combatant.id"
+          >
+            <span>{{ index + 1 }}</span
+            ><strong>{{ combatant.name }}</strong
+            ><small>{{ combatant.currentHp }}/{{ combatant.maxHp }} HP</small>
+            @if (currentEnemy()?.id === combatant.id) {
+              <b aria-hidden="true">←</b>
             }
           </div>
         }
       </section>
-    }
-
-    <main class="arena__grid">
-      @for (enemy of aliveEnemies(); track enemy.id) {
-        <article
-          class="bestiary-card"
-          [class.bestiary-card--active]="currentEnemy() === enemy"
-          [class.bestiary-card--poisoned]="hasEffect(enemy, 'poisoned')"
-          [class.bestiary-card--burning]="hasEffect(enemy, 'burning')"
-          [class.bestiary-card--frozen]="hasEffect(enemy, 'frozen')"
-          [class.bestiary-card--frightened]="hasEffect(enemy, 'frightened')"
-          [class.bestiary-card--bleeding]="hasEffect(enemy, 'bleeding')"
-          [class.bestiary-card--stunned]="hasEffect(enemy, 'stunned')"
-          [class.bestiary-card--restrained]="hasEffect(enemy, 'restrained')"
-          [class.bestiary-card--blessed]="hasEffect(enemy, 'blessed')"
+      @if (partyAlerts().length > 0) {
+        <section
+          class="arena__party-effects"
+          [attr.aria-label]="'display.playerEffects' | transloco"
         >
-          @if (currentEnemy() === enemy) {
-            <span class="bestiary-card__turn-flag">⚔ {{ 'common.currentTurn' | transloco }}</span>
+          @for (player of partyAlerts(); track player.id) {
+            <div class="party-effect-row">
+              <strong>{{ player.name }}</strong>
+              @if (player.status !== COMBATANT_STATUS.ALIVE) {
+                <bf-combatant-life-state
+                  [status]="player.status"
+                  [deathSaves]="player.deathSaves"
+                ></bf-combatant-life-state>
+              }
+              @if ((player.activeEffects?.length ?? 0) > 0) {
+                <bf-status-effect-list
+                  [effects]="player.activeEffects ?? []"
+                ></bf-status-effect-list>
+              }
+            </div>
           }
-
-          <div class="bestiary-card__scroll">
-            <header class="bestiary-card__banner">
-              <h2 class="bestiary-card__name">{{ enemy.name }}</h2>
-            </header>
-            <p class="bestiary-card__type">{{ enemy.subtype | uppercase }}</p>
-
-            <div class="bestiary-card__body">
-              <div class="bestiary-card__portrait">
-                <bf-enemy-icon [type]="enemy.subtype ?? DEFAULT_ENEMY_TYPE"></bf-enemy-icon>
-              </div>
-              <div class="bestiary-card__seals">
-                <div class="seal seal--ac">
-                  <span class="seal__value">{{ enemy.ac }}</span>
-                  <span class="seal__label">{{ 'common.ac' | transloco }}</span>
-                </div>
-                <div class="seal seal--hp">
-                  <span class="seal__value">{{ enemy.currentHp }}</span>
-                  <span class="seal__label">/ {{ enemy.maxHp }} HP</span>
-                </div>
-                @if ((enemy.temporaryHp ?? 0) > 0) {
-                  <div class="seal seal--hp">
-                    <span class="seal__value">{{ enemy.temporaryHp }}</span>
-                    <span class="seal__label">{{ 'common.temporaryHpShort' | transloco }}</span>
-                  </div>
-                }
-              </div>
-            </div>
-
-            <bf-hp-bar
-              class="bestiary-card__hp-bar"
-              [current]="enemy.currentHp"
-              [max]="enemy.maxHp"
-              size="lg"
-              [showLabel]="false"
-            ></bf-hp-bar>
-
-            <div class="bestiary-card__divider" aria-hidden="true"></div>
-
-            <div class="bestiary-card__stats">
-              <div class="bestiary-card__stat-box">
-                <span class="bestiary-card__stat-value">{{ enemy.initiative }}</span>
-                <span class="bestiary-card__stat-label">{{ 'common.initiativeShort' | transloco }}</span>
-              </div>
-              <div class="bestiary-card__stat-box">
-                <span class="bestiary-card__stat-value">{{ enemy.maxHp }}</span>
-                <span class="bestiary-card__stat-label">MAX HP</span>
-              </div>
-            </div>
-
-            @if (enemy.actions && enemy.actions.length > 0) {
-              <div class="bestiary-card__actions-wrapper">
-                <div class="bestiary-card__actions-header">
-                  <span class="bestiary-card__actions-icon">⚔️</span>
-                  <h4 class="bestiary-card__actions-title">{{ 'common.actions' | transloco }}</h4>
-                </div>
-                <div class="bestiary-card__actions">
-                  @for (action of enemy.actions; track action.name + $index) {
-                    <div class="bestiary-card__action">
-                      <div class="action__line">
-                        <span class="action__name">{{ action.name }}</span>
-                        <span class="action__details">{{ action.description }}</span>
-                      </div>
-                      <div class="action__line">
-                        <span class="action__tohit">{{ 'display.toHit' | transloco }}: {{ action.toHit }}</span>
-                        <span class="action__damage">{{ action.damage }}</span>
-                        <span class="action__type">{{ action.damageType }}</span>
-                      </div>
-                      @if (action.fullText) {
-                        <div class="action__description">{{ action.fullText }}</div>
-                      }
-                    </div>
-                  }
-                </div>
-              </div>
-            }
-
-            @if (enemy.abilities && enemy.abilities.length > 0) {
-              <div class="bestiary-card__actions-wrapper bestiary-card__abilities-wrapper">
-                <div class="bestiary-card__actions-header">
-                  <span class="bestiary-card__actions-icon" aria-hidden="true">✦</span>
-                  <h4 class="bestiary-card__actions-title">{{ 'common.abilities' | transloco }}</h4>
-                </div>
-                <div class="bestiary-card__abilities">
-                  @for (ability of enemy.abilities; track ability.name + $index) {
-                    <div class="bestiary-card__ability">
-                      <strong>{{ ability.name }}.</strong>
-                      <span>{{ ability.description }}</span>
-                    </div>
-                  }
-                </div>
-              </div>
-            }
-
-            @if (enemy.resistances && enemy.resistances.length > 0) {
-              <div class="bestiary-card__resistances">
-                @for (res of enemy.resistances; track res) {
-                  <span class="resistance-tag resistance-tag--resistance">🛡️ {{ res }}</span>
-                }
-              </div>
-            }
-
-            @if (enemy.activeEffects && enemy.activeEffects.length > 0) {
-              <div class="bestiary-card__active-effects">
-                <bf-status-effect-list [effects]="enemy.activeEffects"></bf-status-effect-list>
-              </div>
-            }
-
-            @if (enemy.statuses && enemy.statuses.length > 0) {
-              <div class="bestiary-card__statuses">
-                @for (statusKey of enemy.statuses; track statusKey) {
-                  <span class="status-chip">{{ statusKey }}</span>
-                }
-              </div>
-            }
-          </div>
-        </article>
+        </section>
       }
-    </main>
 
-    @if (currentEnemy(); as current) {
-      <footer class="arena__footer">
-        <span class="arena__footer-label">{{ 'common.currentTurn' | transloco }}</span>
-        <span class="arena__footer-name">{{ current.name }}</span>
-      </footer>
-    }
-  </div>
-}
+      <main class="arena__grid">
+        @for (enemy of aliveEnemies(); track enemy.id) {
+          <article
+            class="bestiary-card"
+            [class.bestiary-card--active]="currentEnemy() === enemy"
+            [class.bestiary-card--poisoned]="hasEffect(enemy, 'poisoned')"
+            [class.bestiary-card--burning]="hasEffect(enemy, 'burning')"
+            [class.bestiary-card--frozen]="hasEffect(enemy, 'frozen')"
+            [class.bestiary-card--frightened]="hasEffect(enemy, 'frightened')"
+            [class.bestiary-card--bleeding]="hasEffect(enemy, 'bleeding')"
+            [class.bestiary-card--stunned]="hasEffect(enemy, 'stunned')"
+            [class.bestiary-card--restrained]="hasEffect(enemy, 'restrained')"
+            [class.bestiary-card--blessed]="hasEffect(enemy, 'blessed')"
+          >
+            @if (currentEnemy() === enemy) {
+              <span class="bestiary-card__turn-flag">⚔ {{ 'common.currentTurn' | transloco }}</span>
+            }
+
+            <div class="bestiary-card__scroll">
+              <header class="bestiary-card__banner">
+                <h2 class="bestiary-card__name">{{ enemy.name }}</h2>
+              </header>
+              <p class="bestiary-card__type">{{ enemy.subtype | uppercase }}</p>
+
+              <div class="bestiary-card__body">
+                <div class="bestiary-card__portrait">
+                  <bf-enemy-icon [type]="enemy.subtype ?? DEFAULT_ENEMY_TYPE"></bf-enemy-icon>
+                </div>
+                <div class="bestiary-card__seals">
+                  <div class="seal seal--ac">
+                    <span class="seal__value">{{ enemy.ac }}</span>
+                    <span class="seal__label">{{ 'common.ac' | transloco }}</span>
+                  </div>
+                  <div class="seal seal--hp">
+                    <span class="seal__value">{{ enemy.currentHp }}</span>
+                    <span class="seal__label">/ {{ enemy.maxHp }} HP</span>
+                  </div>
+                  @if ((enemy.temporaryHp ?? 0) > 0) {
+                    <div class="seal seal--hp">
+                      <span class="seal__value">{{ enemy.temporaryHp }}</span>
+                      <span class="seal__label">{{ 'common.temporaryHpShort' | transloco }}</span>
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <bf-hp-bar
+                class="bestiary-card__hp-bar"
+                [current]="enemy.currentHp"
+                [max]="enemy.maxHp"
+                size="lg"
+                [showLabel]="false"
+              ></bf-hp-bar>
+
+              <div class="bestiary-card__divider" aria-hidden="true"></div>
+
+              <div class="bestiary-card__stats">
+                <div class="bestiary-card__stat-box">
+                  <span class="bestiary-card__stat-value">{{ enemy.initiative }}</span>
+                  <span class="bestiary-card__stat-label">{{
+                    'common.initiativeShort' | transloco
+                  }}</span>
+                </div>
+                <div class="bestiary-card__stat-box">
+                  <span class="bestiary-card__stat-value">{{ enemy.maxHp }}</span>
+                  <span class="bestiary-card__stat-label">{{ 'common.maxHp' | transloco }}</span>
+                </div>
+              </div>
+
+              @if (enemy.actions && enemy.actions.length > 0) {
+                <div class="bestiary-card__actions-wrapper">
+                  <div class="bestiary-card__actions-header">
+                    <span class="bestiary-card__actions-icon">⚔️</span>
+                    <h4 class="bestiary-card__actions-title">{{ 'common.actions' | transloco }}</h4>
+                  </div>
+                  <div class="bestiary-card__actions">
+                    @for (action of enemy.actions; track action.name + $index) {
+                      <div class="bestiary-card__action">
+                        <div class="action__line">
+                          <span class="action__name">{{ action.name }}</span>
+                          <span class="action__details">{{ action.description }}</span>
+                        </div>
+                        <div class="action__line">
+                          <span class="action__tohit"
+                            >{{ 'display.toHit' | transloco }}: {{ action.toHit }}</span
+                          >
+                          <span class="action__damage">{{ action.damage }}</span>
+                          <span class="action__type">{{ action.damageType }}</span>
+                        </div>
+                        @if (action.fullText) {
+                          <div class="action__description">{{ action.fullText }}</div>
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+
+              @if (enemy.abilities && enemy.abilities.length > 0) {
+                <div class="bestiary-card__actions-wrapper bestiary-card__abilities-wrapper">
+                  <div class="bestiary-card__actions-header">
+                    <span class="bestiary-card__actions-icon" aria-hidden="true">✦</span>
+                    <h4 class="bestiary-card__actions-title">
+                      {{ 'common.abilities' | transloco }}
+                    </h4>
+                  </div>
+                  <div class="bestiary-card__abilities">
+                    @for (ability of enemy.abilities; track ability.name + $index) {
+                      <div class="bestiary-card__ability">
+                        <strong>{{ ability.name }}.</strong>
+                        <span>{{ ability.description }}</span>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+
+              @if (enemy.resistances && enemy.resistances.length > 0) {
+                <div class="bestiary-card__resistances">
+                  @for (res of enemy.resistances; track res) {
+                    <span class="resistance-tag resistance-tag--resistance">🛡️ {{ res }}</span>
+                  }
+                </div>
+              }
+
+              @if (enemy.activeEffects && enemy.activeEffects.length > 0) {
+                <div class="bestiary-card__active-effects">
+                  <bf-status-effect-list [effects]="enemy.activeEffects"></bf-status-effect-list>
+                </div>
+              }
+
+              @if (enemy.statuses && enemy.statuses.length > 0) {
+                <div class="bestiary-card__statuses">
+                  @for (statusKey of enemy.statuses; track statusKey) {
+                    <span class="status-chip">{{ statusKey }}</span>
+                  }
+                </div>
+              }
+            </div>
+          </article>
+        } @empty {
+          <p class="arena__empty">{{ 'workspace.noEnemies' | transloco }}</p>
+        }
+      </main>
+    </div>
+  }
 }

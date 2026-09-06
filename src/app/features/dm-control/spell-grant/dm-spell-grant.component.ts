@@ -1,3 +1,4 @@
+import { generateUuid } from '../../../core/utils/uuid.util';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -56,7 +57,7 @@ export class DmSpellGrantComponent {
 
     const level = this.spellLevel();
     const spell: SpellData = {
-      id: `spell-${crypto.randomUUID()}`,
+      id: `spell-${generateUuid()}`,
       name,
       level,
       school: this.school().trim(),

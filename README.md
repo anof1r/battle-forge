@@ -223,6 +223,17 @@ For source development, install Node.js 24 and npm, run `npm ci` and
 `npm ci --prefix server`, start MongoDB with `docker compose up mongo -d`, then run
 `npm run server:dev` and `npm start` in separate terminals.
 
+### Smartphone and local-network PWA
+
+Game actions work over plain HTTP on the local network. Service workers and offline app-shell caching
+require HTTPS (localhost is a browser exception); live game synchronization always needs the server.
+See [MDN secure contexts](https://developer.mozilla.org/en-US/docs/Web/Security/Defenses/Secure_Contexts).
+
+After updating the application, rebuild the running container with `docker compose up -d --build app`.
+Open `http://<host-lan-ip>:8080/player` in Safari/Chrome and add it to the Home Screen. If an existing shortcut
+still launches `/battle-forge/` or shows browser controls, remove that shortcut and add it again.
+On iOS versions that offer **Open as Web App**, leave it enabled; launch the app using its Home Screen
+
 ### Commands
 
 | Command                                                 | Purpose                                                |
@@ -493,6 +504,18 @@ Compose-сети. Если телефон не подключается, раз�
 Для разработки из исходников установите Node.js 24 и npm, выполните `npm ci` и
 `npm ci --prefix server`, запустите MongoDB через `docker compose up mongo -d`, затем в двух
 терминалах выполните `npm run server:dev` и `npm start`.
+
+### Смартфон и PWA в локальной сети
+
+Игровые действия работают по обычному HTTP в локальной сети. Для service worker и офлайн-кэша
+оболочки нужен HTTPS (localhost — исключение браузера); синхронизации игры всегда нужен сервер.
+Подробнее: [безопасный контекст в MDN](https://developer.mozilla.org/en-US/docs/Web/Security/Defenses/Secure_Contexts).
+
+После обновления кода пересоберите работающий контейнер: `docker compose up -d --build app`.
+Откройте `http://<локальный-ip-компьютера>:8080/player` в Safari/Chrome и добавьте на экран «Домой».
+Если старый ярлык открывает `/battle-forge/` или показывает панели браузера, удалите этот ярлык
+и добавьте заново. Если при добавлении есть переключатель «Открывать как веб-приложение», оставьте
+его включённым. Запускайте приложение через значок на домашнем экране.
 
 ### Команды
 

@@ -1,5 +1,5 @@
-<details class="dm-section dm-section--spells" open>
-  <summary class="dm-section__title">🔮 {{ 'spellGrant.title' | transloco }}</summary>
+<section class="dm-section dm-section--spells">
+  <h3 class="dm-section__title">🔮 {{ 'spellGrant.title' | transloco }}</h3>
   <div class="dm-spell-form">
     <div class="field-row">
       <div class="field">
@@ -28,7 +28,9 @@
         />
       </div>
       <div class="field">
-        <label class="field__label" for="dm-spell-level">{{ 'spellGrant.level' | transloco }}</label>
+        <label class="field__label" for="dm-spell-level">{{
+          'spellGrant.level' | transloco
+        }}</label>
         <input
           id="dm-spell-level"
           class="field__input"
@@ -42,21 +44,47 @@
     </div>
     <div class="field-row">
       <div class="field">
-        <label class="field__label" for="dm-spell-school">{{ 'open5e.fields.school' | transloco }}</label>
-        <input id="dm-spell-school" class="field__input" type="text" [value]="school()" (input)="setText(school, $event)" />
+        <label class="field__label" for="dm-spell-school">{{
+          'open5e.fields.school' | transloco
+        }}</label>
+        <input
+          id="dm-spell-school"
+          class="field__input"
+          type="text"
+          [value]="school()"
+          (input)="setText(school, $event)"
+        />
       </div>
       <div class="field">
         <label class="field__label" for="dm-spell-damage">{{ 'common.damage' | transloco }}</label>
-        <input id="dm-spell-damage" class="field__input" type="text" placeholder="8d6" [value]="damageFormula()" (input)="setText(damageFormula, $event)" />
+        <input
+          id="dm-spell-damage"
+          class="field__input"
+          type="text"
+          placeholder="8d6"
+          [value]="damageFormula()"
+          (input)="setText(damageFormula, $event)"
+        />
       </div>
       <div class="field">
-        <label class="field__label" for="dm-spell-damage-type">{{ 'open5e.fields.damageType' | transloco }}</label>
-        <input id="dm-spell-damage-type" class="field__input" type="text" [placeholder]="'spellGrant.damageTypePlaceholder' | transloco" [value]="damageType()" (input)="setText(damageType, $event)" />
+        <label class="field__label" for="dm-spell-damage-type">{{
+          'open5e.fields.damageType' | transloco
+        }}</label>
+        <input
+          id="dm-spell-damage-type"
+          class="field__input"
+          type="text"
+          [placeholder]="'spellGrant.damageTypePlaceholder' | transloco"
+          [value]="damageType()"
+          (input)="setText(damageType, $event)"
+        />
       </div>
     </div>
     <div class="field-row">
       <div class="field field--wide">
-        <label class="field__label" for="dm-spell-description">{{ 'common.description' | transloco }}</label>
+        <label class="field__label" for="dm-spell-description">{{
+          'common.description' | transloco
+        }}</label>
         <input
           id="dm-spell-description"
           class="field__input"
@@ -72,12 +100,16 @@
         class="dm-btn"
         [disabled]="!selectedPlayerId() || !spellName().trim() || saving()"
         (click)="giveSpell()"
-      >{{ (saving() ? 'common.giving' : 'spellGrant.submit') | transloco }}</button>
+      >
+        {{ (saving() ? 'common.giving' : 'spellGrant.submit') | transloco }}
+      </button>
       <button
         class="dm-btn dm-btn--secondary"
         [disabled]="!selectedPlayerId()"
         (click)="restoreSpells()"
-      >↻ {{ 'spellGrant.restoreSlots' | transloco }}</button>
+      >
+        ↻ {{ 'spellGrant.restoreSlots' | transloco }}
+      </button>
     </div>
   </div>
-</details>
+</section>

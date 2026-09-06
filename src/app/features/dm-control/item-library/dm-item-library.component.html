@@ -1,5 +1,5 @@
-<details class="item-library" open>
-  <summary class="item-library__title">📚 {{ 'itemLibrary.title' | transloco }}</summary>
+<section class="item-library">
+  <h3 class="item-library__title">📚 {{ 'itemLibrary.title' | transloco }}</h3>
 
   <div class="item-library__content">
     <section class="quick-give" aria-labelledby="quick-give-title">
@@ -45,19 +45,36 @@
 
     <div class="item-library__workspace">
       <section class="item-editor">
-        <h3>{{ (itemId() ? 'itemLibrary.editTemplate' : 'itemLibrary.newTemplate') | transloco }}</h3>
+        <h3>
+          {{ (itemId() ? 'itemLibrary.editTemplate' : 'itemLibrary.newTemplate') | transloco }}
+        </h3>
         <div class="item-library__fields item-library__fields--editor">
           <label>
             <span>{{ 'common.name' | transloco }}</span>
-            <input type="text" [value]="itemName()" (input)="setName($event)" [placeholder]="'itemLibrary.namePlaceholder' | transloco" />
+            <input
+              type="text"
+              [value]="itemName()"
+              (input)="setName($event)"
+              [placeholder]="'itemLibrary.namePlaceholder' | transloco"
+            />
           </label>
           <label>
             <span>{{ 'itemLibrary.effectFormula' | transloco }}</span>
-            <input type="text" [value]="itemEffectFormula()" (input)="setEffectFormula($event)" placeholder="1d4" />
+            <input
+              type="text"
+              [value]="itemEffectFormula()"
+              (input)="setEffectFormula($event)"
+              placeholder="1d4"
+            />
           </label>
           <label>
             <span>{{ 'itemLibrary.defaultQuantity' | transloco }}</span>
-            <input type="number" min="1" [value]="itemDefaultQuantity()" (input)="setDefaultQuantity($event)" />
+            <input
+              type="number"
+              min="1"
+              [value]="itemDefaultQuantity()"
+              (input)="setDefaultQuantity($event)"
+            />
           </label>
           <label>
             <span>{{ 'common.rarity' | transloco }}</span>
@@ -75,19 +92,32 @@
           </label>
           <label class="item-editor__description">
             <span>{{ 'common.description' | transloco }}</span>
-            <textarea rows="3" [value]="itemDescription()" (input)="setDescription($event)" [placeholder]="'itemLibrary.descriptionPlaceholder' | transloco"></textarea>
+            <textarea
+              rows="3"
+              [value]="itemDescription()"
+              (input)="setDescription($event)"
+              [placeholder]="'itemLibrary.descriptionPlaceholder' | transloco"
+            ></textarea>
           </label>
         </div>
         <div class="item-editor__checks">
-          <label><input type="checkbox" [checked]="itemStackable()" (change)="setStackable($event)" /> {{ 'itemLibrary.stackable' | transloco }}</label>
-          <label><input type="checkbox" [checked]="itemConsumable()" (change)="setConsumable($event)" /> {{ 'itemLibrary.consumable' | transloco }}</label>
+          <label
+            ><input type="checkbox" [checked]="itemStackable()" (change)="setStackable($event)" />
+            {{ 'itemLibrary.stackable' | transloco }}</label
+          >
+          <label
+            ><input type="checkbox" [checked]="itemConsumable()" (change)="setConsumable($event)" />
+            {{ 'itemLibrary.consumable' | transloco }}</label
+          >
         </div>
         <div class="item-library__actions">
           <button type="button" [disabled]="!canSave() || saving()" (click)="saveItem()">
             {{ (saving() ? 'common.saving' : 'itemLibrary.saveTemplate') | transloco }}
           </button>
           @if (itemId()) {
-            <button type="button" class="secondary" (click)="resetEditor()">{{ 'common.cancel' | transloco }}</button>
+            <button type="button" class="secondary" (click)="resetEditor()">
+              {{ 'common.cancel' | transloco }}
+            </button>
           }
         </div>
       </section>
@@ -99,15 +129,22 @@
             <article class="saved-item">
               <div>
                 <strong>{{ item.icon || '📦' }} {{ item.name }}</strong>
-                <span>{{ ('item.rarity.' + item.rarity) | transloco }} · {{ 'itemLibrary.perUnits' | transloco: { count: item.defaultQuantity } }}</span>
+                <span
+                  >{{ 'item.rarity.' + item.rarity | transloco }} ·
+                  {{ 'itemLibrary.perUnits' | transloco: { count: item.defaultQuantity } }}</span
+                >
                 @if (item.effectFormula) {
                   <span>🎲 {{ item.effectFormula }}</span>
                 }
                 <p>{{ item.description || ('common.noDescription' | transloco) }}</p>
               </div>
               <div class="item-library__actions">
-                <button type="button" class="secondary" (click)="editItem(item)">{{ 'common.edit' | transloco }}</button>
-                <button type="button" class="danger" (click)="deleteItem(item)">{{ 'common.delete' | transloco }}</button>
+                <button type="button" class="secondary" (click)="editItem(item)">
+                  {{ 'common.edit' | transloco }}
+                </button>
+                <button type="button" class="danger" (click)="deleteItem(item)">
+                  {{ 'common.delete' | transloco }}
+                </button>
               </div>
             </article>
           } @empty {
@@ -124,4 +161,4 @@
       <p class="item-library__error" role="alert">{{ error() }}</p>
     }
   </div>
-</details>
+</section>

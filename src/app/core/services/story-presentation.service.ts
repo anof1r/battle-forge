@@ -1,3 +1,4 @@
+import { generateUuid } from '../utils/uuid.util';
 import { computed, Injectable, OnDestroy, signal } from '@angular/core';
 import {
   DisplayPresentationMode,
@@ -43,7 +44,7 @@ export class StoryPresentationService implements OnDestroy {
     if (imageFiles.length === 0) return 0;
 
     const additions = imageFiles.map<StorySlide>((file) => ({
-      id: `story_${crypto.randomUUID()}`,
+      id: `story_${generateUuid()}`,
       name: file.name,
       order: 0,
       blob: file,

@@ -1,7 +1,7 @@
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Observable, of } from 'rxjs';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TranslocoService } from '@jsverse/transloco';
 import { COMBATANT_STATUS, COMBATANT_TYPE } from '../../core/constants/combatant.constants';
 import { ParsedCharacter } from '../../core/models/character.model';
@@ -15,6 +15,32 @@ import { LoggerService } from '../../core/services/logger.service';
 import { PlayerComponent } from './player.component';
 
 describe('PlayerComponent', () => {
+  // jsdom does not implement native dialog methods; Chrome checks cover their browser behavior.
+  const dialogPrototype = HTMLDialogElement.prototype;
+  const originalShowModal = Object.getOwnPropertyDescriptor(dialogPrototype, 'showModal');
+  const originalClose = Object.getOwnPropertyDescriptor(dialogPrototype, 'close');
+  beforeAll(() => {
+    Object.defineProperties(dialogPrototype, {
+      showModal: {
+        configurable: true,
+        value: function (this: HTMLDialogElement) {
+          this.setAttribute('open', '');
+        },
+      },
+      close: {
+        configurable: true,
+        value: function (this: HTMLDialogElement) {
+          this.removeAttribute('open');
+        },
+      },
+    });
+  });
+  afterAll(() => {
+    if (originalShowModal) Object.defineProperty(dialogPrototype, 'showModal', originalShowModal);
+    else delete (dialogPrototype as Partial<HTMLDialogElement>).showModal;
+    if (originalClose) Object.defineProperty(dialogPrototype, 'close', originalClose);
+    else delete (dialogPrototype as Partial<HTMLDialogElement>).close;
+  });
   let fixture: ComponentFixture<PlayerComponent>;
   let component: PlayerComponent;
   let characterService: {
@@ -347,12 +373,10 @@ describe('PlayerComponent', () => {
     vi.stubGlobal('FileReader', FakeFileReader);
 
     component.onFileSelected({
-      target: { files: [new File([''], 'broken.json') ] },
+      target: { files: [new File([''], 'broken.json')] },
     } as unknown as Event);
 
-    expect(component.error()).toBe(
-      'Не удалось распарсить файл. Убедитесь, что это JSON с LSS.',
-    );
+    expect(component.error()).toBe('Не удалось распарсить файл. Убедитесь, что это JSON с LSS.');
     expect(logger.error).toHaveBeenCalledWith(
       'PlayerComponent.onFileSelected',
       expect.any(SyntaxError),
@@ -409,56 +433,53 @@ describe('PlayerComponent', () => {
   });
 
   it('groups proficient skills in a separate bonus block below the stats', () => {
-    component.character.set(character({
-      skills: [
-        {
-          id: 'perception',
-          name: 'Внимательность',
-          baseStat: 'wis',
-          proficiency: 'proficient',
-          modifier: 3,
-        },
-        {
-          id: 'survival',
-          name: 'Выживание',
-          baseStat: 'wis',
-          proficiency: 'expertise',
-          modifier: 3,
-        },
-        {
-          id: 'intimidation',
-          name: 'Запугивание',
-          baseStat: 'cha',
-          proficiency: 'proficient',
-          modifier: 2,
-        },
-      ],
-    }));
+    component.character.set(
+      character({
+        skills: [
+          {
+            id: 'perception',
+            name: 'Внимательность',
+            baseStat: 'wis',
+            proficiency: 'proficient',
+            modifier: 3,
+          },
+          {
+            id: 'survival',
+            name: 'Выживание',
+            baseStat: 'wis',
+            proficiency: 'expertise',
+            modifier: 3,
+          },
+          {
+            id: 'intimidation',
+            name: 'Запугивание',
+            baseStat: 'cha',
+            proficiency: 'proficient',
+            modifier: 2,
+          },
+        ],
+      }),
+    );
     component.isLoggedIn.set(true);
 
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelectorAll('.player__stat-box .player__skill')).toHaveLength(0);
+    expect(fixture.nativeElement.querySelectorAll('.player__stat-box .player__skill')).toHaveLength(
+      0,
+    );
 
-    const bonusBlock = fixture.nativeElement.querySelector(
-      '.player__skill-bonuses',
-    ) as HTMLElement;
+    const bonusBlock = fixture.nativeElement.querySelector('.player__skill-bonuses') as HTMLElement;
     expect(bonusBlock).toBeInTheDocument();
     expect(bonusBlock.querySelector('.player__panel-title')).toHaveTextContent('Бонусы');
 
-    const groups = Array.from<HTMLElement>(
-      bonusBlock.querySelectorAll('.player__skill-group'),
-    );
+    const groups = Array.from<HTMLElement>(bonusBlock.querySelectorAll('.player__skill-group'));
     expect(groups).toHaveLength(2);
     expect(groups[0].querySelector('.player__skill-stat')).toHaveTextContent('МДР:');
     expect(groups[0]).toHaveTextContent('Внимательность');
     expect(groups[0]).toHaveTextContent('Выживание');
     expect(groups[0].querySelectorAll('.player__skill-mod')[0]).toHaveTextContent('+3');
     expect(groups[0].querySelectorAll('.player__skill-mod')[1]).toHaveTextContent('+3');
-    expect(groups[0].querySelectorAll('.player__skill')[1]).toHaveAttribute(
-      'title',
-      'Экспертиза',
-    );
+    expect(groups[0].querySelectorAll('.player__skill')[1]).toHaveAttribute('title', 'Экспертиза');
     expect(groups[1].querySelector('.player__skill-stat')).toHaveTextContent('ХАР:');
     expect(groups[1]).toHaveTextContent('Запугивание');
     expect(groups[1].querySelector('.player__skill-mod')).toHaveTextContent('+2');
@@ -466,24 +487,26 @@ describe('PlayerComponent', () => {
 
   it('translates standard skill bonuses independently of imported character names', () => {
     TestBed.inject(TranslocoService).setActiveLang('en');
-    component.character.set(character({
-      skills: [
-        {
-          id: 'perception',
-          name: 'Внимательность',
-          baseStat: 'wis',
-          proficiency: 'proficient',
-          modifier: 3,
-        },
-        {
-          id: 'intimidation',
-          name: 'Запугивание',
-          baseStat: 'cha',
-          proficiency: 'proficient',
-          modifier: 2,
-        },
-      ],
-    }));
+    component.character.set(
+      character({
+        skills: [
+          {
+            id: 'perception',
+            name: 'Внимательность',
+            baseStat: 'wis',
+            proficiency: 'proficient',
+            modifier: 3,
+          },
+          {
+            id: 'intimidation',
+            name: 'Запугивание',
+            baseStat: 'cha',
+            proficiency: 'proficient',
+            modifier: 2,
+          },
+        ],
+      }),
+    );
     component.isLoggedIn.set(true);
 
     fixture.detectChanges();
@@ -506,11 +529,13 @@ describe('PlayerComponent', () => {
     const settingsTab = fixture.nativeElement.querySelector('.player__tab--settings');
     expect(settingsTab).toHaveTextContent('Настройки');
     expect(settingsTab).toHaveAttribute('aria-selected', 'true');
-    expect(fixture.nativeElement.querySelector('.player__settings bf-language-switcher'))
-      .toBeInTheDocument();
+    expect(
+      fixture.nativeElement.querySelector('.player__settings bf-language-switcher'),
+    ).toBeInTheDocument();
   });
 
-  it('offers JSON reimport for an existing character', () => {
+  it('offers JSON reimport for an existing character in settings', () => {
+    component.switchTab('settings');
     component.character.set(character());
     component.isLoggedIn.set(true);
 
@@ -623,9 +648,7 @@ describe('PlayerComponent', () => {
 
     fixture.detectChanges();
 
-    const effects = fixture.nativeElement.querySelector(
-      'bf-status-effect-list',
-    ) as HTMLElement;
+    const effects = fixture.nativeElement.querySelector('bf-status-effect-list') as HTMLElement;
     expect(effects).toHaveTextContent('Текущие эффекты');
     expect(effects).toHaveTextContent('Отравление');
     expect(effects).toHaveTextContent('Горение');
@@ -651,9 +674,7 @@ describe('PlayerComponent', () => {
 
     fixture.detectChanges();
 
-    const lifeState = fixture.nativeElement.querySelector(
-      'bf-combatant-life-state',
-    ) as HTMLElement;
+    const lifeState = fixture.nativeElement.querySelector('bf-combatant-life-state') as HTMLElement;
     expect(lifeState).toHaveTextContent('Без сознания');
     expect(lifeState).toHaveTextContent('✓ 1/3');
     expect(lifeState).toHaveTextContent('✕ 2/3');
@@ -674,7 +695,7 @@ describe('PlayerComponent', () => {
     expect(component.damageAmount()).toBe(4);
   });
 
-  it('clamps item quantity and closes the modal after successful consumption', async () => {
+  it('clamps item quantity and shows a receipt after successful consumption', async () => {
     component.character.set(character());
     component.useItem(potion);
     expect(component.showUseModal()).toBe(true);
@@ -691,6 +712,71 @@ describe('PlayerComponent', () => {
     await vi.waitFor(() => expect(component.showUseModal()).toBe(false));
     expect(component.selectedItemForUse()).toBeNull();
     expect(component.useQuantity()).toBe(1);
+    expect(component.itemUseConfirmation()).toMatchObject({ itemName: potion.name, quantity: 3 });
+  });
+
+  it('waits for persistence, prevents duplicate use and confirms the last item even after realtime removal', async () => {
+    TestBed.inject(TranslocoService).setActiveLang('ru');
+    let finish!: (success: boolean) => void;
+    inventoryService.consumeItem.mockReturnValue(
+      new Promise<boolean>((resolve) => (finish = resolve)),
+    );
+    component.character.set(character());
+    component.useItem({ ...potion, quantity: 1 });
+    component.confirmAndUseItem();
+    component.confirmAndUseItem();
+    fixture.detectChanges();
+    expect(inventoryService.consumeItem).toHaveBeenCalledOnce();
+    expect(fixture.nativeElement.querySelector('.modal-btn--confirm')).toBeDisabled();
+    expect(fixture.nativeElement.querySelector('.item-confirmation')).toBeNull();
+
+    component.character.set({ ...character(), inventory: [] });
+    finish(true);
+    await vi.waitFor(() => expect(component.usingItem()).toBe(false));
+    fixture.detectChanges();
+    const dialog: HTMLDialogElement = fixture.nativeElement.querySelector('.item-confirmation');
+    expect(dialog.open).toBe(true);
+    expect(dialog).toHaveTextContent(TestBed.inject(TranslocoService).translate('player.items.used'));
+    expect(dialog).toHaveTextContent(potion.name);
+    expect(component.itemUseConfirmation()?.quantity).toBe(1);
+    dialog.querySelector<HTMLButtonElement>('button')!.click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.item-confirmation')).toBeNull();
+    expect(inventoryService.consumeItem).toHaveBeenCalledOnce();
+  });
+
+  it.each(['insufficient', 'request failure'])(
+    'keeps the item form and shows no receipt on %s',
+    async (failure) => {
+      if (failure === 'insufficient') inventoryService.consumeItem.mockResolvedValue(false);
+      else inventoryService.consumeItem.mockRejectedValue(new Error('Offline'));
+      component.character.set(character());
+      component.useItem(potion);
+      component.useQuantity.set(2);
+      component.confirmAndUseItem();
+      await vi.waitFor(() => expect(component.usingItem()).toBe(false));
+      fixture.detectChanges();
+      expect(component.showUseModal()).toBe(true);
+      expect(component.useQuantity()).toBe(2);
+      expect(fixture.nativeElement.querySelector('[role="alert"]')).toHaveTextContent(
+        component.itemUseError()!,
+      );
+      expect(fixture.nativeElement.querySelector('.item-confirmation')).toBeNull();
+    },
+  );
+
+  it('dismisses the item receipt with Escape without consuming another item', async () => {
+    component.character.set(character());
+    component.useItem(potion);
+    component.confirmAndUseItem();
+    await vi.waitFor(() => expect(component.itemUseConfirmation()).not.toBeNull());
+    fixture.detectChanges();
+    fixture.nativeElement
+      .querySelector('dialog')
+      .dispatchEvent(new Event('cancel', { cancelable: true }));
+    fixture.detectChanges();
+    expect(component.itemUseConfirmation()).toBeNull();
+    expect(inventoryService.consumeItem).toHaveBeenCalledOnce();
   });
 
   it('supports examine mode and character presentation helpers', () => {
@@ -754,16 +840,17 @@ describe('PlayerComponent', () => {
 
   it('collapses spell descriptions and highlights dice notation inside the text', () => {
     const description = 'Цель получает 2d6+3 урона огнём и ещё 1к4 урона в конце хода.';
-    component.character.set(character({
-      spells: [spell({ description, damageFormula: '2d6+3', damageType: 'огонь' })],
-    }));
+    component.character.set(
+      character({
+        spells: [spell({ description, damageFormula: '2d6+3', damageType: 'огонь' })],
+      }),
+    );
     component.isLoggedIn.set(true);
 
     fixture.detectChanges();
 
-    const details = fixture.nativeElement.querySelector<HTMLDetailsElement>(
-      '.player__spell-details',
-    );
+    const details =
+      fixture.nativeElement.querySelector<HTMLDetailsElement>('.player__spell-details');
     const highlighted = Array.from<HTMLElement>(
       fixture.nativeElement.querySelectorAll('.player__spell-description .player__dice-notation'),
     );
@@ -794,10 +881,7 @@ describe('PlayerComponent', () => {
     buttons[1].click();
 
     await vi.waitFor(() =>
-      expect(logger.error).toHaveBeenCalledWith(
-        'PlayerComponent.useSpell',
-        expect.any(Error),
-      ),
+      expect(logger.error).toHaveBeenCalledWith('PlayerComponent.useSpell', expect.any(Error)),
     );
     expect(component.spellUseError()).not.toBeNull();
     expect(component.spellUseConfirmation()).toBeNull();
@@ -805,20 +889,21 @@ describe('PlayerComponent', () => {
 
   it('uses the selected shared slot and confirms its level in a modal', async () => {
     const shield = spell();
-    component.character.set(character({
-      spells: [shield],
-      spellSlots: [
-        { level: 1, current: 1, max: 2 },
-        { level: 2, current: 1, max: 1, recovery: 'short-rest' },
-      ],
-    }));
+    component.character.set(
+      character({
+        spells: [shield],
+        spellSlots: [
+          { level: 1, current: 1, max: 2 },
+          { level: 2, current: 1, max: 1, recovery: 'short-rest' },
+        ],
+      }),
+    );
     component.isLoggedIn.set(true);
 
     fixture.detectChanges();
 
-    const slotSelect = fixture.nativeElement.querySelector<HTMLSelectElement>(
-      '.player__slot-select',
-    );
+    const slotSelect =
+      fixture.nativeElement.querySelector<HTMLSelectElement>('.player__slot-select');
     expect(slotSelect).not.toBeNull();
     expect(slotSelect?.options).toHaveLength(2);
     if (slotSelect) {
@@ -831,16 +916,16 @@ describe('PlayerComponent', () => {
     expect(component.canUseSpell(shield)).toBe(true);
     component.useSpell(shield);
 
-    await vi.waitFor(() => expect(characterService.usePlayerSpell).toHaveBeenCalledWith(
-      'Aria',
-      shield.id,
-      2,
-    ));
-    await vi.waitFor(() => expect(component.spellUseConfirmation()).toEqual({
-      spellName: 'Shield',
-      isCantrip: false,
-      slotLevel: 2,
-    }));
+    await vi.waitFor(() =>
+      expect(characterService.usePlayerSpell).toHaveBeenCalledWith('Aria', shield.id, 2),
+    );
+    await vi.waitFor(() =>
+      expect(component.spellUseConfirmation()).toEqual({
+        spellName: 'Shield',
+        isCantrip: false,
+        slotLevel: 2,
+      }),
+    );
 
     fixture.detectChanges();
     const confirmation = fixture.nativeElement.querySelector<HTMLElement>('.spell-confirmation');
@@ -861,23 +946,25 @@ describe('PlayerComponent', () => {
       maxUses: undefined,
       usesRemaining: undefined,
     });
-    component.character.set(character({
-      spells: [cantrip],
-      spellSlots: [{ level: 1, current: 2, max: 2 }],
-    }));
+    component.character.set(
+      character({
+        spells: [cantrip],
+        spellSlots: [{ level: 1, current: 2, max: 2 }],
+      }),
+    );
 
     component.useSpell(cantrip);
 
-    await vi.waitFor(() => expect(characterService.usePlayerSpell).toHaveBeenCalledWith(
-      'Aria',
-      cantrip.id,
-      undefined,
-    ));
-    await vi.waitFor(() => expect(component.spellUseConfirmation()).toEqual({
-      spellName: 'Мелкие фокусы',
-      isCantrip: true,
-      slotLevel: null,
-    }));
+    await vi.waitFor(() =>
+      expect(characterService.usePlayerSpell).toHaveBeenCalledWith('Aria', cantrip.id, undefined),
+    );
+    await vi.waitFor(() =>
+      expect(component.spellUseConfirmation()).toEqual({
+        spellName: 'Мелкие фокусы',
+        isCantrip: true,
+        slotLevel: null,
+      }),
+    );
 
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.spell-confirmation')).toHaveTextContent(
@@ -886,21 +973,27 @@ describe('PlayerComponent', () => {
   });
 
   it('lets the player spend a configured class resource', async () => {
-    component.character.set(character({
-      resources: [{
-        id: 'rage',
-        name: 'Ярость',
-        icon: '🔥',
-        description: 'Преимущество к проверкам Силы.',
-        current: 2,
-        max: 2,
-        recovery: 'long-rest',
-      }],
-    }));
+    component.character.set(
+      character({
+        resources: [
+          {
+            id: 'rage',
+            name: 'Ярость',
+            icon: '🔥',
+            description: 'Преимущество к проверкам Силы.',
+            current: 2,
+            max: 2,
+            recovery: 'long-rest',
+          },
+        ],
+      }),
+    );
 
     component.useResource('rage');
 
-    await vi.waitFor(() => expect(characterService.useResource).toHaveBeenCalledWith('Aria', 'rage', 1));
+    await vi.waitFor(() =>
+      expect(characterService.useResource).toHaveBeenCalledWith('Aria', 'rage', 1),
+    );
     await vi.waitFor(() => expect(component.usingResourceId()).toBeNull());
     expect(component.resourceUseConfirmation()).toEqual({
       resourceName: 'Ярость',
@@ -923,17 +1016,21 @@ describe('PlayerComponent', () => {
   });
 
   it('renders and uses an unlimited resource without disabling it at zero', async () => {
-    component.character.set(character({
-      resources: [{
-        id: 'sneak-attack',
-        name: 'Скрытая атака',
-        description: 'Один раз за ход при выполнении условий.',
-        isUnlimited: true,
-        current: 0,
-        max: 0,
-        recovery: 'manual',
-      }],
-    }));
+    component.character.set(
+      character({
+        resources: [
+          {
+            id: 'sneak-attack',
+            name: 'Скрытая атака',
+            description: 'Один раз за ход при выполнении условий.',
+            isUnlimited: true,
+            current: 0,
+            max: 0,
+            recovery: 'manual',
+          },
+        ],
+      }),
+    );
     component.isLoggedIn.set(true);
     fixture.detectChanges();
 
@@ -944,20 +1041,20 @@ describe('PlayerComponent', () => {
 
     component.useResource('sneak-attack');
 
-    await vi.waitFor(() => expect(characterService.useResource).toHaveBeenCalledWith(
-      'Aria',
-      'sneak-attack',
-      1,
-    ));
-    await vi.waitFor(() => expect(component.resourceUseConfirmation()).toEqual({
-      resourceName: 'Скрытая атака',
-      icon: '⚡',
-      isUnlimited: true,
-      remaining: 0,
-      max: 0,
-      spent: 0,
-      activated: false,
-    }));
+    await vi.waitFor(() =>
+      expect(characterService.useResource).toHaveBeenCalledWith('Aria', 'sneak-attack', 1),
+    );
+    await vi.waitFor(() =>
+      expect(component.resourceUseConfirmation()).toEqual({
+        resourceName: 'Скрытая атака',
+        icon: '⚡',
+        isUnlimited: true,
+        remaining: 0,
+        max: 0,
+        spent: 0,
+        activated: false,
+      }),
+    );
 
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.resource-confirmation')).toHaveTextContent(
@@ -966,17 +1063,21 @@ describe('PlayerComponent', () => {
   });
 
   it('asks how many points to spend from a variable resource', async () => {
-    component.character.set(character({
-      resources: [{
-        id: 'lay-on-hands',
-        name: 'Наложение рук',
-        icon: '✋',
-        spendMode: 'variable',
-        current: 5,
-        max: 5,
-        recovery: 'long-rest',
-      }],
-    }));
+    component.character.set(
+      character({
+        resources: [
+          {
+            id: 'lay-on-hands',
+            name: 'Наложение рук',
+            icon: '✋',
+            spendMode: 'variable',
+            current: 5,
+            max: 5,
+            recovery: 'long-rest',
+          },
+        ],
+      }),
+    );
 
     component.useResource('lay-on-hands');
 
@@ -985,81 +1086,95 @@ describe('PlayerComponent', () => {
     component.setResourceUseAmount({ target: { value: '4' } } as unknown as Event);
     component.confirmResourceUse();
 
-    await vi.waitFor(() => expect(characterService.useResource).toHaveBeenCalledWith(
-      'Aria',
-      'lay-on-hands',
-      4,
-    ));
-    await vi.waitFor(() => expect(component.resourceUseConfirmation()).toEqual({
-      resourceName: 'Наложение рук',
-      icon: '✋',
-      isUnlimited: false,
-      remaining: 1,
-      max: 5,
-      spent: 4,
-      activated: false,
-    }));
+    await vi.waitFor(() =>
+      expect(characterService.useResource).toHaveBeenCalledWith('Aria', 'lay-on-hands', 4),
+    );
+    await vi.waitFor(() =>
+      expect(component.resourceUseConfirmation()).toEqual({
+        resourceName: 'Наложение рук',
+        icon: '✋',
+        isUnlimited: false,
+        remaining: 1,
+        max: 5,
+        spent: 4,
+        activated: false,
+      }),
+    );
   });
 
   it('activates, extends and ends a linked resource effect', async () => {
     battle.sortedCombatants.set([ally]);
     battle.currentCombatant.set(ally);
-    component.character.set(character({
-      resources: [{
-        id: 'rage',
-        name: 'Ярость',
-        description: 'Сопротивление физическому урону.',
-        current: 2,
-        max: 2,
-        recovery: 'long-rest',
-        shortRestRestore: 1,
-        activeEffect: { icon: '🔥', duration: 'until-next-turn-end' },
-      }],
-    }));
+    component.character.set(
+      character({
+        resources: [
+          {
+            id: 'rage',
+            name: 'Ярость',
+            description: 'Сопротивление физическому урону.',
+            current: 2,
+            max: 2,
+            recovery: 'long-rest',
+            shortRestRestore: 1,
+            activeEffect: { icon: '🔥', duration: 'until-next-turn-end' },
+          },
+        ],
+      }),
+    );
 
     component.useResource('rage');
 
-    await vi.waitFor(() => expect(battle.addStatusEffect).toHaveBeenCalledWith(
-      ally.id,
-      'resource-active',
-      expect.objectContaining({
-        resourceId: 'rage',
-        customLabel: 'Ярость',
-        customIcon: '🔥',
-        trigger: 'turn-end',
-        durationTriggers: 2,
-        durationLabel: 'до конца следующего хода',
-      }),
-    ));
+    await vi.waitFor(() =>
+      expect(battle.addStatusEffect).toHaveBeenCalledWith(
+        ally.id,
+        'resource-active',
+        expect.objectContaining({
+          resourceId: 'rage',
+          customLabel: 'Ярость',
+          customIcon: '🔥',
+          trigger: 'turn-end',
+          durationTriggers: 2,
+          durationLabel: 'до конца следующего хода',
+        }),
+      ),
+    );
     expect(component.resourceUseConfirmation()?.activated).toBe(true);
 
-    battle.sortedCombatants.set([{
-      ...ally,
-      activeEffects: [{
-        id: 'effect-rage',
-        type: 'resource-active',
-        appliedAt: 1,
-        resourceId: 'rage',
-        remainingTriggers: 1,
-      }],
-    }]);
+    battle.sortedCombatants.set([
+      {
+        ...ally,
+        activeEffects: [
+          {
+            id: 'effect-rage',
+            type: 'resource-active',
+            appliedAt: 1,
+            resourceId: 'rage',
+            remainingTriggers: 1,
+          },
+        ],
+      },
+    ]);
     component.extendResourceEffect('rage');
 
-    await vi.waitFor(() => expect(battle.refreshStatusEffect).toHaveBeenCalledWith(
-      ally.id,
-      'effect-rage',
-      2,
-      'до конца следующего хода',
-    ));
-    await vi.waitFor(() => expect(component.resourceEffectConfirmation()).toEqual({
-      resourceName: 'Ярость',
-      durationLabel: 'до конца следующего хода',
-      icon: '🔥',
-    }));
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.resource-extension-confirmation')).toHaveTextContent(
-      'Ресурс продлён',
+    await vi.waitFor(() =>
+      expect(battle.refreshStatusEffect).toHaveBeenCalledWith(
+        ally.id,
+        'effect-rage',
+        2,
+        'до конца следующего хода',
+      ),
     );
+    await vi.waitFor(() =>
+      expect(component.resourceEffectConfirmation()).toEqual({
+        resourceName: 'Ярость',
+        durationLabel: 'до конца следующего хода',
+        icon: '🔥',
+      }),
+    );
+    fixture.detectChanges();
+    expect(
+      fixture.nativeElement.querySelector('.resource-extension-confirmation'),
+    ).toHaveTextContent('Ресурс продлён');
 
     component.closeResourceEffectConfirmation();
     component.endResourceEffect('rage');
@@ -1067,15 +1182,19 @@ describe('PlayerComponent', () => {
   });
 
   it('visually disables a depleted finite resource', () => {
-    component.character.set(character({
-      resources: [{
-        id: 'rage',
-        name: 'Ярость',
-        current: 0,
-        max: 2,
-        recovery: 'long-rest',
-      }],
-    }));
+    component.character.set(
+      character({
+        resources: [
+          {
+            id: 'rage',
+            name: 'Ярость',
+            current: 0,
+            max: 2,
+            recovery: 'long-rest',
+          },
+        ],
+      }),
+    );
     component.isLoggedIn.set(true);
 
     fixture.detectChanges();
@@ -1096,19 +1215,19 @@ describe('PlayerComponent', () => {
       max: 1,
       recovery: 'long-rest' as const,
     };
-    component.character.set(character({
-      spells: [healingWord],
-      spellSlots: [{ level: 1, current: 2, max: 2 }],
-      resources: [freeCast],
-    }));
+    component.character.set(
+      character({
+        spells: [healingWord],
+        spellSlots: [{ level: 1, current: 2, max: 2 }],
+        resources: [freeCast],
+      }),
+    );
 
     component.useSpellWithResource(healingWord, freeCast);
 
-    await vi.waitFor(() => expect(characterService.useResource).toHaveBeenCalledWith(
-      'Aria',
-      freeCast.id,
-      1,
-    ));
+    await vi.waitFor(() =>
+      expect(characterService.useResource).toHaveBeenCalledWith('Aria', freeCast.id, 1),
+    );
     expect(characterService.usePlayerSpell).not.toHaveBeenCalled();
     expect(component.spellUseConfirmation()).toEqual({
       spellName: 'Исцеляющее слово',
@@ -1120,14 +1239,38 @@ describe('PlayerComponent', () => {
 
   it('does not show a resource confirmation when spending fails', async () => {
     characterService.useResource.mockResolvedValue(false);
-    component.character.set(character({
-      resources: [{ id: 'ki', name: 'Ци', current: 1, max: 2, recovery: 'short-rest' }],
-    }));
+    component.character.set(
+      character({
+        resources: [{ id: 'ki', name: 'Ци', current: 1, max: 2, recovery: 'short-rest' }],
+      }),
+    );
 
     component.useResource('ki');
 
     await vi.waitFor(() => expect(component.usingResourceId()).toBeNull());
     expect(component.resourceUseConfirmation()).toBeNull();
     expect(component.resourceUseError()).not.toBeNull();
+  });
+  it('opens sheet sections from cards while keeping character HP visible', () => {
+    component.character.set(character());
+    component.isLoggedIn.set(true);
+    fixture.detectChanges();
+    const root: HTMLElement = fixture.nativeElement;
+    expect(root.querySelectorAll('.workspace-tool')).toHaveLength(5);
+    expect(root.querySelector('.player__stats-panel')).not.toBeVisible();
+    root.querySelector<HTMLButtonElement>('[data-tool="stats"]')!.click();
+    fixture.detectChanges();
+    expect(root.querySelector('.player__stats-panel')).toBeVisible();
+    expect(root.querySelector('.player__vitality-value--hp')).toBeVisible();
+    root.querySelector<HTMLButtonElement>('[data-tool="equipment"]')!.click();
+    fixture.detectChanges();
+    expect(root.querySelector('.player__stats-panel')).not.toBeVisible();
+    expect(root.querySelector('.player__weapons')).toBeVisible();
+    component.switchTab('arena');
+    fixture.detectChanges();
+    expect(root.querySelector('.player__vitality-value--hp')).toBeVisible();
+    component.switchTab('character');
+    fixture.detectChanges();
+    expect(root.querySelector('[data-tool="equipment"]')).toHaveAttribute('aria-expanded', 'true');
   });
 });
