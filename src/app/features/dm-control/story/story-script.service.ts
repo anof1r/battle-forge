@@ -1,10 +1,7 @@
 import { Injectable, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { catchError, of } from 'rxjs';
-import {
-  DATA_ROOT,
-  mainStorySectionPath,
-} from '../../../core/constants/data-paths.constants';
+import { DATA_ROOT, mainStorySectionPath } from '../../../core/constants/data-paths.constants';
 import { StoryScriptSection } from '../../../core/models';
 import { RealtimeDataService } from '../../../core/services/realtime-data.service';
 import { LoggerService } from '../../../core/services/logger.service';
@@ -49,6 +46,25 @@ export class StoryScriptService {
       text,
       createdAt: existing?.createdAt ?? now,
       lastUpdated: now,
+      ...(existing?.order !== undefined ? { order: existing.order } : {}),
+    };
+    await this.realtimeData.set(mainStorySectionPath(id), section);
+  }
+
+  async saveOrder(sectionId: string, order: number): Promise<void> {
+    const id = sectionId.trim();
+    if (!id) throw new Error('Story section id is required.');
+
+    const existing = this.section(id);
+    if (existing?.order === order) return;
+
+    const now = Date.now();
+    const section: StoryScriptSection = {
+      id,
+      text: existing?.text ?? '',
+      order,
+      createdAt: existing?.createdAt ?? now,
+      lastUpdated: now,
     };
     await this.realtimeData.set(mainStorySectionPath(id), section);
   }
@@ -59,6 +75,7 @@ export class StoryScriptService {
       text: typeof section.text === 'string' ? section.text : '',
       createdAt: Number.isFinite(section.createdAt) ? Number(section.createdAt) : 0,
       lastUpdated: Number.isFinite(section.lastUpdated) ? Number(section.lastUpdated) : 0,
+      ...(Number.isFinite(section.order) ? { order: Number(section.order) } : {}),
     };
   }
 }

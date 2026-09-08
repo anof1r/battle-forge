@@ -26,6 +26,7 @@ export class DmStoryComponent {
   private readonly logger = inject(LoggerService);
   private readonly i18n = inject(TranslocoService);
   private loadedSectionVersion = '';
+  private readonly persistedSlideOrders = new Map<string, number>();
 
   readonly draggedSlideId = signal<string | null>(null);
   readonly insertBeforeSlideId = signal<string | null>(null);
@@ -42,16 +43,17 @@ export class DmStoryComponent {
   });
   readonly savedScript = computed(() => {
     const sectionId = this.activeSectionId();
-    return sectionId ? this.scripts.section(sectionId)?.text ?? '' : '';
+    return sectionId ? (this.scripts.section(sectionId)?.text ?? '') : '';
   });
   readonly scriptPreview = computed(() => renderStoryMarkdown(this.scriptDraft()));
   readonly scriptIsDirty = computed(() => this.scriptDraft() !== this.savedScript());
   readonly hasDuplicateSectionId = computed(() => {
     const sectionId = this.activeSectionId();
     if (!sectionId) return false;
-    return this.story.slides().filter(
-      (slide) => storySectionIdFromFileName(slide.name) === sectionId,
-    ).length > 1;
+    return (
+      this.story.slides().filter((slide) => storySectionIdFromFileName(slide.name) === sectionId)
+        .length > 1
+    );
   });
 
   constructor() {
@@ -66,6 +68,17 @@ export class DmStoryComponent {
       this.scriptEditing.set(!(section?.text ?? '').trim());
       this.scriptMessage.set(null);
       this.scriptError.set(null);
+    });
+
+    effect(() => {
+      for (const slide of this.story.slides()) {
+        const sectionId = storySectionIdFromFileName(slide.name);
+        if (this.persistedSlideOrders.get(sectionId) === slide.order) continue;
+        this.persistedSlideOrders.set(sectionId, slide.order);
+        this.scripts.saveOrder(sectionId, slide.order).catch((error: unknown) => {
+          this.logger.error('DmStoryComponent.saveOrder', error);
+        });
+      }
     });
   }
 

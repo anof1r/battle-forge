@@ -33,6 +33,7 @@ describe('DmStoryComponent', () => {
   let scripts: {
     section: ReturnType<typeof vi.fn>;
     saveSection: ReturnType<typeof vi.fn>;
+    saveOrder: ReturnType<typeof vi.fn>;
   };
   let logger: { error: ReturnType<typeof vi.fn> };
 
@@ -77,6 +78,7 @@ describe('DmStoryComponent', () => {
         id === '1' ? { id: '1', text: '# Таверна', createdAt: 100, lastUpdated: 100 } : null,
       ),
       saveSection: vi.fn().mockResolvedValue(undefined),
+      saveOrder: vi.fn().mockResolvedValue(undefined),
     };
     logger = { error: vi.fn() };
 
@@ -133,6 +135,26 @@ describe('DmStoryComponent', () => {
     expect(story.moveSlide).toHaveBeenCalledWith('forest', -1);
     component.removeSlide('forest', new Event('click'));
     expect(story.removeSlide).toHaveBeenCalledWith('forest');
+  });
+
+  it('persists slide order to the database whenever the deck order changes', () => {
+    slides.set([tavern, forest]);
+    fixture.detectChanges();
+    TestBed.flushEffects();
+
+    expect(scripts.saveOrder).toHaveBeenCalledWith('1', 0);
+    expect(scripts.saveOrder).toHaveBeenCalledWith('2', 1);
+
+    scripts.saveOrder.mockClear();
+    slides.set([
+      { ...forest, order: 0 },
+      { ...tavern, order: 1 },
+    ]);
+    fixture.detectChanges();
+    TestBed.flushEffects();
+
+    expect(scripts.saveOrder).toHaveBeenCalledWith('2', 0);
+    expect(scripts.saveOrder).toHaveBeenCalledWith('1', 1);
   });
 
   it('loads, previews and saves the script using the image name as its key', async () => {
