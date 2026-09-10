@@ -4,6 +4,7 @@ import { TranslocoPipe } from '@jsverse/transloco';
 import { BattleService } from '../../core/services/battle.service';
 import { HpBarComponent } from '../../shared/ui/hp-bar/hp-bar.component';
 import { EnemyIconComponent } from '../../shared/ui/enemy-icon/enemy-icon.component';
+import { AvatarComponent } from '../../shared/ui/avatar/avatar.component';
 import { StatusEffectListComponent } from '../../shared/ui/status-effect-list/status-effect-list.component';
 import { CombatantLifeStateComponent } from '../../shared/ui/combatant-life-state/combatant-life-state.component';
 import { BATTLE_STATUS } from '../../core/constants/battle-status.constants';
@@ -21,6 +22,7 @@ import { StoryPresentationService } from '../../core/services/story-presentation
     TranslocoPipe,
     HpBarComponent,
     EnemyIconComponent,
+    AvatarComponent,
     StatusEffectListComponent,
     CombatantLifeStateComponent,
   ],

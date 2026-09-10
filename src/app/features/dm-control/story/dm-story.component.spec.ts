@@ -112,6 +112,34 @@ describe('DmStoryComponent', () => {
     expect(component.uploadMessage()).toBe('Добавлено изображений: 2');
   });
 
+  it('restores the persisted story order when the same images are uploaded in another browser', () => {
+    scripts.section.mockImplementation((id: string) => ({
+      id,
+      text: 'Story',
+      order: Number(id) - 1,
+      createdAt: 100,
+      lastUpdated: 100,
+    }));
+    const files = [
+      new File(['four'], '4.webp', { type: 'image/webp' }),
+      new File(['two'], '2.webp', { type: 'image/webp' }),
+      new File(['one'], '1.webp', { type: 'image/webp' }),
+      new File(['three'], '3.webp', { type: 'image/webp' }),
+    ];
+    const input = { files, value: 'selected' };
+
+    component.onFilesSelected({ target: input } as unknown as Event);
+
+    const uploadedFiles = story.addFiles.mock.calls[0][0] as File[];
+    expect(uploadedFiles.map((file) => file.name)).toEqual([
+      '1.webp',
+      '2.webp',
+      '3.webp',
+      '4.webp',
+    ]);
+    expect(story.addFiles).toHaveBeenCalledWith(uploadedFiles, null);
+  });
+
   it('keeps the deck visible beside the script and delegates slide actions', () => {
     slides.set([tavern, forest]);
     activeSlide.set(tavern);

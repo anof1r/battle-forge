@@ -201,7 +201,8 @@
       "rewards": "Players and rewards",
       "library": "Open5e imports",
       "story": "Story",
-      "settings": "Settings"
+      "settings": "Settings",
+      "portraits": "Portraits"
     },
     "presentation": {
       "label": "Shared display mode",
@@ -908,6 +909,42 @@
     },
     "error": {
       "loadPlayers": "Could not load players from the database. Try refreshing the list."
+    }
+  },
+  "portraits": {
+    "eyebrow": "Character media",
+    "title": "Portraits",
+    "intro": "Assign images to players and creatures. Select a character, upload an image, and position the face inside the round frame.",
+    "ownerType": "Portrait owner type",
+    "players": "Players",
+    "creatures": "Creatures",
+    "creatureWithoutType": "No type specified",
+    "assigned": "Portrait assigned",
+    "loading": "Loading players…",
+    "noPlayers": "Add at least one player character first.",
+    "noCreatures": "Save a creature in the library first.",
+    "selected": "Selected character",
+    "remove": "Remove portrait",
+    "removing": "Removing…",
+    "chooseImage": "Choose image",
+    "fileHint": "JPEG, PNG, or WebP, up to 5 MB",
+    "cropArea": "Portrait crop area",
+    "preview": "Preview",
+    "save": "Save portrait",
+    "chooseOwner": "Choose a player or creature",
+    "chooseOwnerHint": "Upload, crop, and preview controls will appear here.",
+    "confirmRemove": "Remove the portrait for “{{ name }}”?",
+    "feedback": {
+      "saved": "Portrait for “{{ name }}” saved.",
+      "removed": "Portrait for “{{ name }}” removed."
+    },
+    "error": {
+      "unsupportedType": "Only JPEG, PNG, and WebP images are supported.",
+      "tooLarge": "The file is larger than 5 MB. Choose a smaller image.",
+      "load": "Could not open the image.",
+      "loadPlayers": "Could not load the player list.",
+      "save": "Could not save the portrait.",
+      "remove": "Could not remove the portrait."
     }
   }
 }

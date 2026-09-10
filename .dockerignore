@@ -11,3 +11,6 @@ server/node_modules
 src/environments
 npm-debug.log
 *.md
+
+server/media
+media

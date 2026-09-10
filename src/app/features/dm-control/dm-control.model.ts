@@ -1,1 +1,8 @@
-export type DmWorkspacePanel = 'library' | 'scenes' | 'battle' | 'rewards' | 'story' | 'settings';
+export type DmWorkspacePanel =
+  | 'library'
+  | 'scenes'
+  | 'battle'
+  | 'rewards'
+  | 'portraits'
+  | 'story'
+  | 'settings';

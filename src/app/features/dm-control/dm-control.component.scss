@@ -967,6 +967,17 @@ app-dm-control {
     }
   }
 
+  @media (min-width: 601px) and (max-width: 1200px) {
+    .dm-workspace-tabs {
+      overflow-x: auto;
+
+      button {
+        flex: 0 0 auto;
+        min-width: max-content;
+      }
+    }
+  }
+
   @media (max-width: 1000px) {
     .combatant-list {
       grid-template-columns: 1fr;

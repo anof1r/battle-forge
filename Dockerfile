@@ -24,10 +24,14 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=8080
 ENV STATIC_ROOT=/app/public
+ENV MEDIA_ROOT=/app/media
 
 COPY --from=server-build --chown=node:node /workspace/server/node_modules ./node_modules
 COPY --from=server-build --chown=node:node /workspace/server/dist ./dist
 COPY --from=client-build --chown=node:node /workspace/dist/battle-forge/browser ./public
+
+RUN mkdir -p /app/media/avatars/players /app/media/avatars/creatures \
+    && chown -R node:node /app/media
 
 USER node
 EXPOSE 8080

@@ -1,3 +1,4 @@
+import { AvatarReference } from './avatar.model';
 import { SpellData } from './combatant.model';
 import { InventoryItem } from './inventory-item.model';
 import { CharacterResource } from './character-resource.model';
@@ -37,6 +38,7 @@ export interface ParsedCharacter {
   temporaryHp?: number;
   ac: number;
   speed: number;
+  avatar?: AvatarReference;
   weapons: CharacterWeapon[];
   inventory?: InventoryItem[];
   resistances?: string[];

@@ -1,4 +1,5 @@
 export interface ServerEnvironment {
+  mediaRoot: string;
   mongoUri: string;
   port: number;
   staticRoot: string;
@@ -15,6 +16,7 @@ export function readEnvironment(
   }
 
   const mongoUri = values['MONGO_URI']?.trim() || 'mongodb://localhost:27017/battle-forge';
+  const mediaRoot = values['MEDIA_ROOT']?.trim() || `${workingDirectory}/media`;
   const staticRoot = values['STATIC_ROOT']?.trim() || `${workingDirectory}/public`;
-  return { mongoUri, port, staticRoot };
+  return { mediaRoot, mongoUri, port, staticRoot };
 }

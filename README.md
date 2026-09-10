@@ -183,6 +183,14 @@ external object storage is not used.
 7. Apply HP changes, effects, death saves, rewards, spells, and resources as needed.
 8. Finish the scene with the appropriate rest mode and launch the next preset.
 
+### Portraits
+
+- Open **Portraits** in the DM workspace and switch between players and saved creatures.
+- Upload JPEG, PNG, or WebP files up to 5 MB, position the subject in the round crop frame, and save a normalized 512×512 WebP portrait.
+- Portrait references live with character and creature records in MongoDB. Image files live in the named Docker volume `battle-forge-media` and are served by NestJS under `/media`.
+- Replacing or removing a portrait also updates matching combatants in the active battle. Existing icons remain as fallbacks.
+- A JSON data export contains the MongoDB references but not the image files. Back up `battle-forge-media` as well when moving the installation.
+
 ### Current alpha scope
 
 - One fixed room: `main-room`.
@@ -217,7 +225,7 @@ inbound TCP 8080 in the host firewall if another device cannot connect.
 
 Copy `.env.example` to `.env` only when you want to change the local database credentials or
 published port. Stop the application with `docker compose down`. Do not add `--volumes` unless
-you intentionally want to erase the local database.
+you intentionally want to erase both the local database and uploaded portraits.
 
 For source development, install Node.js 24 and npm, run `npm ci` and
 `npm ci --prefix server`, start MongoDB with `docker compose up mongo -d`, then run
@@ -276,8 +284,7 @@ Docker :8080 → NestJS → MongoDB volume
                  └── Socket.IO subscriptions
 ```
 
-`RealtimeDataService` is the only Angular transport boundary. Feature components consume
-signal-backed domain services and do not call HTTP, Socket.IO, or MongoDB directly.
+`RealtimeDataService` handles synchronized game data and `AvatarService` handles media uploads. Feature components consume signal-backed domain services and do not call HTTP, Socket.IO, or MongoDB directly.
 
 ### Disclaimer
 
@@ -465,6 +472,14 @@ external object storage не используется.
 7. Назначайте HP, эффекты, спасброски, награды, заклинания и ресурсы.
 8. Завершите сцену с нужным режимом отдыха и запустите следующий набор.
 
+### Портреты
+
+- Откройте **«Портреты»** в панели мастера и переключайтесь между игроками и сохранёнными существами.
+- Можно загружать JPEG, PNG и WebP до 5 МБ, выбрать область в круглой рамке и сохранить нормализованный портрет WebP 512×512.
+- Ссылки на портреты хранятся вместе с персонажами и существами в MongoDB. Файлы лежат в именованном Docker volume `battle-forge-media` и раздаются NestJS по пути `/media`.
+- Замена или удаление портрета сразу обновляет подходящих участников текущего боя. Старые иконки остаются запасным вариантом.
+- JSON-экспорт содержит ссылки из MongoDB, но не сами изображения. При переносе установки отдельно создайте копию `battle-forge-media`.
+
 ### Ограничения alpha-версии
 
 - Одна фиксированная комната `main-room`.
@@ -499,7 +514,7 @@ Compose-сети. Если телефон не подключается, раз�
 
 Копировать `.env.example` в `.env` нужно только для смены локального пароля БД или внешнего
 порта. Команда `docker compose down` останавливает приложение и сохраняет данные. Не добавляйте
-`--volumes`, если не хотите удалить локальную базу.
+`--volumes`, если не хотите удалить локальную базу и загруженные портреты.
 
 Для разработки из исходников установите Node.js 24 и npm, выполните `npm ci` и
 `npm ci --prefix server`, запустите MongoDB через `docker compose up mongo -d`, затем в двух
@@ -559,8 +574,7 @@ Docker :8080 → NestJS → MongoDB volume
                  └── рассылает Socket.IO-события
 ```
 
-`RealtimeDataService` — единственная транспортная граница Angular. Компоненты работают с
-signal-состоянием доменных сервисов и не обращаются напрямую к HTTP, Socket.IO или MongoDB.
+`RealtimeDataService` отвечает за синхронизированные игровые данные, а `AvatarService` — за загрузку медиа. Компоненты работают с signal-состоянием доменных сервисов и не обращаются напрямую к HTTP, Socket.IO или MongoDB.
 
 ### Дисклеймер
 

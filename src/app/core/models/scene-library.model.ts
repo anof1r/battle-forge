@@ -1,5 +1,6 @@
 import { EnemyAbility, EnemyAction } from './enemy.model';
 import { LibrarySource } from './library-source.model';
+import { AvatarReference } from './avatar.model';
 
 export interface CreatureTemplate {
   id: string;
@@ -7,6 +8,7 @@ export interface CreatureTemplate {
   subtype: string;
   maxHp: number;
   ac: number;
+  avatar?: AvatarReference;
   actions: EnemyAction[];
   abilities: EnemyAbility[];
   resistances: string[];

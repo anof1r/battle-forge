@@ -1,0 +1,13 @@
+<span
+  class="avatar"
+  [style.--avatar-size.px]="size()"
+  aria-hidden="true"
+>
+  @if (imageUrl(); as src) {
+    <img [src]="src" alt="" (error)="handleImageError()" />
+  } @else if (fallback()) {
+    <span class="avatar__fallback" aria-hidden="true">{{ fallback() }}</span>
+  } @else {
+    <span class="avatar__initials" aria-hidden="true">{{ initials() }}</span>
+  }
+</span>

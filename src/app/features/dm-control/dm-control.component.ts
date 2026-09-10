@@ -18,6 +18,7 @@ import { DmCharacterResourcesComponent } from './character-resources/dm-characte
 import { DmItemGrantComponent } from './item-grant/dm-item-grant.component';
 import { DmItemLibraryComponent } from './item-library/dm-item-library.component';
 import { DmOpen5eImportComponent } from './open5e-import/dm-open5e-import.component';
+import { DmPortraitsComponent } from './portraits/dm-portraits.component';
 import { DmSceneLibraryComponent } from './scene-library/dm-scene-library.component';
 import { DmSpellGrantComponent } from './spell-grant/dm-spell-grant.component';
 import { DmStoryComponent } from './story/dm-story.component';
@@ -37,6 +38,7 @@ import { LanguageSwitcherComponent } from '../../shared/ui/language-switcher/lan
     DmItemGrantComponent,
     DmItemLibraryComponent,
     DmOpen5eImportComponent,
+    DmPortraitsComponent,
     DmSceneLibraryComponent,
     DmSpellGrantComponent,
     DmStoryComponent,

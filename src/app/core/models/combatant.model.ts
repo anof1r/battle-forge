@@ -1,5 +1,6 @@
 import { CombatantStatus, CombatantType } from '../constants/combatant.constants';
 import { StatusEffectTrigger, StatusEffectType } from '../constants/status-effect.constants';
+import { AvatarReference } from './avatar.model';
 import { EnemyAbility, EnemyAction } from './enemy.model';
 
 export interface ActiveStatusEffect {
@@ -51,6 +52,7 @@ export interface Combatant {
   currentHp: number;
   temporaryHp?: number;
   status: CombatantStatus;
+  avatar?: AvatarReference;
   playerName?: string;
   emoji?: string;
   enemyId?: string;

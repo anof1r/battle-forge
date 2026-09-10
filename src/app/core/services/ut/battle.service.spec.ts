@@ -193,6 +193,10 @@ describe('BattleService', () => {
       id: 'creature-goblin',
       name: 'Goblin',
       subtype: 'goblin',
+      avatar: {
+        key: 'avatars/creatures/00000000-0000-4000-8000-000000000099.webp',
+        version: 42,
+      },
       maxHp: 10,
       ac: 12,
       actions: [{ name: 'Sword', description: 'Melee', toHit: '+4', damage: '1d6+2', damageType: 'piercing' }],
@@ -214,6 +218,8 @@ describe('BattleService', () => {
       expect.objectContaining({
         [`combatants/enemy_${firstUuid}`]: expect.objectContaining({
           name: 'Goblin 1',
+          enemyId: template.id,
+          avatar: template.avatar,
           currentHp: 10,
           actions: template.actions,
           abilities: template.abilities,
@@ -225,6 +231,33 @@ describe('BattleService', () => {
     );
   });
 
+  it('synchronizes an updated creature avatar with every matching active combatant', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(NOW);
+    await setup(createRoom({
+      combatants: {
+        'enemy-1': createCombatant({ id: 'enemy-1', enemyId: 'creature-goblin' }),
+        'enemy-2': createCombatant({ id: 'enemy-2', enemyId: 'creature-goblin' }),
+        'enemy-3': createCombatant({ id: 'enemy-3', enemyId: 'creature-orc' }),
+      },
+      initiativeOrder: ['enemy-1', 'enemy-2', 'enemy-3'],
+    }));
+    realtimeData.clearCalls();
+    const avatar = {
+      key: 'avatars/creatures/00000000-0000-4000-8000-000000000099.webp',
+      version: 42,
+    };
+
+    await service.syncAvatar('creature', 'creature-goblin', avatar);
+
+    expect(realtimeData.updateMock).toHaveBeenCalledOnce();
+    expect(realtimeData.updateMock).toHaveBeenCalledWith(ROOM_PATH, {
+      'combatants/enemy-1/avatar': avatar,
+      'combatants/enemy-1/lastUpdated': NOW,
+      'combatants/enemy-2/avatar': avatar,
+      'combatants/enemy-2/lastUpdated': NOW,
+      lastUpdated: NOW,
+    });
+  });
   it('never sends undefined optional creature collections to database', async () => {
     vi.spyOn(globalThis.crypto, 'randomUUID').mockReturnValue(UUID);
     await setup();

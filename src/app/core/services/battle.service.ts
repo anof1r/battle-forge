@@ -6,6 +6,8 @@ import { RealtimeDataService } from './realtime-data.service';
 import { InitiativeService } from './initiative.service';
 import { DamageCalculationService } from './damage-calculation.service';
 import {
+  AvatarOwnerType,
+  AvatarReference,
   BattleAction,
   BattleRoom,
   BattleUndoState,
@@ -156,6 +158,8 @@ export class BattleService {
           maxHp: template.maxHp,
           currentHp: template.maxHp,
           status: COMBATANT_STATUS.ALIVE,
+          enemyId: template.id,
+          ...(template.avatar ? { avatar: template.avatar } : {}),
           actions: template.actions ?? [],
           abilities: template.abilities ?? [],
           resistances: template.resistances ?? [],
@@ -185,6 +189,29 @@ export class BattleService {
     );
   }
 
+  async syncAvatar(
+    ownerType: AvatarOwnerType,
+    ownerId: string,
+    avatar: AvatarReference | null,
+  ): Promise<void> {
+    await this.roomInitialization;
+    const updates: Record<string, unknown> = {};
+    const now = Date.now();
+
+    for (const combatant of Object.values(this.combatants())) {
+      const belongsToOwner = ownerType === 'player'
+        ? combatant.type === COMBATANT_TYPE.PLAYER && combatant.playerName === ownerId
+        : combatant.type === COMBATANT_TYPE.ENEMY && combatant.enemyId === ownerId;
+      if (!belongsToOwner) continue;
+      updates[`combatants/${combatant.id}/avatar`] = avatar;
+      updates[`combatants/${combatant.id}/lastUpdated`] = now;
+    }
+
+    if (Object.keys(updates).length === 0) return;
+    updates['lastUpdated'] = now;
+    await this.realtimeData.update(this.roomPath, updates);
+  }
+
   // --- Методы для игроков ---
   async addPlayerToBattle(player: ParsedCharacter, initiative: number): Promise<void> {
     const id = `player_${player.name}`;
@@ -203,6 +230,7 @@ export class BattleService {
       temporaryHp: player.temporaryHp ?? 0,
       status: COMBATANT_STATUS.ALIVE,
       playerName: player.name,
+      ...(player.avatar ? { avatar: player.avatar } : {}),
       emoji: '🧙',
       lastUpdated: Date.now(),
     };
@@ -222,8 +250,15 @@ export class BattleService {
 
     for (const player of players) {
       const id = `player_${player.name}`;
-      if (!combatants[id]) {
+      const combatant = combatants[id];
+      if (!combatant) {
         updates[`combatants/${id}`] = this.createPlayerCombatant(player, 0);
+      } else if (
+        combatant.avatar?.key !== player.avatar?.key ||
+        combatant.avatar?.version !== player.avatar?.version
+      ) {
+        updates[`combatants/${id}/avatar`] = player.avatar ?? null;
+        updates[`combatants/${id}/lastUpdated`] = Date.now();
       }
       if (!initiativeOrder.includes(id)) initiativeOrder.push(id);
     }
@@ -315,6 +350,7 @@ export class BattleService {
       temporaryHp: player.temporaryHp ?? 0,
       status: COMBATANT_STATUS.ALIVE,
       playerName: player.name,
+      ...(player.avatar ? { avatar: player.avatar } : {}),
       emoji: '🧙',
       lastUpdated: Date.now(),
     };

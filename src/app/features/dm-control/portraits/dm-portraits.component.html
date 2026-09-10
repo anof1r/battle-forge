@@ -1,0 +1,159 @@
+<section class="portraits" [attr.aria-label]="'portraits.title' | transloco">
+  <header class="bf-page-intro portraits__intro">
+    <span class="bf-eyebrow">{{ 'portraits.eyebrow' | transloco }}</span>
+    <h2>{{ 'portraits.title' | transloco }}</h2>
+    <p>{{ 'portraits.intro' | transloco }}</p>
+  </header>
+
+  <div class="portraits__type-tabs" role="tablist" [attr.aria-label]="'portraits.ownerType' | transloco">
+    <button
+      type="button"
+      role="tab"
+      [attr.aria-selected]="ownerType() === 'player'"
+      [class.portraits__type-tab--active]="ownerType() === 'player'"
+      (click)="selectOwnerType('player')"
+    >
+      🧙 {{ 'portraits.players' | transloco }}
+      <span>{{ players().length }}</span>
+    </button>
+    <button
+      type="button"
+      role="tab"
+      [attr.aria-selected]="ownerType() === 'creature'"
+      [class.portraits__type-tab--active]="ownerType() === 'creature'"
+      (click)="selectOwnerType('creature')"
+    >
+      🐲 {{ 'portraits.creatures' | transloco }}
+      <span>{{ creatureCount() }}</span>
+    </button>
+  </div>
+
+  @if (feedback()) {
+    <p class="portraits__message portraits__message--success" role="status">{{ feedback() }}</p>
+  }
+  @if (error()) {
+    <p class="portraits__message portraits__message--error" role="alert">{{ error() }}</p>
+  }
+
+  <div class="portraits__layout">
+    <aside class="portraits__owners">
+      <header>
+        <h3>{{ (ownerType() === 'player' ? 'portraits.players' : 'portraits.creatures') | transloco }}</h3>
+        <span>{{ owners().length }}</span>
+      </header>
+
+      @if (loadingPlayers() && ownerType() === 'player') {
+        <p class="portraits__empty">{{ 'portraits.loading' | transloco }}</p>
+      } @else {
+        <div class="portraits__owner-list">
+          @for (owner of owners(); track owner.id) {
+            <button
+              type="button"
+              class="portraits__owner"
+              [class.portraits__owner--selected]="selectedOwnerId() === owner.id"
+              [attr.aria-pressed]="selectedOwnerId() === owner.id"
+              (click)="selectOwner(owner.id)"
+            >
+              <bf-avatar [avatar]="owner.avatar" [name]="owner.name" [size]="54" />
+              <span>
+                <strong>{{ owner.name }}</strong>
+                <small>{{ owner.subtitle }}</small>
+              </span>
+              @if (owner.avatar) {
+                <b title="{{ 'portraits.assigned' | transloco }}">✓</b>
+              }
+            </button>
+          } @empty {
+            <p class="portraits__empty">
+              {{ (ownerType() === 'player' ? 'portraits.noPlayers' : 'portraits.noCreatures') | transloco }}
+            </p>
+          }
+        </div>
+      }
+    </aside>
+
+    <main class="portraits__editor">
+      @if (selectedOwner(); as owner) {
+        <header class="portraits__editor-header">
+          <bf-avatar [avatar]="owner.avatar" [name]="owner.name" [size]="82" />
+          <div>
+            <span>{{ 'portraits.selected' | transloco }}</span>
+            <h3>{{ owner.name }}</h3>
+            <p>{{ owner.subtitle }}</p>
+          </div>
+          @if (owner.avatar) {
+            <button
+              type="button"
+              class="portraits__button portraits__button--danger"
+              [disabled]="removing() || saving()"
+              (click)="removePortrait()"
+            >
+              {{ (removing() ? 'portraits.removing' : 'portraits.remove') | transloco }}
+            </button>
+          }
+        </header>
+
+        <label class="portraits__upload">
+          <span aria-hidden="true">🖼️</span>
+          <strong>{{ 'portraits.chooseImage' | transloco }}</strong>
+          <small>{{ 'portraits.fileHint' | transloco }}</small>
+          <input
+            #fileInput
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            (change)="onFileSelected($event)"
+          />
+        </label>
+
+        @if (imageChangedEvent()) {
+          <div class="portraits__crop-workspace">
+            <div class="portraits__cropper">
+              <image-cropper
+                [imageChangedEvent]="imageChangedEvent()"
+                [maintainAspectRatio]="true"
+                [aspectRatio]="1"
+                [roundCropper]="true"
+                [resizeToWidth]="512"
+                [resizeToHeight]="512"
+                [imageQuality]="84"
+                [onlyScaleDown]="false"
+                output="blob"
+                format="webp"
+                [imageAltText]="owner.name"
+                [cropperFrameAriaLabel]="'portraits.cropArea' | transloco"
+                (imageCropped)="onImageCropped($event)"
+                (imageLoaded)="onImageLoaded()"
+                (loadImageFailed)="onLoadFailed()"
+              />
+            </div>
+            <div class="portraits__preview">
+              <span>{{ 'portraits.preview' | transloco }}</span>
+              @if (previewUrl(); as url) {
+                <img [src]="url" [alt]="owner.name" />
+              } @else {
+                <div class="portraits__preview-placeholder" aria-hidden="true">?</div>
+              }
+            </div>
+          </div>
+
+          <div class="portraits__actions">
+            <button
+              type="button"
+              class="portraits__button portraits__button--primary"
+              [disabled]="!croppedBlob() || !imageReady() || saving() || removing()"
+              (click)="savePortrait()"
+            >
+              {{ (saving() ? 'common.saving' : 'portraits.save') | transloco }}
+            </button>
+          </div>
+        }
+      } @else {
+        <div class="portraits__placeholder">
+          <span aria-hidden="true">◉</span>
+          <h3>{{ 'portraits.chooseOwner' | transloco }}</h3>
+          <p>{{ 'portraits.chooseOwnerHint' | transloco }}</p>
+        </div>
+      }
+    </main>
+  </div>
+</section>

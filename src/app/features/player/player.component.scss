@@ -109,6 +109,15 @@
   border-radius: var(--bf-radius-md);
   background: linear-gradient(115deg, var(--bf-bg-elevated), var(--bf-bg-deep));
 }
+.player__identity {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--bf-space-4);
+}
+.player__header {
+  min-width: 0;
+}
 .player__header-title {
   font-size: clamp(1.4rem, 3vw, 2rem);
   margin: 0 0 var(--bf-space-2);
@@ -543,6 +552,9 @@
   padding-right: var(--bf-space-4);
 }
 .player__combatant-name {
+  display: flex;
+  align-items: center;
+  gap: var(--bf-space-2);
   font-weight: 700;
   margin-bottom: var(--bf-space-1);
   overflow-wrap: anywhere;
@@ -720,6 +732,9 @@ select {
   .player__hero {
     align-items: start;
     flex-direction: column;
+  }
+  .player__identity {
+    align-items: flex-start;
   }
   .player__stats-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));

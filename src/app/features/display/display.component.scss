@@ -180,6 +180,10 @@
   margin: var(--bf-space-5) 0 var(--bf-space-3);
 }
 .bestiary-card__portrait {
+  display: grid;
+  width: 112px;
+  min-height: 112px;
+  place-items: center;
   font-size: 3rem;
 }
 .bestiary-card__seals {

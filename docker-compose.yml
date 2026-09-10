@@ -30,6 +30,9 @@ services:
       PORT: 8080
       MONGO_URI: mongodb://${MONGO_USERNAME:-battleforge}:${MONGO_PASSWORD:-battleforge-local}@mongo:27017/battle-forge?authSource=admin
       STATIC_ROOT: /app/public
+      MEDIA_ROOT: /app/media
+    volumes:
+      - battle-forge-media:/app/media
     depends_on:
       mongo:
         condition: service_healthy
@@ -52,3 +55,4 @@ services:
 
 volumes:
   battle-forge-mongo:
+  battle-forge-media:

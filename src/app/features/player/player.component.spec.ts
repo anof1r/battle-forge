@@ -135,7 +135,7 @@ describe('PlayerComponent', () => {
     localStorage.clear();
     characterService = {
       characterExists: vi.fn(),
-      loadCharacter: vi.fn(),
+      loadCharacter: vi.fn().mockResolvedValue(null),
       saveCharacter: vi.fn().mockResolvedValue(undefined),
       subscribeToCharacter: vi.fn().mockReturnValue(of(character())),
       usePlayerSpell: vi.fn().mockResolvedValue(true),
@@ -607,10 +607,10 @@ describe('PlayerComponent', () => {
       fixture.nativeElement.querySelectorAll('.player__combatant-card'),
     );
     const names = Array.from<HTMLElement>(
-      fixture.nativeElement.querySelectorAll('.player__combatant-name'),
+      fixture.nativeElement.querySelectorAll('.player__combatant-label'),
     ).map((element) => element.textContent?.replace(/\s+/g, ' ').trim());
 
-    expect(names).toEqual(['🧙 Aria', 'Goblin']);
+    expect(names).toEqual(['Aria', 'Goblin']);
     expect(cards).toHaveLength(2);
     expect(cards[0]).toHaveClass(
       'player__combatant-card--player',

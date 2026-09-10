@@ -49,6 +49,7 @@ export class SceneLibraryService {
     const id = draft.id || `creature_${generateUuid()}`;
     const existing = this.creatureRecords()?.[id];
     const source = draft.source ?? existing?.source;
+    const avatar = draft.avatar ?? existing?.avatar;
     const creature: CreatureTemplate = {
       id,
       name: draft.name.trim() || 'Существо без имени',
@@ -59,6 +60,7 @@ export class SceneLibraryService {
       abilities: this.normalizeAbilities(draft.abilities),
       resistances: this.normalizeStringList(draft.resistances),
       statuses: this.normalizeStringList(draft.statuses),
+      ...(avatar ? { avatar } : {}),
       ...(source ? { source } : {}),
       createdAt: existing?.createdAt ?? now,
       lastUpdated: now,
@@ -116,6 +118,7 @@ export class SceneLibraryService {
       abilities: this.normalizeAbilities(creature.abilities),
       resistances: this.normalizeStringList(creature.resistances),
       statuses: this.normalizeStringList(creature.statuses),
+      ...(creature.avatar ? { avatar: creature.avatar } : {}),
       ...(creature.source ? { source: creature.source } : {}),
       createdAt: creature.createdAt ?? creature.lastUpdated ?? 0,
       lastUpdated: creature.lastUpdated ?? 0,

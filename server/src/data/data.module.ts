@@ -24,6 +24,6 @@ import {
     DataGateway,
     { provide: RecordRepository, useClass: MongoRecordRepository },
   ],
-  exports: [DataStoreService],
+  exports: [DataGateway, DataStoreService],
 })
 export class DataModule {}

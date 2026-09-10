@@ -30,6 +30,7 @@ import { COMBATANT_STATUS, COMBATANT_TYPE } from '../../core/constants/combatant
 import { StatusEffectListComponent } from '../../shared/ui/status-effect-list/status-effect-list.component';
 import { CombatantLifeStateComponent } from '../../shared/ui/combatant-life-state/combatant-life-state.component';
 import { LanguageSwitcherComponent } from '../../shared/ui/language-switcher/language-switcher.component';
+import { AvatarComponent } from '../../shared/ui/avatar/avatar.component';
 import {
   formatSignedModifier,
   getWeaponAttackBonus,
@@ -64,6 +65,7 @@ import {
     StatusEffectListComponent,
     CombatantLifeStateComponent,
     LanguageSwitcherComponent,
+    AvatarComponent,
   ],
   templateUrl: './player.component.html',
   styleUrl: './player.component.scss',
@@ -271,16 +273,24 @@ export class PlayerComponent implements OnDestroy {
         return;
       }
       this.characterService
-        .saveCharacter(parsed)
-        .then(() => {
-          this.character.set(parsed);
+        .loadCharacter(parsed.name)
+        .then((existingCharacter) => {
+          const importedCharacter = existingCharacter?.avatar
+            ? { ...parsed, avatar: existingCharacter.avatar }
+            : parsed;
+          return this.characterService
+            .saveCharacter(importedCharacter)
+            .then(() => importedCharacter);
+        })
+        .then((savedCharacter) => {
+          this.character.set(savedCharacter);
           this.isLoggedIn.set(true);
           this.showUploadPrompt.set(false);
           this.loginError.set(null);
           this.loginName.set(parsed.name);
           this.rememberSuccessfulLogin(parsed.name);
-          this.subscribeToCharacterUpdates(parsed.name);
-          this.joinBattle(parsed);
+          this.subscribeToCharacterUpdates(savedCharacter.name);
+          this.joinBattle(savedCharacter);
         })
         .catch((error: unknown) => this.logger.error('PlayerComponent.onFileSelected', error));
     };

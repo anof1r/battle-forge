@@ -52,3 +52,7 @@ Thumbs.db
 
 #assets
 /public/assets
+
+# Runtime media
+/server/media
+/media

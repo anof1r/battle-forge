@@ -72,8 +72,14 @@
             class="arena__initiative-entry"
             [class.arena__initiative-entry--current]="currentEnemy()?.id === combatant.id"
           >
-            <span>{{ index + 1 }}</span
-            ><strong>{{ combatant.name }}</strong
+            <span>{{ index + 1 }}</span>
+            <bf-avatar
+              [avatar]="combatant.avatar"
+              [name]="combatant.name"
+              [fallback]="combatant.emoji ?? ''"
+              [size]="34"
+            />
+            <strong>{{ combatant.name }}</strong
             ><small>{{ combatant.currentHp }}/{{ combatant.maxHp }} HP</small>
             @if (currentEnemy()?.id === combatant.id) {
               <b aria-hidden="true">←</b>
@@ -131,7 +137,11 @@
 
               <div class="bestiary-card__body">
                 <div class="bestiary-card__portrait">
-                  <bf-enemy-icon [type]="enemy.subtype ?? DEFAULT_ENEMY_TYPE"></bf-enemy-icon>
+                  @if (enemy.avatar) {
+                    <bf-avatar [avatar]="enemy.avatar" [name]="enemy.name" [size]="112" />
+                  } @else {
+                    <bf-enemy-icon [type]="enemy.subtype ?? DEFAULT_ENEMY_TYPE"></bf-enemy-icon>
+                  }
                 </div>
                 <div class="bestiary-card__seals">
                   <div class="seal seal--ac">

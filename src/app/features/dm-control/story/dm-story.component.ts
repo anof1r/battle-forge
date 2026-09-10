@@ -84,7 +84,7 @@ export class DmStoryComponent {
 
   onFilesSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
-    const files = Array.from(input.files ?? []);
+    const files = this.sortFilesByPersistedOrder(Array.from(input.files ?? []));
     input.value = '';
     if (files.length === 0) return;
     const added = this.story.addFiles(files, this.insertBeforeSlideId());
@@ -94,6 +94,28 @@ export class DmStoryComponent {
         ? this.i18n.translate('story.feedback.imagesAdded', { count: added })
         : this.i18n.translate('story.feedback.noImages'),
     );
+  }
+
+  private sortFilesByPersistedOrder(files: readonly File[]): File[] {
+    return files
+      .map((file, inputIndex) => {
+        const sectionId = storySectionIdFromFileName(file.name);
+        const persistedOrder = this.scripts.section(sectionId)?.order;
+        return {
+          file,
+          inputIndex,
+          persistedOrder: Number.isFinite(persistedOrder) ? Number(persistedOrder) : null,
+        };
+      })
+      .sort((left, right) => {
+        if (left.persistedOrder !== null && right.persistedOrder !== null) {
+          return left.persistedOrder - right.persistedOrder || left.inputIndex - right.inputIndex;
+        }
+        if (left.persistedOrder !== null) return -1;
+        if (right.persistedOrder !== null) return 1;
+        return left.inputIndex - right.inputIndex;
+      })
+      .map(({ file }) => file);
   }
 
   setInsertBeforeSlide(event: Event): void {

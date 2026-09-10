@@ -1,3 +1,4 @@
+export * from './avatar.model';
 export * from './battle-scene.model';
 export * from './battle-room.model';
 export * from './action.model';

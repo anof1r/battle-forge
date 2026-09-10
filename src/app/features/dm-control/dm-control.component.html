@@ -46,10 +46,17 @@
     </button>
     <button
       type="button"
+      [class.dm-workspace-tabs__button--active]="activePanel() === 'portraits'"
+      (click)="activePanel.set('portraits')"
+    >
+      <b>5</b> ◉ {{ 'dm.tabs.portraits' | transloco }}
+    </button>
+    <button
+      type="button"
       [class.dm-workspace-tabs__button--active]="activePanel() === 'story'"
       (click)="activePanel.set('story')"
     >
-      <b>5</b> 🎭 {{ 'dm.tabs.story' | transloco }}
+      <b>6</b> 🎭 {{ 'dm.tabs.story' | transloco }}
       @if (storyPresentation.slides().length > 0) {
         <span>{{ storyPresentation.slides().length }}</span>
       }
@@ -119,6 +126,11 @@
   }
   @if (activePanel() === 'scenes') {
     <app-dm-scene-library />
+  }
+  @if (activePanel() === 'portraits') {
+    @defer {
+      <app-dm-portraits />
+    }
   }
   @if (activePanel() === 'story') {
     <app-dm-story />
