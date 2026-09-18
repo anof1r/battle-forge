@@ -1,4 +1,4 @@
-import { WritableSignal, signal } from '@angular/core';
+import { WritableSignal, computed, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { Combatant } from '../../core/models/combatant.model';
@@ -19,6 +19,7 @@ import { SceneLibraryService } from './scene-library/scene-library.service';
 import { StoryPresentationService } from '../../core/services/story-presentation.service';
 import { RealtimeDataService } from '../../core/services/realtime-data.service';
 import { DmControlComponent } from './dm-control.component';
+import { DisplaySettingsService } from '../../core/services/display-settings.service';
 
 describe('DmControlComponent', () => {
   let fixture: ComponentFixture<DmControlComponent>;
@@ -81,6 +82,26 @@ describe('DmControlComponent', () => {
       setSpellSlotPool: vi.fn().mockResolvedValue(undefined),
       upsertResource: vi.fn().mockResolvedValue(undefined),
     };
+    const showEnemyArmorClass = signal(true);
+    const showEnemyHealth = signal(true);
+    const displaySettings = {
+      settings: computed(() => ({
+        showEnemyArmorClass: showEnemyArmorClass(),
+        showEnemyHealth: showEnemyHealth(),
+        lastUpdated: 0,
+      })),
+      showEnemyArmorClass,
+      showEnemyHealth,
+      setVisibility: vi.fn(
+        async (
+          setting: 'showEnemyArmorClass' | 'showEnemyHealth',
+          visible: boolean,
+        ) => {
+          if (setting === 'showEnemyArmorClass') showEnemyArmorClass.set(visible);
+          else showEnemyHealth.set(visible);
+        },
+      ),
+    };
 
     TestBed.configureTestingModule({
       imports: [DmControlComponent],
@@ -90,6 +111,7 @@ describe('DmControlComponent', () => {
         { provide: InventoryService, useValue: { giveItem: vi.fn().mockResolvedValue(undefined) } },
         { provide: LoggerService, useValue: { error: vi.fn() } },
         { provide: StoryPresentationService, useValue: story },
+        { provide: DisplaySettingsService, useValue: displaySettings },
         {
           provide: RealtimeDataService,
           useValue: {
@@ -142,6 +164,27 @@ describe('DmControlComponent', () => {
     expect(
       fixture.nativeElement.querySelector('.dm-settings-panel bf-language-switcher'),
     ).toBeInTheDocument();
+    expect(fixture.nativeElement.querySelector('.dm-settings-divider')).toBeInTheDocument();
+  });
+
+  it('saves Display visibility switches and updates their state', async () => {
+    component.activePanel.set('settings');
+    fixture.detectChanges();
+    const switches: NodeListOf<HTMLInputElement> =
+      fixture.nativeElement.querySelectorAll('.dm-settings-toggle input');
+
+    expect(switches).toHaveLength(2);
+    expect(switches[0]).toBeChecked();
+    expect(switches[1]).toBeChecked();
+
+    switches[0].click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const displaySettings = TestBed.inject(DisplaySettingsService);
+    expect(displaySettings.setVisibility).toHaveBeenCalledWith('showEnemyArmorClass', false);
+    expect(switches[0]).not.toBeChecked();
+    expect(switches[1]).toBeChecked();
   });
 
   it('shows the composed battle workspace without duplicating its form logic in the shell', () => {

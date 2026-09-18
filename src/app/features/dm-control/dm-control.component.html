@@ -139,8 +139,86 @@
     <section class="dm-settings-panel bf-settings">
       <span class="bf-eyebrow">{{ 'workspace.preferences' | transloco }}</span>
       <h2 class="dm-settings-panel__title">{{ 'dm.settings.title' | transloco }}</h2>
-      <p class="dm-settings-panel__description">{{ 'dm.settings.description' | transloco }}</p>
-      <bf-language-switcher />
+      <p class="dm-settings-panel__description">
+        {{ 'dmDisplaySettings.pageDescription' | transloco }}
+      </p>
+
+      <div class="dm-settings-group">
+        <div class="dm-settings-group__heading">
+          <span class="dm-settings-group__icon" aria-hidden="true">&#127760;</span>
+          <div>
+            <h3>{{ 'dmDisplaySettings.globalTitle' | transloco }}</h3>
+            <p>{{ 'dmDisplaySettings.globalDescription' | transloco }}</p>
+          </div>
+        </div>
+        <bf-language-switcher />
+      </div>
+
+      <hr class="dm-settings-divider" />
+
+      <div class="dm-settings-group">
+        <div class="dm-settings-group__heading">
+          <span class="dm-settings-group__icon" aria-hidden="true">&#128421;</span>
+          <div>
+            <h3>{{ 'dmDisplaySettings.displayTitle' | transloco }}</h3>
+            <p>{{ 'dmDisplaySettings.displayDescription' | transloco }}</p>
+          </div>
+        </div>
+
+        <div class="dm-settings-options">
+          <label class="dm-settings-toggle">
+            <span class="dm-settings-toggle__copy">
+              <strong>{{ 'dmDisplaySettings.showEnemyArmorClass' | transloco }}</strong>
+              <small>{{ 'dmDisplaySettings.showEnemyArmorClassHint' | transloco }}</small>
+            </span>
+            <span class="dm-settings-toggle__control">
+              <input
+                type="checkbox"
+                [checked]="displaySettings.showEnemyArmorClass()"
+                [disabled]="savingDisplaySetting() !== null"
+                (change)="setDisplayVisibility('showEnemyArmorClass', $event)"
+              />
+              <span class="dm-settings-toggle__state">
+                {{
+                  (displaySettings.showEnemyArmorClass()
+                    ? 'dmDisplaySettings.yes'
+                    : 'dmDisplaySettings.no'
+                  ) | transloco
+                }}
+              </span>
+            </span>
+          </label>
+
+          <label class="dm-settings-toggle">
+            <span class="dm-settings-toggle__copy">
+              <strong>{{ 'dmDisplaySettings.showEnemyHealth' | transloco }}</strong>
+              <small>{{ 'dmDisplaySettings.showEnemyHealthHint' | transloco }}</small>
+            </span>
+            <span class="dm-settings-toggle__control">
+              <input
+                type="checkbox"
+                [checked]="displaySettings.showEnemyHealth()"
+                [disabled]="savingDisplaySetting() !== null"
+                (change)="setDisplayVisibility('showEnemyHealth', $event)"
+              />
+              <span class="dm-settings-toggle__state">
+                {{
+                  (displaySettings.showEnemyHealth()
+                    ? 'dmDisplaySettings.yes'
+                    : 'dmDisplaySettings.no'
+                  ) | transloco
+                }}
+              </span>
+            </span>
+          </label>
+        </div>
+
+        @if (displaySettingsError()) {
+          <p class="dm-settings-error" role="alert">
+            {{ 'dmDisplaySettings.saveError' | transloco }}
+          </p>
+        }
+      </div>
     </section>
   }
 

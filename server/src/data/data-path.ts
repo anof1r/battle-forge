@@ -9,6 +9,7 @@ export const DATA_COLLECTION_PATHS = [
   'dm-library/spells',
   'dm-library/enemy-actions',
   'dm-library/stories/main/sections',
+  'settings',
 ] as const;
 
 export interface ResolvedDataPath {

@@ -12,6 +12,7 @@ import { CharacterService } from '../../core/services/character.service';
 import { CharacterParserService } from '../../core/services/characterParser.service';
 import { InventoryService } from '../../core/services/inventory.service';
 import { LoggerService } from '../../core/services/logger.service';
+import { DisplaySettingsService } from '../../core/services/display-settings.service';
 import { PlayerComponent } from './player.component';
 
 describe('PlayerComponent', () => {
@@ -57,6 +58,8 @@ describe('PlayerComponent', () => {
     getModifier: ReturnType<typeof vi.fn>;
   };
   let logger: { error: ReturnType<typeof vi.fn> };
+  let showEnemyArmorClass: ReturnType<typeof signal<boolean>>;
+  let showEnemyHealth: ReturnType<typeof signal<boolean>>;
   let battle: {
     aliveEnemies: ReturnType<typeof signal<Combatant[]>>;
     sortedCombatants: ReturnType<typeof signal<Combatant[]>>;
@@ -149,6 +152,8 @@ describe('PlayerComponent', () => {
       getModifier: vi.fn((score: number) => Math.floor((score - 10) / 2)),
     };
     logger = { error: vi.fn() };
+    showEnemyArmorClass = signal(true);
+    showEnemyHealth = signal(true);
     battle = {
       aliveEnemies: signal<Combatant[]>([]),
       sortedCombatants: signal<Combatant[]>([]),
@@ -169,6 +174,10 @@ describe('PlayerComponent', () => {
         { provide: InventoryService, useValue: inventoryService },
         { provide: CharacterParserService, useValue: parser },
         { provide: LoggerService, useValue: logger },
+        {
+          provide: DisplaySettingsService,
+          useValue: { showEnemyArmorClass, showEnemyHealth },
+        },
       ],
     });
 
@@ -625,6 +634,36 @@ describe('PlayerComponent', () => {
     expect(component.selectedEnemyId()).toBeNull();
     cards[1].click();
     expect(component.selectedEnemyId()).toBe(enemy.id);
+  });
+
+  it('applies the shared enemy AC and HP visibility settings in the arena', () => {
+    const enemyWithTemporaryHp = { ...enemy, temporaryHp: 3 };
+    component.character.set(character());
+    component.isLoggedIn.set(true);
+    component.activeTab.set('arena');
+    battle.aliveEnemies.set([enemyWithTemporaryHp]);
+    battle.sortedCombatants.set([ally, enemyWithTemporaryHp]);
+    showEnemyArmorClass.set(false);
+    showEnemyHealth.set(false);
+
+    fixture.detectChanges();
+
+    const cards = fixture.nativeElement.querySelectorAll('.player__combatant-card');
+    const playerCard: HTMLElement = cards[0];
+    const enemyCard: HTMLElement = cards[1];
+    expect(playerCard.querySelector('.player__combatant-hp-text')).toHaveTextContent('24 / 30');
+    expect(playerCard.querySelector('.player__combatant-ac')).toHaveTextContent('13');
+    expect(enemyCard.querySelector('.player__combatant-hp')).toBeNull();
+    expect(enemyCard.querySelector('.player__combatant-ac')).toBeNull();
+    expect(enemyCard.querySelector('.player__combatant-temporary-hp')).toBeNull();
+
+    showEnemyArmorClass.set(true);
+    showEnemyHealth.set(true);
+    fixture.detectChanges();
+
+    expect(enemyCard.querySelector('.player__combatant-hp-text')).toHaveTextContent('12 / 12');
+    expect(enemyCard.querySelector('.player__combatant-ac')).toHaveTextContent('13');
+    expect(enemyCard.querySelector('.player__combatant-temporary-hp')).toHaveTextContent('3');
   });
 
   it('shows the logged-in player active effects above both character tabs', () => {

@@ -8,9 +8,11 @@ export const DATA_ROOT = {
   SPELL_TEMPLATES: 'dm-library/spells',
   ENEMY_ACTION_TEMPLATES: 'dm-library/enemy-actions',
   MAIN_STORY_SECTIONS: 'dm-library/stories/main/sections',
+  SETTINGS: 'settings',
 } as const;
 
 export const MAIN_ROOM_ID = 'main-room';
+export const DISPLAY_SETTINGS_PATH = `${DATA_ROOT.SETTINGS}/display`;
 
 export function roomPath(roomId: string): string {
   return `${DATA_ROOT.ROOMS}/${roomId}`;

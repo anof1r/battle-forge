@@ -25,6 +25,9 @@ import { DmStoryComponent } from './story/dm-story.component';
 import { DmBattleWorkspaceComponent } from './battle-workspace/dm-battle-workspace.component';
 import { DmWorkspacePanel } from './dm-control.model';
 import { LanguageSwitcherComponent } from '../../shared/ui/language-switcher/language-switcher.component';
+import { DisplaySettingsService } from '../../core/services/display-settings.service';
+import { LoggerService } from '../../core/services/logger.service';
+import { DisplayVisibilitySetting } from '../../core/models/display-settings.model';
 
 @Component({
   selector: 'app-dm-control',
@@ -51,10 +54,15 @@ import { LanguageSwitcherComponent } from '../../shared/ui/language-switcher/lan
 })
 export class DmControlComponent {
   private readonly battleService = inject(BattleService);
+  private readonly logger = inject(LoggerService);
+
+  readonly displaySettings = inject(DisplaySettingsService);
 
   readonly storyPresentation = inject(StoryPresentationService);
   readonly BATTLE_STATUS = BATTLE_STATUS;
   readonly activePanel = signal<DmWorkspacePanel>('scenes');
+  readonly savingDisplaySetting = signal<DisplayVisibilitySetting | null>(null);
+  readonly displaySettingsError = signal(false);
 
   readonly battleStatus = this.battleService.battleStatus;
   readonly currentRound = this.battleService.currentRound;
@@ -64,4 +72,19 @@ export class DmControlComponent {
       this.battleService.aliveEnemies().length +
       Object.keys(this.battleService.playersInBattle()).length,
   );
+
+  async setDisplayVisibility(setting: DisplayVisibilitySetting, event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    this.savingDisplaySetting.set(setting);
+    this.displaySettingsError.set(false);
+    try {
+      await this.displaySettings.setVisibility(setting, input.checked);
+    } catch (error) {
+      input.checked = this.displaySettings.settings()[setting];
+      this.displaySettingsError.set(true);
+      this.logger.error('DmControlComponent.setDisplayVisibility', error);
+    } finally {
+      this.savingDisplaySetting.set(null);
+    }
+  }
 }

@@ -79,8 +79,10 @@
               [fallback]="combatant.emoji ?? ''"
               [size]="34"
             />
-            <strong>{{ combatant.name }}</strong
-            ><small>{{ combatant.currentHp }}/{{ combatant.maxHp }} HP</small>
+            <strong>{{ combatant.name }}</strong>
+            @if (combatant.type !== COMBATANT_TYPE.ENEMY || showEnemyHealth()) {
+              <small>{{ combatant.currentHp }}/{{ combatant.maxHp }} HP</small>
+            }
             @if (currentEnemy()?.id === combatant.id) {
               <b aria-hidden="true">←</b>
             }
@@ -143,31 +145,39 @@
                     <bf-enemy-icon [type]="enemy.subtype ?? DEFAULT_ENEMY_TYPE"></bf-enemy-icon>
                   }
                 </div>
-                <div class="bestiary-card__seals">
-                  <div class="seal seal--ac">
-                    <span class="seal__value">{{ enemy.ac }}</span>
-                    <span class="seal__label">{{ 'common.ac' | transloco }}</span>
+                @if (showEnemyArmorClass() || showEnemyHealth()) {
+                  <div class="bestiary-card__seals">
+                    @if (showEnemyArmorClass()) {
+                      <div class="seal seal--ac">
+                        <span class="seal__value">{{ enemy.ac }}</span>
+                        <span class="seal__label">{{ 'common.ac' | transloco }}</span>
+                      </div>
+                    }
+                    @if (showEnemyHealth()) {
+                      <div class="seal seal--hp">
+                        <span class="seal__value">{{ enemy.currentHp }}</span>
+                        <span class="seal__label">/ {{ enemy.maxHp }} HP</span>
+                      </div>
+                      @if ((enemy.temporaryHp ?? 0) > 0) {
+                        <div class="seal seal--hp">
+                          <span class="seal__value">{{ enemy.temporaryHp }}</span>
+                          <span class="seal__label">{{ 'common.temporaryHpShort' | transloco }}</span>
+                        </div>
+                      }
+                    }
                   </div>
-                  <div class="seal seal--hp">
-                    <span class="seal__value">{{ enemy.currentHp }}</span>
-                    <span class="seal__label">/ {{ enemy.maxHp }} HP</span>
-                  </div>
-                  @if ((enemy.temporaryHp ?? 0) > 0) {
-                    <div class="seal seal--hp">
-                      <span class="seal__value">{{ enemy.temporaryHp }}</span>
-                      <span class="seal__label">{{ 'common.temporaryHpShort' | transloco }}</span>
-                    </div>
-                  }
-                </div>
+                }
               </div>
 
-              <bf-hp-bar
-                class="bestiary-card__hp-bar"
-                [current]="enemy.currentHp"
-                [max]="enemy.maxHp"
-                size="lg"
-                [showLabel]="false"
-              ></bf-hp-bar>
+              @if (showEnemyHealth()) {
+                <bf-hp-bar
+                  class="bestiary-card__hp-bar"
+                  [current]="enemy.currentHp"
+                  [max]="enemy.maxHp"
+                  size="lg"
+                  [showLabel]="false"
+                ></bf-hp-bar>
+              }
 
               <div class="bestiary-card__divider" aria-hidden="true"></div>
 
@@ -178,10 +188,12 @@
                     'common.initiativeShort' | transloco
                   }}</span>
                 </div>
-                <div class="bestiary-card__stat-box">
-                  <span class="bestiary-card__stat-value">{{ enemy.maxHp }}</span>
-                  <span class="bestiary-card__stat-label">{{ 'common.maxHp' | transloco }}</span>
-                </div>
+                @if (showEnemyHealth()) {
+                  <div class="bestiary-card__stat-box">
+                    <span class="bestiary-card__stat-value">{{ enemy.maxHp }}</span>
+                    <span class="bestiary-card__stat-label">{{ 'common.maxHp' | transloco }}</span>
+                  </div>
+                }
               </div>
 
               @if (enemy.actions && enemy.actions.length > 0) {

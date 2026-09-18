@@ -731,24 +731,33 @@
                         }}
                       </span>
                     </div>
-                    <div class="player__combatant-hp">
-                      <span
-                        class="player__combatant-hp-bar"
-                        [style.width.%]="
-                          combatant.maxHp > 0 ? (combatant.currentHp / combatant.maxHp) * 100 : 0
-                        "
-                      ></span>
-                      <span class="player__combatant-hp-text"
-                        >{{ combatant.currentHp }} / {{ combatant.maxHp }}</span
-                      >
-                    </div>
+                    @if (combatant.type === COMBATANT_TYPE.PLAYER || showEnemyHealth()) {
+                      <div class="player__combatant-hp">
+                        <span
+                          class="player__combatant-hp-bar"
+                          [style.width.%]="
+                            combatant.maxHp > 0 ? (combatant.currentHp / combatant.maxHp) * 100 : 0
+                          "
+                        ></span>
+                        <span class="player__combatant-hp-text"
+                          >{{ combatant.currentHp }} / {{ combatant.maxHp }}</span
+                        >
+                      </div>
+                    }
                     <div class="player__combatant-stats">
-                      <span>{{ 'common.ac' | transloco }} {{ combatant.ac }}</span>
+                      @if (combatant.type === COMBATANT_TYPE.PLAYER || showEnemyArmorClass()) {
+                        <span class="player__combatant-ac"
+                          >{{ 'common.ac' | transloco }} {{ combatant.ac }}</span
+                        >
+                      }
                       <span
                         >{{ 'common.initiativeShort' | transloco }} {{ combatant.initiative }}</span
                       >
-                      @if ((combatant.temporaryHp ?? 0) > 0) {
-                        <span
+                      @if (
+                        (combatant.type === COMBATANT_TYPE.PLAYER || showEnemyHealth()) &&
+                        (combatant.temporaryHp ?? 0) > 0
+                      ) {
+                        <span class="player__combatant-temporary-hp"
                           >🛡️ {{ combatant.temporaryHp }}
                           {{ 'common.temporaryHpShort' | transloco }}</span
                         >

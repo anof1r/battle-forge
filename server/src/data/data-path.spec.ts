@@ -27,6 +27,13 @@ describe('DataPathResolver', () => {
       nestedSegments: [],
       normalizedPath: 'dm-library/stories/main/sections/1',
     });
+    expect(resolver.resolve('settings/display')).toEqual({
+      collectionPath: 'settings',
+      entityKey: 'display',
+      entityPath: 'settings/display',
+      nestedSegments: [],
+      normalizedPath: 'settings/display',
+    });
   });
 
   it('builds relative multi-location update paths', () => {

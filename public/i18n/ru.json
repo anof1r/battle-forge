@@ -218,6 +218,20 @@
       "description": "Язык интерфейса на этом устройстве."
     }
   },
+  "dmDisplaySettings": {
+    "pageDescription": "Настройки интерфейса мастера и общего экрана.",
+    "globalTitle": "Глобальные",
+    "globalDescription": "Параметры интерфейса на этом устройстве.",
+    "displayTitle": "Экран Display",
+    "displayDescription": "Выберите, какие параметры противников видны на экране Display и в Арене игроков.",
+    "showEnemyArmorClass": "Показывать КД противников?",
+    "showEnemyArmorClassHint": "Скрывает класс доспеха в карточках противников.",
+    "showEnemyHealth": "Показывать здоровье противников?",
+    "showEnemyHealthHint": "Скрывает текущее и максимальное HP, временные HP и полосу здоровья.",
+    "yes": "Да",
+    "no": "Нет",
+    "saveError": "Не удалось сохранить настройку. Попробуйте ещё раз."
+  },
   "display": {
     "storyIllustration": "Иллюстрация истории",
     "awaitingDm": "Ожидаем мастера…",

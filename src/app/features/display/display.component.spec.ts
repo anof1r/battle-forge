@@ -9,6 +9,7 @@ import { StorySlide } from '../../core/models/story-presentation.model';
 import { StoryPresentationService } from '../../core/services/story-presentation.service';
 import { TranslocoService } from '@jsverse/transloco';
 import { DisplayComponent } from './display.component';
+import { DisplaySettingsService } from '../../core/services/display-settings.service';
 
 describe('DisplayComponent', () => {
   const enemy: Combatant = {
@@ -32,6 +33,8 @@ describe('DisplayComponent', () => {
   let combatants: ReturnType<typeof signal<Combatant[]>>;
   let presentationMode: ReturnType<typeof signal<'battle' | 'story'>>;
   let activeStorySlide: ReturnType<typeof signal<StorySlide | null>>;
+  let showEnemyArmorClass: ReturnType<typeof signal<boolean>>;
+  let showEnemyHealth: ReturnType<typeof signal<boolean>>;
 
   beforeEach(() => {
     status = signal<BattleStatus>(BATTLE_STATUS.PREPARATION);
@@ -41,6 +44,8 @@ describe('DisplayComponent', () => {
     combatants = signal<Combatant[]>([]);
     presentationMode = signal<'battle' | 'story'>('battle');
     activeStorySlide = signal<StorySlide | null>(null);
+    showEnemyArmorClass = signal(true);
+    showEnemyHealth = signal(true);
 
     TestBed.configureTestingModule({
       imports: [DisplayComponent],
@@ -61,6 +66,10 @@ describe('DisplayComponent', () => {
             mode: presentationMode,
             activeSlide: activeStorySlide,
           },
+        },
+        {
+          provide: DisplaySettingsService,
+          useValue: { showEnemyArmorClass, showEnemyHealth },
         },
       ],
     });
@@ -208,5 +217,29 @@ describe('DisplayComponent', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.story-display__empty')).toBeVisible();
     expect(fixture.nativeElement.querySelector('.arena')).toBeNull();
+  });
+  it('hides every enemy AC and HP value while keeping player HP in initiative', () => {
+    const player: Combatant = {
+      ...enemy,
+      id: 'player_Aria',
+      type: COMBATANT_TYPE.PLAYER,
+      name: 'Aria',
+    };
+    status.set(BATTLE_STATUS.BATTLE);
+    enemies.set([{ ...enemy, temporaryHp: 3 }]);
+    combatants.set([player, enemy]);
+    showEnemyArmorClass.set(false);
+    showEnemyHealth.set(false);
+
+    const fixture = TestBed.createComponent(DisplayComponent);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.seal--ac')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.seal--hp')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.bestiary-card__hp-bar')).toBeNull();
+    expect(fixture.nativeElement.querySelectorAll('.bestiary-card__stat-box')).toHaveLength(1);
+    const initiativeEntries = fixture.nativeElement.querySelectorAll('.arena__initiative-entry');
+    expect(initiativeEntries[0].querySelector('small')).toHaveTextContent('8/12 HP');
+    expect(initiativeEntries[1].querySelector('small')).toBeNull();
   });
 });

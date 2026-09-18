@@ -218,6 +218,20 @@
       "description": "Interface language for this device."
     }
   },
+  "dmDisplaySettings": {
+    "pageDescription": "Settings for the Dungeon Master interface and shared display.",
+    "globalTitle": "Global",
+    "globalDescription": "Interface preferences for this device.",
+    "displayTitle": "Display screen",
+    "displayDescription": "Choose which enemy values appear on Display and in the player Arena.",
+    "showEnemyArmorClass": "Show enemy Armor Class?",
+    "showEnemyArmorClassHint": "Controls Armor Class in enemy cards.",
+    "showEnemyHealth": "Show enemy hit points?",
+    "showEnemyHealthHint": "Controls current and maximum HP, temporary HP, and the health bar.",
+    "yes": "Yes",
+    "no": "No",
+    "saveError": "Could not save this setting. Please try again."
+  },
   "display": {
     "storyIllustration": "Story illustration",
     "awaitingDm": "Awaiting the Dungeon Master…",

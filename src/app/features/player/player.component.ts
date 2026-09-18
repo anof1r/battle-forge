@@ -18,6 +18,7 @@ import { CharacterService } from '../../core/services/character.service';
 import { BattleService } from '../../core/services/battle.service';
 import { InventoryService } from '../../core/services/inventory.service';
 import { LoggerService } from '../../core/services/logger.service';
+import { DisplaySettingsService } from '../../core/services/display-settings.service';
 import { Subscription } from 'rxjs';
 import { CharacterParserService } from '../../core/services/characterParser.service';
 import { ParsedCharacter } from '../../core/models/character.model';
@@ -80,6 +81,7 @@ export class PlayerComponent implements OnDestroy {
   private readonly inventoryService = inject(InventoryService);
   private readonly logger = inject(LoggerService);
   private readonly i18n = inject(TranslocoService);
+  private readonly displaySettings = inject(DisplaySettingsService);
 
   // --- Внутреннее состояние ---
   private characterSubscription?: Subscription;
@@ -139,6 +141,8 @@ export class PlayerComponent implements OnDestroy {
   readonly combatantsInTurnOrder = this.battleService.sortedCombatants;
   readonly currentCombatant = this.battleService.currentCombatant;
   readonly currentRound = this.battleService.currentRound;
+  readonly showEnemyArmorClass = this.displaySettings.showEnemyArmorClass;
+  readonly showEnemyHealth = this.displaySettings.showEnemyHealth;
 
   readonly weapons = computed(() => this.character()?.weapons ?? []);
   readonly weaponCards = computed<CharacterWeaponView[]>(() => {
