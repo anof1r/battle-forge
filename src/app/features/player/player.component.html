@@ -1,5 +1,8 @@
 <div class="player-stage">
-  @if (!isLoggedIn()) {
+  @if (sheet().error; as error) {
+    <p class="player__error" role="alert">{{ error }}</p>
+  }
+  @if (!session().loggedIn) {
     <div class="player__intro">
       <div class="player__welcome">
         <span class="bf-eyebrow">{{ 'workspace.adventure' | transloco }}</span>
@@ -26,7 +29,7 @@
           <label class="player__login-label" for="player-login-name">{{
             'player.login.namePlaceholder' | transloco
           }}</label>
-          @if (lastLoginName(); as lastName) {
+          @if (session().lastName; as lastName) {
             <button
               type="button"
               class="player__login-btn player__login-btn--remembered"
@@ -41,7 +44,7 @@
             class="player__login-input"
             type="text"
             [placeholder]="'player.login.namePlaceholder' | transloco"
-            [value]="loginName()"
+            [value]="session().name"
             (input)="onLoginInput($event)"
             (keyup.enter)="login()"
           />
@@ -50,11 +53,11 @@
           </button>
         </div>
 
-        @if (loginError()) {
-          <p class="player__error" role="alert">{{ loginError() }}</p>
+        @if (session().error) {
+          <p class="player__error" role="alert">{{ session().error }}</p>
         }
 
-        @if (showUploadPrompt()) {
+        @if (session().uploadPrompt) {
           <div class="player__upload-section">
             <p class="player__upload-hint">{{ 'player.login.uploadHint' | transloco }}</p>
             <label class="player__upload-btn">
@@ -67,7 +70,7 @@
     </div>
   }
 
-  @if (isLoggedIn() && character(); as char) {
+  @if (session().loggedIn && character(); as char) {
     <div class="player__arena">
       <div class="player__hero">
         <div class="player__identity">
@@ -113,8 +116,8 @@
           type="button"
           class="player__tab"
           role="tab"
-          [attr.aria-selected]="activeTab() === 'character'"
-          [class.player__tab--active]="activeTab() === 'character'"
+          [attr.aria-selected]="sheet().tab === 'character'"
+          [class.player__tab--active]="sheet().tab === 'character'"
           (click)="switchTab('character')"
         >
           📖 {{ 'player.tabs.character' | transloco }}
@@ -123,8 +126,8 @@
           type="button"
           class="player__tab"
           role="tab"
-          [attr.aria-selected]="activeTab() === 'arena'"
-          [class.player__tab--active]="activeTab() === 'arena'"
+          [attr.aria-selected]="sheet().tab === 'arena'"
+          [class.player__tab--active]="sheet().tab === 'arena'"
           (click)="switchTab('arena')"
         >
           ⚔️ {{ 'player.tabs.arena' | transloco }}
@@ -135,8 +138,8 @@
           type="button"
           class="player__tab player__tab--settings"
           role="tab"
-          [attr.aria-selected]="activeTab() === 'settings'"
-          [class.player__tab--active]="activeTab() === 'settings'"
+          [attr.aria-selected]="sheet().tab === 'settings'"
+          [class.player__tab--active]="sheet().tab === 'settings'"
           (click)="switchTab('settings')"
         >
           ⚙️ {{ 'player.tabs.settings' | transloco }}
@@ -160,7 +163,7 @@
         ></bf-status-effect-list>
       }
 
-      @if (activeTab() === 'settings') {
+      @if (sheet().tab === 'settings') {
         <section class="player__settings player__stats-panel" role="tabpanel">
           <h2 class="player__panel-title">{{ 'player.settings.title' | transloco }}</h2>
           <p class="player__upload-hint">
@@ -185,9 +188,13 @@
         </section>
       }
 
-      @if (activeTab() === 'character') {
+      @if (sheet().tab === 'character') {
         <div class="player__character">
-          <bf-workspace [label]="'player.tabs.character' | transloco" [(activeTool)]="sheetTool">
+          <bf-workspace
+            [label]="'player.tabs.character' | transloco"
+            [activeTool]="sheet().tool"
+            (activeToolChange)="setSheetTool($event)"
+          >
             <ng-template
               bfWorkspaceTool="stats"
               [title]="'player.sheet.stats' | transloco"
@@ -351,7 +358,21 @@
               @if (char.spells && char.spells.length > 0) {
                 <div class="player__spells">
                   <h2 class="player__panel-title">🔮 {{ 'player.spells.title' | transloco }}</h2>
-                  @if (hasSharedSpellSlots()) {
+                  @if (spellCastingResources().length > 0) {
+                    <div
+                      class="player__slot-pools player__spell-resource-pools"
+                      [attr.aria-label]="'player.spells.resourcePools' | transloco"
+                    >
+                      @for (resource of spellCastingResources(); track resource.id) {
+                        <span>
+                          {{ resource.icon || '⚡' }} {{ resource.name }}: {{ resource.current }}/{{
+                            resource.max
+                          }}
+                        </span>
+                      }
+                    </div>
+                  }
+                  @if (hasSlotBasedSpells() && hasSharedSpellSlots()) {
                     <div
                       class="player__slot-pools"
                       [attr.aria-label]="'player.spells.slots' | transloco"
@@ -376,7 +397,11 @@
                         <div class="player__spell-header">
                           <span class="player__spell-name">{{ spell.name }}</span>
                           <span class="player__spell-level">
-                            @if (spell.isCantrip) {
+                            @if (spellResource(spell); as resource) {
+                              {{ resource.name }}
+                            } @else if (spell.resourceId) {
+                              {{ 'player.spells.resourceSpell' | transloco }}
+                            } @else if (spell.isCantrip) {
                               {{ 'player.spells.cantrip' | transloco }}
                             } @else {
                               {{ 'common.levelValue' | transloco: { level: spell.level } }}
@@ -420,7 +445,18 @@
                         }
                         <div class="player__spell-actions">
                           <span class="player__spell-uses">
-                            @if (spell.isCantrip) {
+                            @if (spellResource(spell); as resource) {
+                              {{
+                                'player.spells.resourceCost'
+                                  | transloco
+                                    : {
+                                        resource: resource.name,
+                                        cost: spellResourceCost(spell, resource),
+                                      }
+                              }}
+                            } @else if (spell.resourceId) {
+                              {{ 'player.spells.resourceUnavailable' | transloco }}
+                            } @else if (spell.isCantrip) {
                               {{ 'player.spells.unlimitedUses' | transloco }}
                             } @else if (hasSharedSpellSlots()) {
                               @if (getAvailableSlotLevels(spell).length > 0) {
@@ -461,12 +497,14 @@
                           </span>
                           <button
                             class="player__inventory-btn player__spell-use-btn"
-                            [disabled]="!canUseSpell(spell) || usingSpellId() !== null"
+                            [disabled]="!canUseSpell(spell) || spellState().pendingId !== null"
                             (click)="useSpell(spell)"
                           >
                             {{
-                              (usingSpellId() === spell.id ? 'player.spells.using' : 'common.use')
-                                | transloco
+                              (spellState().pendingId === spell.id
+                                ? 'player.spells.using'
+                                : 'common.use'
+                              ) | transloco
                             }}
                           </button>
                         </div>
@@ -476,7 +514,7 @@
                               <button
                                 type="button"
                                 class="player__inventory-btn player__inventory-btn--info"
-                                [disabled]="usingSpellId() !== null"
+                                [disabled]="spellState().pendingId !== null"
                                 (click)="useSpellWithResource(spell, resource)"
                               >
                                 {{ 'player.spells.withoutSlot' | transloco }} ·
@@ -488,8 +526,8 @@
                       </div>
                     }
                   </div>
-                  @if (spellUseError()) {
-                    <p class="player__spell-error" role="alert">{{ spellUseError() }}</p>
+                  @if (spellState().error) {
+                    <p class="player__spell-error" role="alert">{{ spellState().error }}</p>
                   }
                 </div>
               }
@@ -551,11 +589,11 @@
                                 <button
                                   type="button"
                                   class="player__inventory-btn"
-                                  [disabled]="updatingResourceEffectId() !== null"
+                                  [disabled]="resourceState().updatingEffectId !== null"
                                   (click)="extendResourceEffect(resource.id)"
                                 >
                                   {{
-                                    (updatingResourceEffectId() === resource.id
+                                    (resourceState().updatingEffectId === resource.id
                                       ? 'player.resources.extending'
                                       : 'player.resources.extend'
                                     ) | transloco
@@ -565,7 +603,7 @@
                               <button
                                 type="button"
                                 class="player__inventory-btn player__inventory-btn--info"
-                                [disabled]="updatingResourceEffectId() !== null"
+                                [disabled]="resourceState().updatingEffectId !== null"
                                 (click)="endResourceEffect(resource.id)"
                               >
                                 {{ 'common.finish' | transloco }}
@@ -582,13 +620,12 @@
                           <button
                             class="player__inventory-btn"
                             [disabled]="
-                              (!resource.isUnlimited && resource.current <= 0) ||
-                              usingResourceId() !== null
+                              !canUseResource(resource) || resourceState().pendingId !== null
                             "
                             (click)="useResource(resource.id)"
                           >
                             {{
-                              (usingResourceId() === resource.id
+                              (resourceState().pendingId === resource.id
                                 ? 'player.resources.using'
                                 : !resource.isUnlimited && resource.current <= 0
                                   ? 'player.resources.depletedShort'
@@ -600,8 +637,8 @@
                       </div>
                     }
                   </div>
-                  @if (resourceUseError()) {
-                    <p class="player__spell-error" role="alert">{{ resourceUseError() }}</p>
+                  @if (resourceState().error) {
+                    <p class="player__spell-error" role="alert">{{ resourceState().error }}</p>
                   }
                 </div>
               }
@@ -624,20 +661,22 @@
                     @for (ability of char.abilities; track ability.name) {
                       <div
                         class="player__ability-item"
-                        [class.player__ability-item--expanded]="expandedAbility() === ability.name"
+                        [class.player__ability-item--expanded]="
+                          sheet().expandedAbility === ability.name
+                        "
                       >
                         <button
                           type="button"
                           class="player__ability-header"
-                          [attr.aria-expanded]="expandedAbility() === ability.name"
+                          [attr.aria-expanded]="sheet().expandedAbility === ability.name"
                           (click)="toggleAbility(ability.name)"
                         >
                           <span class="player__ability-name">{{ ability.name }}</span>
                           <span class="player__ability-toggle">
-                            {{ expandedAbility() === ability.name ? '▾' : '▸' }}
+                            {{ sheet().expandedAbility === ability.name ? '▾' : '▸' }}
                           </span>
                         </button>
-                        @if (expandedAbility() === ability.name) {
+                        @if (sheet().expandedAbility === ability.name) {
                           <div class="player__ability-description">{{ ability.description }}</div>
                         }
                       </div>
@@ -654,7 +693,7 @@
         </div>
       }
 
-      @if (activeTab() === 'arena') {
+      @if (sheet().tab === 'arena') {
         <div class="player__arena-view">
           <div class="player__arena-header">
             <span class="player__arena-round">{{
@@ -686,7 +725,9 @@
                     "
                     [class.player__combatant-card--enemy]="combatant.type === COMBATANT_TYPE.ENEMY"
                     [class.player__combatant-card--selectable]="isSelectableEnemy(combatant)"
-                    [class.player__combatant-card--selected]="selectedEnemyId() === combatant.id"
+                    [class.player__combatant-card--selected]="
+                      attackState().enemyId === combatant.id
+                    "
                     [class.player__combatant-card--current]="
                       currentCombatant()?.id === combatant.id
                     "
@@ -778,8 +819,10 @@
               <div class="player__attack-panel">
                 <h3 class="player__attack-title">
                   {{
-                    (attackMode() === 'main' ? 'player.attack.main' : 'player.attack.additional')
-                      | transloco
+                    (attackState().mode === 'main'
+                      ? 'player.attack.main'
+                      : 'player.attack.additional'
+                    ) | transloco
                   }}
                 </h3>
                 <div
@@ -790,7 +833,7 @@
                   <button
                     type="button"
                     class="player__attack-cancel"
-                    [class.player__attack-tab--active]="attackMode() === 'main'"
+                    [class.player__attack-tab--active]="attackState().mode === 'main'"
                     (click)="setAttackMode('main')"
                   >
                     {{ 'player.attack.mainHit' | transloco }}
@@ -798,7 +841,7 @@
                   <button
                     type="button"
                     class="player__attack-cancel"
-                    [class.player__attack-tab--active]="attackMode() === 'additional'"
+                    [class.player__attack-tab--active]="attackState().mode === 'additional'"
                     (click)="setAttackMode('additional')"
                   >
                     + {{ 'player.attack.additionalShort' | transloco }}
@@ -815,7 +858,7 @@
                   }}</label>
                   <select
                     class="player__attack-select"
-                    [value]="selectedWeaponIndex()"
+                    [value]="attackState().weaponIndex"
                     (change)="onWeaponChange($event)"
                   >
                     @for (weapon of weapons(); track weapon.name; let i = $index) {
@@ -839,7 +882,7 @@
                     type="number"
                     class="player__attack-input"
                     min="0"
-                    [value]="damageAmount()"
+                    [value]="attackState().damage"
                     (input)="onDamageInput($event)"
                   />
                 </div>
@@ -868,53 +911,53 @@
   }
 </div>
 
-@if (showUseModal()) {
+@if (inventoryState().open) {
   <div class="modal-overlay" (click)="closeUseModal()">
     <div class="modal-content" (click)="$event.stopPropagation()">
       <h3 class="modal-title">
-        @if (modalMode() === 'use') {
-          {{ 'common.use' | transloco }} {{ selectedItemForUse()?.name }}
+        @if (inventoryState().mode === 'use') {
+          {{ 'common.use' | transloco }} {{ inventoryState().selected?.name }}
         } @else {
-          📖 {{ selectedItemForUse()?.name }}
+          📖 {{ inventoryState().selected?.name }}
         }
       </h3>
       <p class="modal-description">
-        {{ selectedItemForUse()?.description || ('common.noDescription' | transloco) }}
+        {{ inventoryState().selected?.description || ('common.noDescription' | transloco) }}
       </p>
 
       @if (
-        modalMode() === 'use' &&
-        selectedItemForUse()?.isStackable &&
-        (selectedItemForUse()?.quantity ?? 0) > 1
+        inventoryState().mode === 'use' &&
+        inventoryState().selected?.isStackable &&
+        (inventoryState().selected?.quantity ?? 0) > 1
       ) {
         <div class="modal-quantity">
           <label>{{ 'common.quantity' | transloco }}:</label>
           <input
             type="number"
             min="1"
-            [max]="selectedItemForUse()?.quantity || 1"
-            [value]="useQuantity()"
+            [max]="inventoryState().selected?.quantity || 1"
+            [value]="inventoryState().quantity"
             (input)="onUseQuantityInput($event)"
           />
-          <span> / {{ selectedItemForUse()?.quantity }}</span>
+          <span> / {{ inventoryState().selected?.quantity }}</span>
         </div>
       }
 
-      @if (itemUseError()) {
-        <p class="item-use-error" role="alert">{{ itemUseError() }}</p>
+      @if (inventoryState().error) {
+        <p class="item-use-error" role="alert">{{ inventoryState().error }}</p>
       }
       <div class="modal-actions">
-        @if (modalMode() === 'use') {
+        @if (inventoryState().mode === 'use') {
           <button
             class="modal-btn modal-btn--confirm"
-            [disabled]="usingItem()"
+            [disabled]="inventoryState().pending"
             (click)="confirmAndUseItem()"
           >
-            {{ (usingItem() ? 'player.items.using' : 'common.apply') | transloco }}
+            {{ (inventoryState().pending ? 'player.items.using' : 'common.apply') | transloco }}
           </button>
         }
         <button class="modal-btn modal-btn--cancel" (click)="closeUseModal()">
-          @if (modalMode() === 'use') {
+          @if (inventoryState().mode === 'use') {
             {{ 'common.cancel' | transloco }}
           } @else {
             {{ 'common.close' | transloco }}
@@ -925,7 +968,7 @@
   </div>
 }
 
-@if (itemUseConfirmation(); as confirmation) {
+@if (inventoryState().confirmation; as confirmation) {
   <dialog
     #itemConfirmationDialog
     class="modal-content spell-confirmation item-confirmation"
@@ -953,7 +996,7 @@
   </dialog>
 }
 
-@if (resourceUseConfirmation(); as confirmation) {
+@if (resourceState().confirmation; as confirmation) {
   <div class="modal-overlay modal-overlay--spell" (click)="closeResourceUseConfirmation()">
     <section
       class="modal-content spell-confirmation resource-confirmation"
@@ -998,7 +1041,7 @@
   </div>
 }
 
-@if (selectedResourceForUse(); as resource) {
+@if (resourceState().selected; as resource) {
   <div class="modal-overlay modal-overlay--spell" (click)="closeResourceUseDialog()">
     <section
       class="modal-content resource-spend-modal"
@@ -1018,7 +1061,7 @@
           type="number"
           min="1"
           [max]="resource.current"
-          [value]="resourceUseAmount()"
+          [value]="resourceState().amount"
           (input)="setResourceUseAmount($event)"
         />
         <small
@@ -1028,7 +1071,7 @@
       </label>
       <div class="modal-actions">
         <button type="button" class="modal-btn modal-btn--confirm" (click)="confirmResourceUse()">
-          {{ 'player.resources.spend' | transloco: { amount: resourceUseAmount() } }}
+          {{ 'player.resources.spend' | transloco: { amount: resourceState().amount } }}
         </button>
         <button
           type="button"
@@ -1042,7 +1085,7 @@
   </div>
 }
 
-@if (resourceEffectConfirmation(); as confirmation) {
+@if (resourceState().effectConfirmation; as confirmation) {
   <div class="modal-overlay modal-overlay--spell" (click)="closeResourceEffectConfirmation()">
     <section
       class="modal-content spell-confirmation resource-confirmation resource-extension-confirmation"
@@ -1074,7 +1117,7 @@
   </div>
 }
 
-@if (spellUseConfirmation(); as confirmation) {
+@if (spellState().confirmation; as confirmation) {
   <div class="modal-overlay modal-overlay--spell" (click)="closeSpellUseConfirmation()">
     <section
       class="modal-content spell-confirmation"

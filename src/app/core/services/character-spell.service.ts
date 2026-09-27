@@ -1,3 +1,4 @@
+import { getSpellMaxUses, getSpellUsesRemaining } from '../utils/spell-uses.util';
 import { Injectable } from '@angular/core';
 import { CharacterSpellState, CharacterSpellUseResult } from '../models/character-spell.model';
 import { SpellData } from '../models/combatant.model';
@@ -54,8 +55,8 @@ export class CharacterSpellService {
       };
     }
 
-    const maxUses = Math.max(1, spell.maxUses ?? 1);
-    const usesRemaining = spell.usesRemaining ?? maxUses;
+    const maxUses = getSpellMaxUses(spell);
+    const usesRemaining = getSpellUsesRemaining(spell);
     if (usesRemaining <= 0) {
       return { spells: currentSpells, spellSlots, used: false, shouldPersist: false };
     }
@@ -78,7 +79,7 @@ export class CharacterSpellService {
     return {
       spells: (spells ?? []).map((spell) => {
         if (spell.isCantrip) return spell;
-        const maxUses = Math.max(1, spell.maxUses ?? 1);
+        const maxUses = getSpellMaxUses(spell);
         return { ...spell, maxUses, usesRemaining: maxUses };
       }),
       spellSlots: normalizeSpellSlots(pools).map((slot) => ({ ...slot, current: slot.max })),
@@ -101,9 +102,7 @@ export class CharacterSpellService {
     return [...slots, normalized].sort((left, right) => left.level - right.level);
   }
 
-  restoreShortRestSlots(
-    pools: readonly SpellSlotPool[] | null | undefined,
-  ): SpellSlotPool[] {
+  restoreShortRestSlots(pools: readonly SpellSlotPool[] | null | undefined): SpellSlotPool[] {
     return normalizeSpellSlots(pools).map((slot) =>
       slot.recovery === 'short-rest' ? { ...slot, current: slot.max } : slot,
     );

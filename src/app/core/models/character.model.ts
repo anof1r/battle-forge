@@ -3,7 +3,7 @@ import { SpellData } from './combatant.model';
 import { InventoryItem } from './inventory-item.model';
 import { CharacterResource } from './character-resource.model';
 import { SpellSlotPool } from './spell-slot.model';
-import { CharacterSkill } from './character-skill.model';
+import { CharacterSkill, CharacterStatKey } from './character-skill.model';
 
 export interface CharacterStats {
   str: number;
@@ -12,6 +12,12 @@ export interface CharacterStats {
   int: number;
   wis: number;
   cha: number;
+}
+
+export interface CharacterSavingThrow {
+  stat: CharacterStatKey;
+  proficient: boolean;
+  modifier: number;
 }
 
 export interface CharacterWeapon {
@@ -33,6 +39,8 @@ export interface ParsedCharacter {
   level: number;
   race: string;
   stats: CharacterStats;
+  proficiencyBonus?: number;
+  savingThrows?: CharacterSavingThrow[];
   maxHp: number;
   currentHp: number;
   temporaryHp?: number;

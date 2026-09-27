@@ -102,6 +102,15 @@ describe('CharacterParserService', () => {
       level: 1,
       race: 'Неизвестно',
       stats: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 },
+      proficiencyBonus: 2,
+      savingThrows: [
+        { stat: 'str', proficient: false, modifier: 0 },
+        { stat: 'dex', proficient: false, modifier: 0 },
+        { stat: 'con', proficient: false, modifier: 0 },
+        { stat: 'int', proficient: false, modifier: 0 },
+        { stat: 'wis', proficient: false, modifier: 0 },
+        { stat: 'cha', proficient: false, modifier: 0 },
+      ],
       maxHp: 10,
       currentHp: 10,
       ac: 10,
@@ -173,6 +182,33 @@ describe('CharacterParserService', () => {
     ]);
   });
 
+  it('imports proficiency bonus and every saving throw modifier', () => {
+    const parsed = service.parseCharacter({
+      data: {
+        proficiency: 3,
+        stats: {
+          str: { score: 16, isProf: true },
+          dex: { score: 12, bonus: 2 },
+          con: { score: 14 },
+          int: { score: 18, customModifier: '9' },
+        },
+        bonuses: [
+          { target: 'prof.save.con', mode: 'upgrade', value: 1 },
+          { target: 'prof.save.wis', mode: 'upgrade', value: 1, disabled: true },
+        ],
+      },
+    });
+
+    expect(parsed.proficiencyBonus).toBe(3);
+    expect(parsed.savingThrows).toEqual([
+      { stat: 'str', proficient: true, modifier: 6 },
+      { stat: 'dex', proficient: false, modifier: 3 },
+      { stat: 'con', proficient: true, modifier: 5 },
+      { stat: 'int', proficient: false, modifier: 9 },
+      { stat: 'wis', proficient: false, modifier: 0 },
+      { stat: 'cha', proficient: false, modifier: 0 },
+    ]);
+  });
   it('imports skill proficiencies from current LSS bonus targets', () => {
     const parsed = service.parseCharacter({
       data: {

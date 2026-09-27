@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ParsedCharacter } from '../../models/character.model';
 import { SpellData } from '../../models/combatant.model';
 import { normalizeCharacter } from '../../utils';
-import { CharacterService } from '../character.service';
+import { CharacterNameConflictError, CharacterService } from '../character.service';
 import { RealtimeDataService } from '../realtime-data.service';
 
 describe('CharacterService', () => {
@@ -52,10 +52,7 @@ describe('CharacterService', () => {
       subscribe: vi.fn(),
     };
     TestBed.configureTestingModule({
-      providers: [
-        CharacterService,
-        { provide: RealtimeDataService, useValue: realtimeData },
-      ],
+      providers: [CharacterService, { provide: RealtimeDataService, useValue: realtimeData }],
     });
     service = TestBed.inject(CharacterService);
   });
@@ -93,18 +90,24 @@ describe('CharacterService', () => {
       .mockResolvedValueOnce(explicitlyEmptyWizard)
       .mockResolvedValueOnce(fighter);
 
-    await expect(service.loadCharacter('Legacy Wizard')).resolves.toEqual(expect.objectContaining({
-      spellSlots: [
-        { level: 1, current: 4, max: 4 },
-        { level: 2, current: 2, max: 2 },
-      ],
-    }));
-    await expect(service.loadCharacter('Manual Wizard')).resolves.toEqual(expect.objectContaining({
-      spellSlots: [],
-    }));
-    await expect(service.loadCharacter('Fighter')).resolves.toEqual(expect.objectContaining({
-      spellSlots: [],
-    }));
+    await expect(service.loadCharacter('Legacy Wizard')).resolves.toEqual(
+      expect.objectContaining({
+        spellSlots: [
+          { level: 1, current: 4, max: 4 },
+          { level: 2, current: 2, max: 2 },
+        ],
+      }),
+    );
+    await expect(service.loadCharacter('Manual Wizard')).resolves.toEqual(
+      expect.objectContaining({
+        spellSlots: [],
+      }),
+    );
+    await expect(service.loadCharacter('Fighter')).resolves.toEqual(
+      expect.objectContaining({
+        spellSlots: [],
+      }),
+    );
   });
 
   it('normalizes malformed optional database fields without rejecting the character', async () => {
@@ -114,29 +117,55 @@ describe('CharacterService', () => {
       temporaryHp: -5,
       weapons: null,
       spells: { legacy: true },
-      spellSlots: [
-        { level: 1, current: 9, max: 4 },
-        { level: 12, current: 1, max: 1 },
-        null,
-      ],
+      spellSlots: [{ level: 1, current: 9, max: 4 }, { level: 12, current: 1, max: 1 }, null],
       resources: [
-        { id: 'rage', name: 'Ярость', description: '  Бонусный урон  ', current: 10, max: 2, recovery: 'unknown' },
-        { id: 'sneak', name: 'Скрытая атака', isUnlimited: true, current: 99, max: 99, recovery: 'short-rest' },
+        {
+          id: 'rage',
+          name: 'Ярость',
+          description: '  Бонусный урон  ',
+          current: 10,
+          max: 2,
+          recovery: 'unknown',
+        },
+        {
+          id: 'sneak',
+          name: 'Скрытая атака',
+          isUnlimited: true,
+          current: 99,
+          max: 99,
+          recovery: 'short-rest',
+        },
         { id: 'broken' },
       ],
     });
 
-    await expect(service.loadCharacter('Aria')).resolves.toEqual(expect.objectContaining({
-      currentHp: 30,
-      temporaryHp: 0,
-      weapons: [],
-      spells: [],
-      spellSlots: [{ level: 1, current: 4, max: 4 }],
-      resources: [
-        { id: 'rage', name: 'Ярость', description: 'Бонусный урон', current: 2, max: 2, recovery: 'manual' },
-        { id: 'sneak', name: 'Скрытая атака', isUnlimited: true, current: 0, max: 0, recovery: 'manual' },
-      ],
-    }));
+    await expect(service.loadCharacter('Aria')).resolves.toEqual(
+      expect.objectContaining({
+        currentHp: 30,
+        temporaryHp: 0,
+        weapons: [],
+        spells: [],
+        spellSlots: [{ level: 1, current: 4, max: 4 }],
+        resources: [
+          {
+            id: 'rage',
+            name: 'Ярость',
+            description: 'Бонусный урон',
+            current: 2,
+            max: 2,
+            recovery: 'manual',
+          },
+          {
+            id: 'sneak',
+            name: 'Скрытая атака',
+            isUnlimited: true,
+            current: 0,
+            max: 0,
+            recovery: 'manual',
+          },
+        ],
+      }),
+    );
   });
 
   it('migrates legacy weapon abilities into Russian damage formulas', async () => {
@@ -170,6 +199,55 @@ describe('CharacterService', () => {
     expect(character).not.toHaveProperty('lastUpdated');
   });
 
+  it('renames a character with one collection update and preserves the full aggregate', async () => {
+    const character = createCharacter({
+      name: 'Luna',
+      inventory: [
+        {
+          id: 'potion',
+          name: 'Potion',
+          quantity: 2,
+          description: '',
+          isStackable: true,
+          isConsumable: true,
+        },
+      ],
+      proficiencyBonus: 4,
+      skills: [
+        {
+          id: 'arcana',
+          name: 'Arcana',
+          baseStat: 'int',
+          proficiency: 'none',
+          modifier: 6,
+        },
+      ],
+    });
+    realtimeData.get.mockResolvedValue(null);
+    vi.spyOn(Date, 'now').mockReturnValue(4321);
+
+    await expect(service.updateCharacter('Aria', character)).resolves.toEqual(
+      normalizedCharacter(character),
+    );
+
+    expect(realtimeData.get).toHaveBeenCalledWith('players/Luna');
+    expect(realtimeData.update).toHaveBeenCalledWith('players', {
+      Luna: { ...normalizedCharacter(character), lastUpdated: 4321 },
+      Aria: null,
+    });
+    expect(realtimeData.set).not.toHaveBeenCalled();
+  });
+
+  it('rejects a character rename when the destination name is already stored', async () => {
+    realtimeData.get.mockResolvedValue(createCharacter({ name: 'Luna' }));
+
+    await expect(
+      service.updateCharacter('Aria', createCharacter({ name: 'Luna' })),
+    ).rejects.toBeInstanceOf(CharacterNameConflictError);
+
+    expect(realtimeData.update).not.toHaveBeenCalled();
+    expect(realtimeData.set).not.toHaveBeenCalled();
+  });
   it('returns all stored players and handles an empty collection', async () => {
     const aria = createCharacter();
     const borin = createCharacter({ name: 'Borin' });
@@ -207,7 +285,10 @@ describe('CharacterService', () => {
     vi.spyOn(service, 'loadCharacter').mockResolvedValue(character);
     const save = vi.spyOn(service, 'saveCharacter').mockResolvedValue(undefined);
 
-    await service.updatePlayerSpells('Aria', createSpell({ id: 'replacement', damageFormula: '2d10' }));
+    await service.updatePlayerSpells(
+      'Aria',
+      createSpell({ id: 'replacement', damageFormula: '2d10' }),
+    );
 
     expect(save).toHaveBeenLastCalledWith(
       expect.objectContaining({
@@ -362,13 +443,15 @@ describe('CharacterService', () => {
 
     await expect(service.usePlayerSpell('Aria', spell.id, 2)).resolves.toBe(true);
 
-    expect(save).toHaveBeenCalledWith(expect.objectContaining({
-      spells: [spell],
-      spellSlots: [
-        { level: 1, current: 0, max: 2 },
-        { level: 2, current: 0, max: 1 },
-      ],
-    }));
+    expect(save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        spells: [spell],
+        spellSlots: [
+          { level: 1, current: 0, max: 2 },
+          { level: 2, current: 0, max: 1 },
+        ],
+      }),
+    );
   });
 
   it('uses an automatically backfilled class slot for a spell added to a legacy caster', async () => {
@@ -417,42 +500,50 @@ describe('CharacterService', () => {
       activeEffect: { icon: ' 🔥 ', duration: 'until-next-turn-end' },
     });
 
-    expect(save).toHaveBeenLastCalledWith(expect.objectContaining({
-      resources: [
-        {
-          id: 'rage',
-          name: 'Ярость',
-          icon: '🔥',
-          description: 'Даёт преимущество к проверке Силы.',
-          current: 1,
-          max: 2,
-          recovery: 'long-rest',
-          shortRestRestore: 1,
-          linkedSpellId: 'spell-rage',
-          activeEffect: { icon: '🔥', duration: 'until-next-turn-end' },
-        },
-        expect.objectContaining({ id: 'ki' }),
-      ],
-    }));
+    expect(save).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        resources: [
+          {
+            id: 'rage',
+            name: 'Ярость',
+            icon: '🔥',
+            description: 'Даёт преимущество к проверке Силы.',
+            current: 1,
+            max: 2,
+            recovery: 'long-rest',
+            shortRestRestore: 1,
+            linkedSpellId: 'spell-rage',
+            activeEffect: { icon: '🔥', duration: 'until-next-turn-end' },
+          },
+          expect.objectContaining({ id: 'ki' }),
+        ],
+      }),
+    );
 
     await service.removeResource('Aria', 'rage');
 
-    expect(save).toHaveBeenLastCalledWith(expect.objectContaining({
-      resources: [expect.objectContaining({ id: 'ki' })],
-    }));
+    expect(save).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        resources: [expect.objectContaining({ id: 'ki' })],
+      }),
+    );
   });
 
   it('uses an unlimited resource without decrementing or writing the character', async () => {
-    vi.spyOn(service, 'loadCharacter').mockResolvedValue(createCharacter({
-      resources: [{
-        id: 'sneak-attack',
-        name: 'Скрытая атака',
-        isUnlimited: true,
-        current: 0,
-        max: 0,
-        recovery: 'manual',
-      }],
-    }));
+    vi.spyOn(service, 'loadCharacter').mockResolvedValue(
+      createCharacter({
+        resources: [
+          {
+            id: 'sneak-attack',
+            name: 'Скрытая атака',
+            isUnlimited: true,
+            current: 0,
+            max: 0,
+            recovery: 'manual',
+          },
+        ],
+      }),
+    );
     const save = vi.spyOn(service, 'saveCharacter').mockResolvedValue(undefined);
 
     await expect(service.useResource('Aria', 'sneak-attack')).resolves.toBe(true);
@@ -461,31 +552,42 @@ describe('CharacterService', () => {
   });
 
   it('restores only matching resources on a short rest', async () => {
-    vi.spyOn(service, 'loadCharacter').mockResolvedValue(createCharacter({
-      spellSlots: [
-        { level: 1, current: 0, max: 2, recovery: 'short-rest' },
-        { level: 2, current: 0, max: 1 },
-      ],
-      resources: [
-        { id: 'rage', name: 'Ярость', current: 0, max: 2, recovery: 'long-rest', shortRestRestore: 1 },
-        { id: 'ki', name: 'Ци', current: 0, max: 3, recovery: 'short-rest' },
-        { id: 'manual', name: 'Особый заряд', current: 0, max: 1, recovery: 'manual' },
-      ],
-    }));
+    vi.spyOn(service, 'loadCharacter').mockResolvedValue(
+      createCharacter({
+        spellSlots: [
+          { level: 1, current: 0, max: 2, recovery: 'short-rest' },
+          { level: 2, current: 0, max: 1 },
+        ],
+        resources: [
+          {
+            id: 'rage',
+            name: 'Ярость',
+            current: 0,
+            max: 2,
+            recovery: 'long-rest',
+            shortRestRestore: 1,
+          },
+          { id: 'ki', name: 'Ци', current: 0, max: 3, recovery: 'short-rest' },
+          { id: 'manual', name: 'Особый заряд', current: 0, max: 1, recovery: 'manual' },
+        ],
+      }),
+    );
     const save = vi.spyOn(service, 'saveCharacter').mockResolvedValue(undefined);
 
     await service.completeShortRest('Aria');
 
-    expect(save).toHaveBeenCalledWith(expect.objectContaining({
-      spellSlots: [
-        { level: 1, current: 2, max: 2, recovery: 'short-rest' },
-        { level: 2, current: 0, max: 1 },
-      ],
-      resources: [
-        expect.objectContaining({ id: 'rage', current: 1, shortRestRestore: 1 }),
-        expect.objectContaining({ id: 'ki', current: 3 }),
-        expect.objectContaining({ id: 'manual', current: 0 }),
-      ],
-    }));
+    expect(save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        spellSlots: [
+          { level: 1, current: 2, max: 2, recovery: 'short-rest' },
+          { level: 2, current: 0, max: 1 },
+        ],
+        resources: [
+          expect.objectContaining({ id: 'rage', current: 1, shortRestRestore: 1 }),
+          expect.objectContaining({ id: 'ki', current: 3 }),
+          expect.objectContaining({ id: 'manual', current: 0 }),
+        ],
+      }),
+    );
   });
 });

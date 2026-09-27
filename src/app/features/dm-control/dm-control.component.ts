@@ -15,6 +15,7 @@ import { BATTLE_STATUS } from '../../core/constants/battle-status.constants';
 import { BattleService } from '../../core/services/battle.service';
 import { StoryPresentationService } from '../../core/services/story-presentation.service';
 import { DmCharacterResourcesComponent } from './character-resources/dm-character-resources.component';
+import { DmCharacterEditorComponent } from './character-editor/dm-character-editor.component';
 import { DmItemGrantComponent } from './item-grant/dm-item-grant.component';
 import { DmItemLibraryComponent } from './item-library/dm-item-library.component';
 import { DmOpen5eImportComponent } from './open5e-import/dm-open5e-import.component';
@@ -38,6 +39,7 @@ import { DisplayVisibilitySetting } from '../../core/models/display-settings.mod
     TranslocoPipe,
     DmBattleWorkspaceComponent,
     DmCharacterResourcesComponent,
+    DmCharacterEditorComponent,
     DmItemGrantComponent,
     DmItemLibraryComponent,
     DmOpen5eImportComponent,

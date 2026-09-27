@@ -194,23 +194,23 @@ describe('PlayerComponent', () => {
   });
 
   it('rejects an empty login without calling the character service', () => {
-    component.loginName.set('   ');
+    component.session.update((state) => ({ ...state, name: '   ' }));
 
     component.login();
 
-    expect(component.loginError()).toBe('Введите имя персонажа');
-    expect(component.isLoggedIn()).toBe(false);
+    expect(component.session().error).toBe('Введите имя персонажа');
+    expect(component.session().loggedIn).toBe(false);
     expect(characterService.characterExists).not.toHaveBeenCalled();
   });
 
   it('offers JSON upload when a character does not exist', async () => {
     characterService.characterExists.mockResolvedValue(false);
-    component.loginName.set('Missing');
+    component.session.update((state) => ({ ...state, name: 'Missing' }));
 
     component.login();
 
-    await vi.waitFor(() => expect(component.showUploadPrompt()).toBe(true));
-    expect(component.loginError()).toBe('Персонаж не найден. Загрузите JSON-файл.');
+    await vi.waitFor(() => expect(component.session().uploadPrompt).toBe(true));
+    expect(component.session().error).toBe('Персонаж не найден. Загрузите JSON-файл.');
     expect(characterService.loadCharacter).not.toHaveBeenCalled();
   });
 
@@ -226,11 +226,11 @@ describe('PlayerComponent', () => {
         return unsubscribe;
       }),
     );
-    component.loginName.set('  Aria  ');
+    component.session.update((state) => ({ ...state, name: '  Aria  ' }));
 
     component.login();
 
-    await vi.waitFor(() => expect(component.isLoggedIn()).toBe(true));
+    await vi.waitFor(() => expect(component.session().loggedIn).toBe(true));
     expect(characterService.characterExists).toHaveBeenCalledWith('Aria');
     expect(characterService.loadCharacter).toHaveBeenCalledWith('Aria');
     expect(characterService.subscribeToCharacter).toHaveBeenCalledWith('Aria');
@@ -238,16 +238,16 @@ describe('PlayerComponent', () => {
     expect(component.character()).toEqual(updated);
     expect(localStorage.getItem('battle-forge:last-player-name')).toBe('Aria');
 
-    component.selectedEnemyId.set(enemy.id);
-    component.damageAmount.set(5);
+    component.attackState.update((state) => ({ ...state, enemyId: enemy.id }));
+    component.attackState.update((state) => ({ ...state, damage: 5 }));
     component.logout();
 
     expect(unsubscribe).toHaveBeenCalledOnce();
     expect(component.character()).toBeNull();
-    expect(component.isLoggedIn()).toBe(false);
-    expect(component.loginName()).toBe('');
-    expect(component.selectedEnemyId()).toBeNull();
-    expect(component.damageAmount()).toBe(0);
+    expect(component.session().loggedIn).toBe(false);
+    expect(component.session().name).toBe('');
+    expect(component.attackState().enemyId).toBeNull();
+    expect(component.attackState().damage).toBe(0);
 
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.player__login-btn--remembered')).toHaveTextContent(
@@ -269,19 +269,21 @@ describe('PlayerComponent', () => {
     quickLogin.click();
 
     await vi.waitFor(() => expect(characterService.characterExists).toHaveBeenCalledWith('Aria'));
-    await vi.waitFor(() => expect(rememberedFixture.componentInstance.isLoggedIn()).toBe(true));
+    await vi.waitFor(() =>
+      expect(rememberedFixture.componentInstance.session().loggedIn).toBe(true),
+    );
     rememberedFixture.destroy();
   });
 
   it('reports login failures through the logger and a user-safe message', async () => {
     const error = new Error('network unavailable');
     characterService.characterExists.mockRejectedValue(error);
-    component.loginName.set('Aria');
+    component.session.update((state) => ({ ...state, name: 'Aria' }));
 
     component.login();
 
     await vi.waitFor(() =>
-      expect(component.loginError()).toBe('Ошибка при входе. Попробуйте позже.'),
+      expect(component.session().error).toBe('Ошибка при входе. Попробуйте позже.'),
     );
     expect(logger.error).toHaveBeenCalledWith('PlayerComponent.login', error);
   });
@@ -293,11 +295,11 @@ describe('PlayerComponent', () => {
     });
     characterService.characterExists.mockResolvedValue(true);
     characterService.loadCharacter.mockResolvedValue(character());
-    component.loginName.set('Aria');
+    component.session.update((state) => ({ ...state, name: 'Aria' }));
 
     component.login();
 
-    await vi.waitFor(() => expect(component.isLoggedIn()).toBe(true));
+    await vi.waitFor(() => expect(component.session().loggedIn).toBe(true));
     expect(logger.error).toHaveBeenCalledWith(
       'PlayerComponent.rememberSuccessfulLogin',
       storageError,
@@ -325,8 +327,8 @@ describe('PlayerComponent', () => {
     await vi.waitFor(() => expect(characterService.saveCharacter).toHaveBeenCalledWith(parsed));
     expect(parser.parseCharacter).toHaveBeenCalledWith({ data: {} });
     expect(component.character()).toEqual(parsed);
-    expect(component.isLoggedIn()).toBe(true);
-    expect(component.loginName()).toBe('Aria');
+    expect(component.session().loggedIn).toBe(true);
+    expect(component.session().name).toBe('Aria');
     expect(localStorage.getItem('battle-forge:last-player-name')).toBe('Aria');
     expect(characterService.subscribeToCharacter).toHaveBeenCalledWith('Aria');
     expect(battle.addPlayerToBattle).toHaveBeenCalledWith(parsed, 0);
@@ -351,7 +353,7 @@ describe('PlayerComponent', () => {
 
     await vi.waitFor(() => expect(characterService.saveCharacter).toHaveBeenCalledWith(parsed));
     expect(parser.parseCharacter).toHaveBeenCalledWith({ data: {} });
-    expect(component.error()).toBeNull();
+    expect(component.sheet().error).toBeNull();
   });
 
   it('keeps the player session active and logs when joining the battle fails', async () => {
@@ -360,14 +362,14 @@ describe('PlayerComponent', () => {
     characterService.characterExists.mockResolvedValue(true);
     characterService.loadCharacter.mockResolvedValue(savedCharacter);
     battle.addPlayerToBattle.mockRejectedValue(joinError);
-    component.loginName.set('Aria');
+    component.session.update((state) => ({ ...state, name: 'Aria' }));
 
     component.login();
 
     await vi.waitFor(() =>
       expect(logger.error).toHaveBeenCalledWith('PlayerComponent.joinBattle', joinError),
     );
-    expect(component.isLoggedIn()).toBe(true);
+    expect(component.session().loggedIn).toBe(true);
     expect(component.character()).not.toBeNull();
   });
 
@@ -385,7 +387,9 @@ describe('PlayerComponent', () => {
       target: { files: [new File([''], 'broken.json')] },
     } as unknown as Event);
 
-    expect(component.error()).toBe('Не удалось распарсить файл. Убедитесь, что это JSON с LSS.');
+    expect(component.sheet().error).toBe(
+      'Не удалось распарсить файл. Убедитесь, что это JSON с LSS.',
+    );
     expect(logger.error).toHaveBeenCalledWith(
       'PlayerComponent.onFileSelected',
       expect.any(SyntaxError),
@@ -396,7 +400,7 @@ describe('PlayerComponent', () => {
   it('enables attacks only for a live selected enemy and clears damage after success', async () => {
     battle.aliveEnemies.set([enemy]);
     component.selectEnemy(enemy.id);
-    component.damageAmount.set(6);
+    component.attackState.update((state) => ({ ...state, damage: 6 }));
 
     expect(component.selectedEnemy()).toEqual(enemy);
     expect(component.canAttack()).toBe(true);
@@ -404,7 +408,7 @@ describe('PlayerComponent', () => {
     component.attack();
 
     await vi.waitFor(() => expect(battle.takeDamage).toHaveBeenCalledWith(enemy.id, 6));
-    await vi.waitFor(() => expect(component.damageAmount()).toBe(0));
+    await vi.waitFor(() => expect(component.attackState().damage).toBe(0));
 
     battle.aliveEnemies.set([]);
     expect(component.selectedEnemy()).toBeNull();
@@ -414,25 +418,25 @@ describe('PlayerComponent', () => {
   it('accepts manually counted damage and allows an additional attack without a turn lock', async () => {
     battle.aliveEnemies.set([enemy]);
     component.selectEnemy(enemy.id);
-    component.damageAmount.set(9);
+    component.attackState.update((state) => ({ ...state, damage: 9 }));
 
     component.attack();
 
     await vi.waitFor(() => expect(battle.takeDamage).toHaveBeenNthCalledWith(1, enemy.id, 9));
-    await vi.waitFor(() => expect(component.attackMode()).toBe('additional'));
+    await vi.waitFor(() => expect(component.attackState().mode).toBe('additional'));
 
-    component.damageAmount.set(7);
+    component.attackState.update((state) => ({ ...state, damage: 7 }));
     component.attack();
 
     await vi.waitFor(() => expect(battle.takeDamage).toHaveBeenNthCalledWith(2, enemy.id, 7));
-    expect(component.selectedEnemyId()).toBe(enemy.id);
+    expect(component.attackState().enemyId).toBe(enemy.id);
   });
 
   it('shows Russian characteristic abbreviations and the additional-attack tab', () => {
     component.character.set(character());
-    component.isLoggedIn.set(true);
+    component.session.update((state) => ({ ...state, loggedIn: true }));
     battle.aliveEnemies.set([enemy]);
-    component.activeTab.set('arena');
+    component.sheet.update((state) => ({ ...state, tab: 'arena' }));
     component.selectEnemy(enemy.id);
 
     fixture.detectChanges();
@@ -469,7 +473,7 @@ describe('PlayerComponent', () => {
         ],
       }),
     );
-    component.isLoggedIn.set(true);
+    component.session.update((state) => ({ ...state, loggedIn: true }));
 
     fixture.detectChanges();
 
@@ -516,7 +520,7 @@ describe('PlayerComponent', () => {
         ],
       }),
     );
-    component.isLoggedIn.set(true);
+    component.session.update((state) => ({ ...state, loggedIn: true }));
 
     fixture.detectChanges();
 
@@ -530,7 +534,7 @@ describe('PlayerComponent', () => {
 
   it('shows the shared language switcher in a right-aligned settings tab', () => {
     component.character.set(character());
-    component.isLoggedIn.set(true);
+    component.session.update((state) => ({ ...state, loggedIn: true }));
     component.switchTab('settings');
 
     fixture.detectChanges();
@@ -546,7 +550,7 @@ describe('PlayerComponent', () => {
   it('offers JSON reimport for an existing character in settings', () => {
     component.switchTab('settings');
     component.character.set(character());
-    component.isLoggedIn.set(true);
+    component.session.update((state) => ({ ...state, loggedIn: true }));
 
     fixture.detectChanges();
 
@@ -560,14 +564,14 @@ describe('PlayerComponent', () => {
 
   it('shows the calculated attack bonus in the weapon list and arena attack form', () => {
     component.character.set(character());
-    component.isLoggedIn.set(true);
+    component.session.update((state) => ({ ...state, loggedIn: true }));
 
     fixture.detectChanges();
 
     const weaponBonus = fixture.nativeElement.querySelector('.player__weapon-attack');
     expect(weaponBonus).toHaveTextContent('+5');
 
-    component.activeTab.set('arena');
+    component.sheet.update((state) => ({ ...state, tab: 'arena' }));
     battle.aliveEnemies.set([enemy]);
     battle.sortedCombatants.set([enemy]);
     component.selectEnemy(enemy.id);
@@ -579,7 +583,7 @@ describe('PlayerComponent', () => {
 
   it('keeps current and maximum HP in one dedicated vitality value', () => {
     component.character.set(character({ currentHp: 120, maxHp: 120 }));
-    component.isLoggedIn.set(true);
+    component.session.update((state) => ({ ...state, loggedIn: true }));
 
     fixture.detectChanges();
 
@@ -589,8 +593,8 @@ describe('PlayerComponent', () => {
 
   it('renders the arena safely before the first current turn is assigned', () => {
     component.character.set(character());
-    component.isLoggedIn.set(true);
-    component.activeTab.set('arena');
+    component.session.update((state) => ({ ...state, loggedIn: true }));
+    component.sheet.update((state) => ({ ...state, tab: 'arena' }));
     battle.aliveEnemies.set([enemy]);
     battle.sortedCombatants.set([enemy]);
     battle.currentCombatant.set(null);
@@ -604,8 +608,8 @@ describe('PlayerComponent', () => {
 
   it('renders every combatant in initiative order and makes only enemies selectable', () => {
     component.character.set(character());
-    component.isLoggedIn.set(true);
-    component.activeTab.set('arena');
+    component.session.update((state) => ({ ...state, loggedIn: true }));
+    component.sheet.update((state) => ({ ...state, tab: 'arena' }));
     battle.aliveEnemies.set([enemy]);
     battle.sortedCombatants.set([ally, enemy]);
     battle.currentCombatant.set(ally);
@@ -631,16 +635,16 @@ describe('PlayerComponent', () => {
     expect(fixture.nativeElement).toHaveTextContent('Участников: 2 · Врагов: 1');
 
     cards[0].click();
-    expect(component.selectedEnemyId()).toBeNull();
+    expect(component.attackState().enemyId).toBeNull();
     cards[1].click();
-    expect(component.selectedEnemyId()).toBe(enemy.id);
+    expect(component.attackState().enemyId).toBe(enemy.id);
   });
 
   it('applies the shared enemy AC and HP visibility settings in the arena', () => {
     const enemyWithTemporaryHp = { ...enemy, temporaryHp: 3 };
     component.character.set(character());
-    component.isLoggedIn.set(true);
-    component.activeTab.set('arena');
+    component.session.update((state) => ({ ...state, loggedIn: true }));
+    component.sheet.update((state) => ({ ...state, tab: 'arena' }));
     battle.aliveEnemies.set([enemyWithTemporaryHp]);
     battle.sortedCombatants.set([ally, enemyWithTemporaryHp]);
     showEnemyArmorClass.set(false);
@@ -682,7 +686,7 @@ describe('PlayerComponent', () => {
       activeEffects: [{ id: 'blessing-1', type: 'blessed', appliedAt: 3 }],
     };
     component.character.set(character());
-    component.isLoggedIn.set(true);
+    component.session.update((state) => ({ ...state, loggedIn: true }));
     battle.sortedCombatants.set([affectedAlly, affectedPlayer, enemy]);
 
     fixture.detectChanges();
@@ -701,7 +705,7 @@ describe('PlayerComponent', () => {
 
   it('shows the logged-in player knockout and death save progress', () => {
     component.character.set(character({ currentHp: 0 }));
-    component.isLoggedIn.set(true);
+    component.session.update((state) => ({ ...state, loggedIn: true }));
     battle.sortedCombatants.set([
       {
         ...ally,
@@ -724,34 +728,37 @@ describe('PlayerComponent', () => {
     battle.aliveEnemies.set([enemy]);
     battle.takeDamage.mockRejectedValue(error);
     component.selectEnemy(enemy.id);
-    component.damageAmount.set(4);
+    component.attackState.update((state) => ({ ...state, damage: 4 }));
 
     component.attack();
 
     await vi.waitFor(() =>
       expect(logger.error).toHaveBeenCalledWith('PlayerComponent.attack', error),
     );
-    expect(component.damageAmount()).toBe(4);
+    expect(component.attackState().damage).toBe(4);
   });
 
   it('clamps item quantity and shows a receipt after successful consumption', async () => {
     component.character.set(character());
     component.useItem(potion);
-    expect(component.showUseModal()).toBe(true);
-    expect(component.modalMode()).toBe('use');
+    expect(component.inventoryState().open).toBe(true);
+    expect(component.inventoryState().mode).toBe('use');
 
     component.onUseQuantityInput({ target: { value: '20' } } as unknown as Event);
-    expect(component.useQuantity()).toBe(3);
+    expect(component.inventoryState().quantity).toBe(3);
 
     component.confirmAndUseItem();
 
     await vi.waitFor(() =>
       expect(inventoryService.consumeItem).toHaveBeenCalledWith('Aria', 'potion-1', 3),
     );
-    await vi.waitFor(() => expect(component.showUseModal()).toBe(false));
-    expect(component.selectedItemForUse()).toBeNull();
-    expect(component.useQuantity()).toBe(1);
-    expect(component.itemUseConfirmation()).toMatchObject({ itemName: potion.name, quantity: 3 });
+    await vi.waitFor(() => expect(component.inventoryState().open).toBe(false));
+    expect(component.inventoryState().selected).toBeNull();
+    expect(component.inventoryState().quantity).toBe(1);
+    expect(component.inventoryState().confirmation).toMatchObject({
+      itemName: potion.name,
+      quantity: 3,
+    });
   });
 
   it('waits for persistence, prevents duplicate use and confirms the last item even after realtime removal', async () => {
@@ -771,13 +778,15 @@ describe('PlayerComponent', () => {
 
     component.character.set({ ...character(), inventory: [] });
     finish(true);
-    await vi.waitFor(() => expect(component.usingItem()).toBe(false));
+    await vi.waitFor(() => expect(component.inventoryState().pending).toBe(false));
     fixture.detectChanges();
     const dialog: HTMLDialogElement = fixture.nativeElement.querySelector('.item-confirmation');
     expect(dialog.open).toBe(true);
-    expect(dialog).toHaveTextContent(TestBed.inject(TranslocoService).translate('player.items.used'));
+    expect(dialog).toHaveTextContent(
+      TestBed.inject(TranslocoService).translate('player.items.used'),
+    );
     expect(dialog).toHaveTextContent(potion.name);
-    expect(component.itemUseConfirmation()?.quantity).toBe(1);
+    expect(component.inventoryState().confirmation?.quantity).toBe(1);
     dialog.querySelector<HTMLButtonElement>('button')!.click();
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.item-confirmation')).toBeNull();
@@ -791,14 +800,14 @@ describe('PlayerComponent', () => {
       else inventoryService.consumeItem.mockRejectedValue(new Error('Offline'));
       component.character.set(character());
       component.useItem(potion);
-      component.useQuantity.set(2);
+      component.inventoryState.update((state) => ({ ...state, quantity: 2 }));
       component.confirmAndUseItem();
-      await vi.waitFor(() => expect(component.usingItem()).toBe(false));
+      await vi.waitFor(() => expect(component.inventoryState().pending).toBe(false));
       fixture.detectChanges();
-      expect(component.showUseModal()).toBe(true);
-      expect(component.useQuantity()).toBe(2);
+      expect(component.inventoryState().open).toBe(true);
+      expect(component.inventoryState().quantity).toBe(2);
       expect(fixture.nativeElement.querySelector('[role="alert"]')).toHaveTextContent(
-        component.itemUseError()!,
+        component.inventoryState().error!,
       );
       expect(fixture.nativeElement.querySelector('.item-confirmation')).toBeNull();
     },
@@ -808,13 +817,13 @@ describe('PlayerComponent', () => {
     component.character.set(character());
     component.useItem(potion);
     component.confirmAndUseItem();
-    await vi.waitFor(() => expect(component.itemUseConfirmation()).not.toBeNull());
+    await vi.waitFor(() => expect(component.inventoryState().confirmation).not.toBeNull());
     fixture.detectChanges();
     fixture.nativeElement
       .querySelector('dialog')
       .dispatchEvent(new Event('cancel', { cancelable: true }));
     fixture.detectChanges();
-    expect(component.itemUseConfirmation()).toBeNull();
+    expect(component.inventoryState().confirmation).toBeNull();
     expect(inventoryService.consumeItem).toHaveBeenCalledOnce();
   });
 
@@ -822,17 +831,17 @@ describe('PlayerComponent', () => {
     component.character.set(character());
 
     component.examineItem(potion);
-    expect(component.modalMode()).toBe('examine');
-    expect(component.showUseModal()).toBe(true);
+    expect(component.inventoryState().mode).toBe('examine');
+    expect(component.inventoryState().open).toBe(true);
 
     expect(component.getStatValue('dex')).toBe(14);
     expect(component.getStatModString('dex')).toBe('+2');
     expect(component.getStatValue('unknown')).toBe(0);
 
     component.toggleAbility('Darkvision');
-    expect(component.expandedAbility()).toBe('Darkvision');
+    expect(component.sheet().expandedAbility).toBe('Darkvision');
     component.toggleAbility('Darkvision');
-    expect(component.expandedAbility()).toBeNull();
+    expect(component.sheet().expandedAbility).toBeNull();
   });
 
   it('renders unlimited cantrips and spends an available leveled spell use', async () => {
@@ -846,7 +855,7 @@ describe('PlayerComponent', () => {
     });
     const shield = spell();
     component.character.set(character({ spells: [cantrip, shield] }));
-    component.isLoggedIn.set(true);
+    component.session.update((state) => ({ ...state, loggedIn: true }));
 
     fixture.detectChanges();
 
@@ -864,8 +873,8 @@ describe('PlayerComponent', () => {
     await vi.waitFor(() =>
       expect(characterService.usePlayerSpell).toHaveBeenCalledWith('Aria', shield.id, undefined),
     );
-    await vi.waitFor(() => expect(component.usingSpellId()).toBeNull());
-    expect(component.spellUseConfirmation()).toEqual({
+    await vi.waitFor(() => expect(component.spellState().pendingId).toBeNull());
+    expect(component.spellState().confirmation).toEqual({
       spellName: 'Shield',
       isCantrip: false,
       slotLevel: null,
@@ -884,12 +893,13 @@ describe('PlayerComponent', () => {
         spells: [spell({ description, damageFormula: '2d6+3', damageType: 'огонь' })],
       }),
     );
-    component.isLoggedIn.set(true);
+    component.session.update((state) => ({ ...state, loggedIn: true }));
 
     fixture.detectChanges();
 
-    const details =
-      fixture.nativeElement.querySelector<HTMLDetailsElement>('.player__spell-details');
+    const details = (fixture.nativeElement as HTMLElement).querySelector<HTMLDetailsElement>(
+      '.player__spell-details',
+    );
     const highlighted = Array.from<HTMLElement>(
       fixture.nativeElement.querySelectorAll('.player__spell-description .player__dice-notation'),
     );
@@ -908,7 +918,7 @@ describe('PlayerComponent', () => {
     const exhausted = spell({ usesRemaining: 0 });
     const available = spell({ id: 'available' });
     component.character.set(character({ spells: [exhausted, available] }));
-    component.isLoggedIn.set(true);
+    component.session.update((state) => ({ ...state, loggedIn: true }));
     characterService.usePlayerSpell.mockRejectedValue(new Error('write failed'));
 
     fixture.detectChanges();
@@ -922,8 +932,8 @@ describe('PlayerComponent', () => {
     await vi.waitFor(() =>
       expect(logger.error).toHaveBeenCalledWith('PlayerComponent.useSpell', expect.any(Error)),
     );
-    expect(component.spellUseError()).not.toBeNull();
-    expect(component.spellUseConfirmation()).toBeNull();
+    expect(component.spellState().error).not.toBeNull();
+    expect(component.spellState().confirmation).toBeNull();
   });
 
   it('uses the selected shared slot and confirms its level in a modal', async () => {
@@ -937,12 +947,13 @@ describe('PlayerComponent', () => {
         ],
       }),
     );
-    component.isLoggedIn.set(true);
+    component.session.update((state) => ({ ...state, loggedIn: true }));
 
     fixture.detectChanges();
 
-    const slotSelect =
-      fixture.nativeElement.querySelector<HTMLSelectElement>('.player__slot-select');
+    const slotSelect = (fixture.nativeElement as HTMLElement).querySelector<HTMLSelectElement>(
+      '.player__slot-select',
+    );
     expect(slotSelect).not.toBeNull();
     expect(slotSelect?.options).toHaveLength(2);
     if (slotSelect) {
@@ -959,7 +970,7 @@ describe('PlayerComponent', () => {
       expect(characterService.usePlayerSpell).toHaveBeenCalledWith('Aria', shield.id, 2),
     );
     await vi.waitFor(() =>
-      expect(component.spellUseConfirmation()).toEqual({
+      expect(component.spellState().confirmation).toEqual({
         spellName: 'Shield',
         isCantrip: false,
         slotLevel: 2,
@@ -967,13 +978,15 @@ describe('PlayerComponent', () => {
     );
 
     fixture.detectChanges();
-    const confirmation = fixture.nativeElement.querySelector<HTMLElement>('.spell-confirmation');
+    const confirmation = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>(
+      '.spell-confirmation',
+    );
     expect(confirmation).toHaveTextContent('Shield');
     expect(confirmation).toHaveTextContent('Потрачена ячейка');
     expect(confirmation).toHaveTextContent('2 уровень');
 
     confirmation?.querySelector<HTMLButtonElement>('.spell-confirmation__close')?.click();
-    expect(component.spellUseConfirmation()).toBeNull();
+    expect(component.spellState().confirmation).toBeNull();
   });
 
   it('confirms that a cantrip does not spend a spell slot', async () => {
@@ -998,7 +1011,7 @@ describe('PlayerComponent', () => {
       expect(characterService.usePlayerSpell).toHaveBeenCalledWith('Aria', cantrip.id, undefined),
     );
     await vi.waitFor(() =>
-      expect(component.spellUseConfirmation()).toEqual({
+      expect(component.spellState().confirmation).toEqual({
         spellName: 'Мелкие фокусы',
         isCantrip: true,
         slotLevel: null,
@@ -1033,8 +1046,8 @@ describe('PlayerComponent', () => {
     await vi.waitFor(() =>
       expect(characterService.useResource).toHaveBeenCalledWith('Aria', 'rage', 1),
     );
-    await vi.waitFor(() => expect(component.usingResourceId()).toBeNull());
-    expect(component.resourceUseConfirmation()).toEqual({
+    await vi.waitFor(() => expect(component.resourceState().pendingId).toBeNull());
+    expect(component.resourceState().confirmation).toEqual({
       resourceName: 'Ярость',
       icon: '🔥',
       isUnlimited: false,
@@ -1051,7 +1064,7 @@ describe('PlayerComponent', () => {
     expect(modal).toHaveTextContent('1 / 2');
 
     component.closeResourceUseConfirmation();
-    expect(component.resourceUseConfirmation()).toBeNull();
+    expect(component.resourceState().confirmation).toBeNull();
   });
 
   it('renders and uses an unlimited resource without disabling it at zero', async () => {
@@ -1070,7 +1083,7 @@ describe('PlayerComponent', () => {
         ],
       }),
     );
-    component.isLoggedIn.set(true);
+    component.session.update((state) => ({ ...state, loggedIn: true }));
     fixture.detectChanges();
 
     const card = fixture.nativeElement.querySelector('.player__resource-card--unlimited');
@@ -1084,7 +1097,7 @@ describe('PlayerComponent', () => {
       expect(characterService.useResource).toHaveBeenCalledWith('Aria', 'sneak-attack', 1),
     );
     await vi.waitFor(() =>
-      expect(component.resourceUseConfirmation()).toEqual({
+      expect(component.resourceState().confirmation).toEqual({
         resourceName: 'Скрытая атака',
         icon: '⚡',
         isUnlimited: true,
@@ -1120,7 +1133,7 @@ describe('PlayerComponent', () => {
 
     component.useResource('lay-on-hands');
 
-    expect(component.selectedResourceForUse()?.id).toBe('lay-on-hands');
+    expect(component.resourceState().selected?.id).toBe('lay-on-hands');
     expect(characterService.useResource).not.toHaveBeenCalled();
     component.setResourceUseAmount({ target: { value: '4' } } as unknown as Event);
     component.confirmResourceUse();
@@ -1129,7 +1142,7 @@ describe('PlayerComponent', () => {
       expect(characterService.useResource).toHaveBeenCalledWith('Aria', 'lay-on-hands', 4),
     );
     await vi.waitFor(() =>
-      expect(component.resourceUseConfirmation()).toEqual({
+      expect(component.resourceState().confirmation).toEqual({
         resourceName: 'Наложение рук',
         icon: '✋',
         isUnlimited: false,
@@ -1177,7 +1190,7 @@ describe('PlayerComponent', () => {
         }),
       ),
     );
-    expect(component.resourceUseConfirmation()?.activated).toBe(true);
+    expect(component.resourceState().confirmation?.activated).toBe(true);
 
     battle.sortedCombatants.set([
       {
@@ -1204,7 +1217,7 @@ describe('PlayerComponent', () => {
       ),
     );
     await vi.waitFor(() =>
-      expect(component.resourceEffectConfirmation()).toEqual({
+      expect(component.resourceState().effectConfirmation).toEqual({
         resourceName: 'Ярость',
         durationLabel: 'до конца следующего хода',
         icon: '🔥',
@@ -1234,7 +1247,7 @@ describe('PlayerComponent', () => {
         ],
       }),
     );
-    component.isLoggedIn.set(true);
+    component.session.update((state) => ({ ...state, loggedIn: true }));
 
     fixture.detectChanges();
 
@@ -1242,6 +1255,63 @@ describe('PlayerComponent', () => {
     expect(card).toHaveTextContent('Ресурс исчерпан');
     expect(card.querySelector('button')).toBeDisabled();
     expect(card.querySelector('button')).toHaveTextContent('Исчерпан');
+  });
+
+  it('spends a shared character resource when casting a resource-backed spell', async () => {
+    const fireblast = spell({
+      id: 'ogre-fireblast',
+      name: 'Fireblast',
+      resourceId: 'ogre-mana',
+      resourceCost: 1,
+    });
+    const mana = {
+      id: 'ogre-mana',
+      name: 'Мана',
+      current: 5,
+      max: 5,
+      recovery: 'long-rest' as const,
+    };
+    component.character.set(
+      character({
+        spells: [fireblast],
+        spellSlots: [{ level: 1, current: 4, max: 4 }],
+        resources: [mana],
+      }),
+    );
+
+    expect(component.spellResource(fireblast)).toEqual(mana);
+    expect(component.spellCastingResources()).toEqual([mana]);
+    expect(component.hasSlotBasedSpells()).toBe(false);
+    expect(component.canUseSpell(fireblast)).toBe(true);
+    component.useSpell(fireblast);
+
+    await vi.waitFor(() =>
+      expect(characterService.useResource).toHaveBeenCalledWith('Aria', mana.id, 1),
+    );
+    expect(characterService.usePlayerSpell).not.toHaveBeenCalled();
+    expect(component.spellState().confirmation).toEqual({
+      spellName: 'Fireblast',
+      isCantrip: false,
+      slotLevel: null,
+      resourceName: 'Мана',
+    });
+
+    component.character.set(
+      character({
+        spells: [fireblast],
+        resources: [{ ...mana, current: 0 }],
+      }),
+    );
+    expect(component.canUseSpell(fireblast)).toBe(false);
+  });
+
+  it('keeps spell slots visible for characters with regular prepared spells', () => {
+    const manaSpell = spell({ resourceId: 'mana', resourceCost: 1 });
+    const regularSpell = spell({ id: 'regular-spell', level: 1 });
+
+    component.character.set(character({ spells: [manaSpell, regularSpell] }));
+
+    expect(component.hasSlotBasedSpells()).toBe(true);
   });
 
   it('casts a linked spell without spending a spell slot', async () => {
@@ -1268,7 +1338,7 @@ describe('PlayerComponent', () => {
       expect(characterService.useResource).toHaveBeenCalledWith('Aria', freeCast.id, 1),
     );
     expect(characterService.usePlayerSpell).not.toHaveBeenCalled();
-    expect(component.spellUseConfirmation()).toEqual({
+    expect(component.spellState().confirmation).toEqual({
       spellName: 'Исцеляющее слово',
       isCantrip: false,
       slotLevel: null,
@@ -1286,19 +1356,52 @@ describe('PlayerComponent', () => {
 
     component.useResource('ki');
 
-    await vi.waitFor(() => expect(component.usingResourceId()).toBeNull());
-    expect(component.resourceUseConfirmation()).toBeNull();
-    expect(component.resourceUseError()).not.toBeNull();
+    await vi.waitFor(() => expect(component.resourceState().pendingId).toBeNull());
+    expect(component.resourceState().confirmation).toBeNull();
+    expect(component.resourceState().error).not.toBeNull();
   });
+  it('shows one shared spell resource pool and hides stale spell slots for resource-only casters', () => {
+    const mana = {
+      id: 'mana',
+      name: 'Mana',
+      current: 5,
+      max: 5,
+      recovery: 'long-rest' as const,
+    };
+    component.character.set(
+      character({
+        spells: [spell({ resourceId: mana.id, resourceCost: 1 })],
+        spellSlots: [{ level: 1, current: 4, max: 4 }],
+        resources: [mana],
+      }),
+    );
+    component.session.update((state) => ({ ...state, loggedIn: true }));
+    fixture.detectChanges();
+    const root: HTMLElement = fixture.nativeElement;
+
+    root.querySelector<HTMLButtonElement>('[data-tool="spells"]')!.click();
+    fixture.detectChanges();
+
+    expect(root.querySelectorAll('.player__spell-resource-pools')).toHaveLength(1);
+    expect(root.querySelector('.player__spell-resource-pools')).toHaveTextContent('Mana: 5/5');
+    expect(
+      root.querySelectorAll('.player__slot-pools:not(.player__spell-resource-pools)'),
+    ).toHaveLength(0);
+    expect(root.querySelectorAll('.player__spell-card')).toHaveLength(1);
+    expect(root.querySelector('.player__spell-level')).toHaveTextContent('Mana');
+    expect(root.querySelector('.player__spell-uses')).toHaveTextContent('Mana');
+  });
+
   it('opens sheet sections from cards while keeping character HP visible', () => {
     component.character.set(character());
-    component.isLoggedIn.set(true);
+    component.session.update((state) => ({ ...state, loggedIn: true }));
     fixture.detectChanges();
     const root: HTMLElement = fixture.nativeElement;
     expect(root.querySelectorAll('.workspace-tool')).toHaveLength(5);
     expect(root.querySelector('.player__stats-panel')).not.toBeVisible();
     root.querySelector<HTMLButtonElement>('[data-tool="stats"]')!.click();
     fixture.detectChanges();
+    expect(component.sheet().tool).toBe('stats');
     expect(root.querySelector('.player__stats-panel')).toBeVisible();
     expect(root.querySelector('.player__vitality-value--hp')).toBeVisible();
     root.querySelector<HTMLButtonElement>('[data-tool="equipment"]')!.click();
@@ -1311,5 +1414,211 @@ describe('PlayerComponent', () => {
     component.switchTab('character');
     fixture.detectChanges();
     expect(root.querySelector('[data-tool="equipment"]')).toHaveAttribute('aria-expanded', 'true');
+    expect(component.sheet().tool).toBe('equipment');
+    root.querySelector<HTMLButtonElement>('.workspace-panel__close')!.click();
+    fixture.detectChanges();
+    expect(component.sheet().tool).toBeNull();
+  });
+
+  it('ignores a pending character load after logout', async () => {
+    let finish!: (value: ParsedCharacter) => void;
+    const pending = new Promise<ParsedCharacter>((resolve) => {
+      finish = resolve;
+    });
+    characterService.characterExists.mockResolvedValue(true);
+    characterService.loadCharacter.mockReturnValue(pending);
+    component.session.update((state) => ({ ...state, name: 'Aria' }));
+    component.login();
+    await vi.waitFor(() => expect(characterService.loadCharacter).toHaveBeenCalled());
+    component.logout();
+    finish(character());
+    await pending;
+    await Promise.resolve();
+    expect(component.character()).toBeNull();
+    expect(component.session().loggedIn).toBe(false);
+    expect(characterService.subscribeToCharacter).not.toHaveBeenCalled();
+    expect(battle.addPlayerToBattle).not.toHaveBeenCalled();
+  });
+
+  it('keeps the latest login when requests finish out of order', async () => {
+    let finish!: (value: ParsedCharacter) => void;
+    const pending = new Promise<ParsedCharacter>((resolve) => {
+      finish = resolve;
+    });
+    characterService.characterExists.mockResolvedValue(true);
+    characterService.loadCharacter
+      .mockReturnValueOnce(pending)
+      .mockResolvedValueOnce(character({ name: 'Borin' }));
+    characterService.subscribeToCharacter.mockReturnValue(of(character({ name: 'Borin' })));
+    component.session.update((state) => ({ ...state, name: 'Aria' }));
+    component.login();
+    await vi.waitFor(() => expect(characterService.loadCharacter).toHaveBeenCalledWith('Aria'));
+    component.session.update((state) => ({ ...state, name: 'Borin' }));
+    component.login();
+    await vi.waitFor(() => expect(component.character()?.name).toBe('Borin'));
+    finish(character());
+    await pending;
+    await Promise.resolve();
+    expect(component.character()?.name).toBe('Borin');
+    expect(battle.addPlayerToBattle).toHaveBeenCalledTimes(1);
+  });
+
+  it('resets all character-specific workflows on logout', () => {
+    component.character.set(character());
+    component.switchTab('arena');
+    component.setSheetTool('spells');
+    component.toggleAbility('Darkvision');
+    component.attackState.set({ enemyId: enemy.id, damage: 9, weaponIndex: 3, mode: 'additional' });
+    component.useItem(potion);
+    component.sheet.update((state) => ({ ...state, error: 'old import error' }));
+    component.logout();
+    expect(component.sheet()).toEqual({
+      tool: null,
+      tab: 'character',
+      expandedAbility: null,
+      error: null,
+    });
+    expect(component.attackState()).toEqual({
+      enemyId: null,
+      damage: 0,
+      weaponIndex: 0,
+      mode: 'main',
+    });
+    expect(component.inventoryState().selected).toBeNull();
+    expect(component.inventoryState().open).toBe(false);
+  });
+
+  it('does not let an old spell completion clear a new request for the same character', async () => {
+    let finishOld!: (value: boolean) => void;
+    let finishNew!: (value: boolean) => void;
+    const oldRequest = new Promise<boolean>((resolve) => {
+      finishOld = resolve;
+    });
+    const newRequest = new Promise<boolean>((resolve) => {
+      finishNew = resolve;
+    });
+    characterService.usePlayerSpell.mockReturnValueOnce(oldRequest).mockReturnValueOnce(newRequest);
+    component.character.set(character());
+    component.useSpell(spell());
+    component.logout();
+    component.character.set(character());
+    component.useSpell(spell({ id: 'second' }));
+    finishOld(true);
+    await oldRequest;
+    await Promise.resolve();
+    expect(component.spellState().pendingId).toBe('second');
+    expect(component.spellState().confirmation).toBeNull();
+    finishNew(true);
+    await newRequest;
+    await vi.waitFor(() => expect(component.spellState().pendingId).toBeNull());
+    expect(component.spellState().confirmation?.spellName).toBe('Shield');
+  });
+
+  it('ignores a spell rejection after leaving the session', async () => {
+    let fail!: (error: Error) => void;
+    const request = new Promise<boolean>((_, reject) => {
+      fail = reject;
+    });
+    characterService.usePlayerSpell.mockReturnValue(request);
+    component.character.set(character());
+    component.useSpell(spell());
+    component.logout();
+    const error = new Error('late failure');
+    fail(error);
+    await vi.waitFor(() =>
+      expect(logger.error).toHaveBeenCalledWith('PlayerComponent.useSpell', error),
+    );
+    expect(component.spellState().error).toBeNull();
+    expect(component.spellState().confirmation).toBeNull();
+  });
+
+  it('does not activate an old resource effect after logout', async () => {
+    let finish!: (value: boolean) => void;
+    const request = new Promise<boolean>((resolve) => {
+      finish = resolve;
+    });
+    characterService.useResource.mockReturnValue(request);
+    component.character.set(
+      character({
+        resources: [
+          {
+            id: 'rage',
+            name: 'Rage',
+            current: 2,
+            max: 2,
+            recovery: 'long-rest',
+            activeEffect: { duration: 'until-next-turn-end' },
+          },
+        ],
+      }),
+    );
+    battle.sortedCombatants.set([ally]);
+    component.useResource('rage');
+    component.logout();
+    finish(true);
+    await request;
+    await Promise.resolve();
+    expect(battle.addStatusEffect).not.toHaveBeenCalled();
+    expect(component.resourceState().confirmation).toBeNull();
+  });
+
+  it('rejects a fixed resource cost above the remaining amount instead of discounting it', () => {
+    component.character.set(
+      character({
+        resources: [
+          {
+            id: 'ki',
+            name: 'Ki',
+            current: 1,
+            max: 3,
+            spendAmount: 2,
+            recovery: 'short-rest',
+          },
+        ],
+      }),
+    );
+    component.session.update((state) => ({ ...state, loggedIn: true }));
+    component.useResource('ki');
+    expect(characterService.useResource).not.toHaveBeenCalled();
+    expect(component.canUseResource(component.characterResources()[0])).toBe(false);
+  });
+
+  it('shows import persistence errors on the login screen', async () => {
+    parser.parseCharacter.mockReturnValue(character());
+    characterService.saveCharacter.mockRejectedValue(new Error('save failed'));
+    class FakeFileReader {
+      onload: ((event: { target: { result: string } }) => void) | null = null;
+      readAsText(): void {
+        this.onload?.({ target: { result: '{}' } });
+      }
+    }
+    vi.stubGlobal('FileReader', FakeFileReader);
+    component.onFileSelected({
+      target: { files: [new File(['{}'], 'aria.json')] },
+    } as unknown as Event);
+    await vi.waitFor(() => expect(component.sheet().error).not.toBeNull());
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain(
+      component.sheet().error,
+    );
+    expect(component.session().loggedIn).toBe(false);
+  });
+
+  it('ignores an upload which finishes reading after the component is destroyed', () => {
+    let finish!: () => void;
+    class FakeFileReader {
+      onload: ((event: { target: { result: string } }) => void) | null = null;
+      readAsText(): void {
+        finish = () => this.onload?.({ target: { result: '{}' } });
+      }
+    }
+    vi.stubGlobal('FileReader', FakeFileReader);
+    component.onFileSelected({
+      target: { files: [new File(['{}'], 'aria.json')] },
+    } as unknown as Event);
+    fixture.destroy();
+    finish();
+    expect(parser.parseCharacter).not.toHaveBeenCalled();
+    expect(characterService.saveCharacter).not.toHaveBeenCalled();
   });
 });

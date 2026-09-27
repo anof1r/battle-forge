@@ -1,6 +1,6 @@
 export type CharacterStatKey = 'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha';
 
-export type CharacterSkillProficiency = 'proficient' | 'expertise';
+export type CharacterSkillProficiency = 'none' | 'proficient' | 'expertise';
 
 export interface CharacterSkill {
   id: string;

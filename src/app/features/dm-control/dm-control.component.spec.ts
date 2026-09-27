@@ -154,7 +154,7 @@ describe('DmControlComponent', () => {
     expect(fixture.nativeElement.querySelector('.dm-battle-workspace-host')).toHaveAttribute(
       'hidden',
     );
-    expect(fixture.nativeElement.querySelectorAll('.dm-workspace-tabs button')).toHaveLength(7);
+    expect(fixture.nativeElement.querySelectorAll('.dm-workspace-tabs button')).toHaveLength(8);
   });
 
   it('shows the language switcher in the settings panel', () => {

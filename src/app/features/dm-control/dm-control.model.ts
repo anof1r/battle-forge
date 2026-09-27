@@ -4,5 +4,6 @@ export type DmWorkspacePanel =
   | 'battle'
   | 'rewards'
   | 'portraits'
+  | 'characters'
   | 'story'
   | 'settings';

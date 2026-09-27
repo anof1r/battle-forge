@@ -57,6 +57,7 @@
     "close": "Close",
     "continue": "Continue",
     "currentTurn": "Current turn",
+    "currentHp": "Current HP",
     "damage": "Damage",
     "description": "Description",
     "enemies": "Enemies",
@@ -71,6 +72,7 @@
     "quantity": "Quantity",
     "round": "Round",
     "roundValue": "Round {{ round }}",
+    "refresh": "Refresh",
     "save": "Save",
     "saving": "Saving…",
     "search": "Search",
@@ -202,7 +204,8 @@
       "library": "Open5e imports",
       "story": "Story",
       "settings": "Settings",
-      "portraits": "Portraits"
+      "portraits": "Portraits",
+      "characters": "Character editor"
     },
     "presentation": {
       "label": "Shared display mode",
@@ -302,6 +305,10 @@
       "slotForSpell": "Slot level for {{ name }}",
       "noSlots": "No available slots",
       "legacyCounter": "Legacy counter",
+      "resourcePools": "Spell resources",
+      "resourceSpell": "Resource spell",
+      "resourceCost": "Cost: {{ cost }} · {{ resource }}",
+      "resourceUnavailable": "Linked resource is unavailable",
       "using": "Using…",
       "withoutSlot": "Without a slot",
       "cast": "Spell cast",
@@ -336,6 +343,7 @@
       "logout": "Sign out"
     },
     "proficiency": {
+      "none": "Not proficient",
       "proficient": "Proficient",
       "expertise": "Expertise"
     },
@@ -348,6 +356,7 @@
       "notFound": "Character not found. Upload a JSON file.",
       "login": "Could not sign in. Try again later.",
       "parseJson": "Could not parse the file. Make sure it is an LSS JSON file.",
+      "importFile": "Could not read or save the character. Try again.",
       "spellUnavailable": "The spell cannot be used right now. Refresh the character.",
       "spellUse": "Could not record the spell use. Try again.",
       "freeUseSpent": "The free use has already been spent.",
@@ -923,6 +932,50 @@
     },
     "error": {
       "loadPlayers": "Could not load players from the database. Try refreshing the list."
+    }
+  },
+  "characterEditor": {
+    "eyebrow": "Character database",
+    "title": "Character editor",
+    "intro": "Edit saved hero names and statistics without direct MongoDB access. Inventory, spells, resources, and portraits are preserved.",
+    "savedCharacters": "Saved heroes",
+    "loading": "Loading characters…",
+    "noCharacters": "There are no saved characters yet.",
+    "editing": "Editing",
+    "unnamed": "Unnamed",
+    "preserveHint": "Only fields in this form are changed; all other character data is preserved.",
+    "chooseCharacter": "Choose a character",
+    "chooseCharacterHint": "Every saved database record appears in the list on the left.",
+    "identity": "Identity",
+    "identityHint": "Renaming moves the database record and updates the active battle participant.",
+    "name": "Character name",
+    "class": "Class",
+    "race": "Race",
+    "combatStats": "Combat statistics",
+    "combatStatsHint": "Current and maximum HP, AC, speed, and the global proficiency bonus.",
+    "proficiencyBonus": "Proficiency bonus",
+    "abilitiesHint": "Scores for all six abilities.",
+    "savingThrows": "Saving throws",
+    "savingThrowsHint": "Edit proficiency and the final modifier for each saving throw.",
+    "recalculate": "Recalculate modifiers",
+    "proficient": "Proficient",
+    "modifier": "Modifier",
+    "skills": "Skills",
+    "skillsHint": "Configure proficiency, expertise, and the final bonus for every standard skill.",
+    "skill": "Skill",
+    "ability": "Ability",
+    "proficiency": "Proficiency",
+    "notProficient": "Not proficient",
+    "expertise": "Expertise",
+    "feedback": {
+      "saved": "Character “{{ name }}” saved."
+    },
+    "error": {
+      "load": "Could not load characters from the database.",
+      "save": "Could not save the character. Your edits remain in the form.",
+      "nameRequired": "Enter a character name.",
+      "invalidName": "The name contains symbols that cannot be used in the database.",
+      "nameTaken": "A character with this name already exists."
     }
   },
   "portraits": {

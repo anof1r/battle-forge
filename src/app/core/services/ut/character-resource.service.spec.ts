@@ -67,7 +67,22 @@ describe('CharacterResourceService', () => {
       max: 2,
       recovery: 'manual',
     };
-    expect(service.restore([rage, manual], 'short-rest').map((item) => item.current)).toEqual([3, 0]);
-    expect(service.restore([rage, manual], 'long-rest').map((item) => item.current)).toEqual([3, 0]);
+    expect(service.restore([rage, manual], 'short-rest').map((item) => item.current)).toEqual([
+      3, 0,
+    ]);
+    expect(service.restore([rage, manual], 'long-rest').map((item) => item.current)).toEqual([
+      3, 0,
+    ]);
   });
+
+  it.each([0, -1, 0.5, NaN, Infinity])(
+    'rejects invalid resource cost %s without changing a pool',
+    (amount) => {
+      expect(service.spend([rage], rage.id, amount)).toMatchObject({
+        spent: false,
+        changed: false,
+        resources: [rage],
+      });
+    },
+  );
 });

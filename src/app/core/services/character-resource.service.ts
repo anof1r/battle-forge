@@ -1,3 +1,4 @@
+import { isPositiveInteger } from '../utils/number.util';
 import { generateUuid } from '../utils/uuid.util';
 import { Injectable } from '@angular/core';
 import {
@@ -42,8 +43,12 @@ export class CharacterResourceService {
   ): CharacterResourceSpendResult {
     const resources = normalizeCharacterResources(current);
     const resource = resources.find((candidate) => candidate.id === resourceId);
-    const spentAmount = Math.max(1, Math.floor(amount));
-    if (!resource || (!resource.isUnlimited && resource.current < spentAmount)) {
+    const spentAmount = amount;
+    if (
+      !isPositiveInteger(amount) ||
+      !resource ||
+      (!resource.isUnlimited && resource.current < spentAmount)
+    ) {
       return { resources, spent: false, changed: false };
     }
     if (resource.isUnlimited) return { resources, spent: true, changed: false };
@@ -70,7 +75,8 @@ export class CharacterResourceService {
           current: Math.min(resource.max, resource.current + resource.shortRestRestore!),
         };
       }
-      return resource.recovery === rest || (rest === 'long-rest' && resource.recovery === 'short-rest')
+      return resource.recovery === rest ||
+        (rest === 'long-rest' && resource.recovery === 'short-rest')
         ? { ...resource, current: resource.max }
         : resource;
     });

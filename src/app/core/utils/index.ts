@@ -6,3 +6,7 @@ export * from './spell-slot-progression.util';
 export * from './story-script.util';
 export * from './weapon-formula.util';
 export * from './weapon-attack.util';
+
+export * from './number.util';
+export * from './character-stat.util';
+export * from './spell-uses.util';

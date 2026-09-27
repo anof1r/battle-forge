@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import {
   CharacterAbility,
+  CharacterSavingThrow,
   CharacterStats,
   CharacterWeapon,
   ParsedCharacter,
@@ -17,6 +18,7 @@ import {
 import { LoggerService } from './logger.service';
 import {
   formatWeaponDamageFormula,
+  getAbilityModifier,
   getAutomaticSpellSlots,
   parseJsonWithTrailingCommaRecovery,
   getCharacterProficiencyBonus,
@@ -36,6 +38,7 @@ import {
 import {
   CHARACTER_SKILL_DEFINITIONS,
   CHARACTER_STAT_KEYS,
+  LSS_SAVE_PROFICIENCY_TARGET_PREFIX,
   LSS_SKILL_PROFICIENCY_TARGET_PREFIX,
 } from '../constants/character-skill.constants';
 
@@ -54,6 +57,7 @@ export class CharacterParserService {
     const race = dataObj.info?.race?.value ?? UNKNOWN_CLASS_OR_RACE;
 
     const parsedStats = this.parseStats(dataObj);
+    const proficiencyBonus = this.parseProficiencyBonus(dataObj, level);
 
     const vitality = dataObj.vitality ?? {};
     const baseMaxHp = vitality['hp-max']?.value ?? DEFAULT_MAX_HP;
@@ -72,7 +76,9 @@ export class CharacterParserService {
       level,
       race,
       stats: parsedStats,
-      skills: this.parseSkills(dataObj, parsedStats, level),
+      proficiencyBonus,
+      savingThrows: this.parseSavingThrows(dataObj, parsedStats, proficiencyBonus),
+      skills: this.parseSkills(dataObj, parsedStats, proficiencyBonus),
       maxHp,
       currentHp,
       temporaryHp: 0,
@@ -89,7 +95,7 @@ export class CharacterParserService {
   }
 
   getModifier(score: number): number {
-    return Math.floor((score - DEFAULT_STAT_SCORE) / 2);
+    return getAbilityModifier(score);
   }
 
   private resolveDataObject(jsonData: LssCharacterSheet): LssCharacterData {
@@ -137,10 +143,9 @@ export class CharacterParserService {
   private parseSkills(
     dataObj: LssCharacterData,
     stats: CharacterStats,
-    level: number,
+    proficiencyBonus: number,
   ): CharacterSkill[] {
     const rawSkills = dataObj.skills ?? {};
-    const proficiencyBonus = this.parseProficiencyBonus(dataObj, level);
     const bonusRanks = this.parseSkillProficiencyBonusRanks(dataObj);
     const skillIds = new Set([
       ...Object.keys(rawSkills),
@@ -179,6 +184,26 @@ export class CharacterParserService {
     });
   }
 
+  private parseSavingThrows(
+    dataObj: LssCharacterData,
+    stats: CharacterStats,
+    proficiencyBonus: number,
+  ): CharacterSavingThrow[] {
+    return CHARACTER_STAT_KEYS.map((stat) => {
+      const raw = dataObj.stats?.[stat];
+      const bonusProficiency = (dataObj.bonuses ?? []).some((bonus) =>
+        !bonus.disabled
+        && bonus.target === `${LSS_SAVE_PROFICIENCY_TARGET_PREFIX}${stat}`
+        && (bonus.mode === 'upgrade' || bonus.mode === 'set')
+        && (this.finiteNumber(bonus.value) ?? 0) > 0,
+      );
+      const proficient = raw?.isProf === true || raw?.isProf === 1 || bonusProficiency;
+      const defaultModifier = this.getModifier(stats[stat]) + (proficient ? proficiencyBonus : 0);
+      const modifier = this.finiteNumber(raw?.customModifier)
+        ?? defaultModifier + (this.finiteNumber(raw?.bonus) ?? 0);
+      return { stat, proficient, modifier: Math.trunc(modifier) };
+    });
+  }
   private parseSkillProficiencyBonusRanks(dataObj: LssCharacterData): Map<string, number> {
     const ranks = new Map<string, number>();
 

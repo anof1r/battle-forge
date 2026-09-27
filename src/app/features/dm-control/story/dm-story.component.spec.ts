@@ -149,8 +149,10 @@ describe('DmStoryComponent', () => {
     story.canGoNext.set(true);
     fixture.detectChanges();
 
-    const deck = fixture.nativeElement.querySelector<HTMLElement>('.story-deck');
-    const cards = fixture.nativeElement.querySelectorAll<HTMLElement>('.story-slide');
+    const deck = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('.story-deck');
+    const cards = (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLElement>(
+      '.story-slide',
+    );
     expect(deck).toBeVisible();
     expect(cards).toHaveLength(2);
     expect(cards[0]).toHaveClass('story-slide--active');
@@ -203,16 +205,18 @@ describe('DmStoryComponent', () => {
       'story-script__workspace--reading',
     );
 
-    const editButton = fixture.nativeElement.querySelector<HTMLButtonElement>(
+    const editButton = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>(
       '.story-script__header .story-editor__button',
     );
     editButton?.click();
     fixture.detectChanges();
 
-    const textarea = fixture.nativeElement.querySelector<HTMLTextAreaElement>('textarea');
+    const textarea = (fixture.nativeElement as HTMLElement).querySelector<HTMLTextAreaElement>(
+      'textarea',
+    );
     expect(textarea).not.toBeNull();
-    textarea.value = '**Проверка СЛ 12**';
-    textarea.dispatchEvent(new Event('input'));
+    textarea!.value = '**Проверка СЛ 12**';
+    textarea!.dispatchEvent(new Event('input'));
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.story-script__markdown strong')).toHaveTextContent(
       'Проверка СЛ 12',

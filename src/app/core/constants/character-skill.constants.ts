@@ -13,6 +13,7 @@ export const CHARACTER_STAT_KEYS: readonly CharacterStatKey[] = [
 ];
 
 export const LSS_SKILL_PROFICIENCY_TARGET_PREFIX = 'prof.skill.';
+export const LSS_SAVE_PROFICIENCY_TARGET_PREFIX = 'prof.save.';
 
 export const CHARACTER_SKILL_DEFINITIONS: readonly CharacterSkillDefinition[] = [
   { id: 'athletics', name: 'Атлетика', baseStat: 'str' },

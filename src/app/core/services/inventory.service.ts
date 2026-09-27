@@ -1,3 +1,4 @@
+import { isPositiveInteger } from '../utils/number.util';
 import { generateUuid } from '../utils/uuid.util';
 import { Injectable, inject } from '@angular/core';
 import { CharacterService } from './character.service';
@@ -9,15 +10,14 @@ export class InventoryService {
   private readonly characterService = inject(CharacterService);
 
   async giveItem(playerName: string, item: GiveItemInput): Promise<void> {
+    if (!isPositiveInteger(item.quantity)) return;
     const player = await this.characterService.loadCharacter(playerName);
     if (!player) return;
 
     const inventory = player.inventory ?? [];
     const existing = inventory.find(
       (candidate) =>
-        candidate.name === item.name &&
-        candidate.isStackable &&
-        item.isStackable !== false,
+        candidate.name === item.name && candidate.isStackable && item.isStackable !== false,
     );
     let nextInventory: InventoryItem[];
     if (existing) {
@@ -56,13 +56,16 @@ export class InventoryService {
     const player = await this.characterService.loadCharacter(playerName);
     if (!player) return;
     const inventory = player.inventory ?? [];
-    if (itemIndex < 0 || itemIndex >= inventory.length) return;
-    inventory.splice(itemIndex, 1);
-    await this.characterService.saveCharacter({ ...player, inventory });
+    if (!Number.isInteger(itemIndex) || itemIndex < 0 || itemIndex >= inventory.length) return;
+    await this.characterService.saveCharacter({
+      ...player,
+      inventory: inventory.filter((_, index) => index !== itemIndex),
+    });
   }
 
   /** Consumes `quantity` of an item, removing it once it hits zero. Returns false if there wasn't enough. */
   async consumeItem(playerName: string, itemId: string, quantity: number): Promise<boolean> {
+    if (!isPositiveInteger(quantity)) return false;
     const player = await this.characterService.loadCharacter(playerName);
     if (!player?.inventory) return false;
 

@@ -10,6 +10,11 @@ import { normalizeCharacter } from '../utils';
 import { CharacterResourceService } from './character-resource.service';
 import { CharacterSpellService } from './character-spell.service';
 
+const INVALID_CHARACTER_NAME = /[\/.#$\[\]\u0000-\u001f\u007f]/;
+
+export class CharacterNameConflictError extends Error {}
+export class InvalidCharacterNameError extends Error {}
+
 @Injectable({ providedIn: 'root' })
 export class CharacterService {
   private readonly realtimeData = inject(RealtimeDataService);
@@ -27,6 +32,33 @@ export class CharacterService {
       ...normalized,
       lastUpdated: Date.now(),
     });
+  }
+
+  async updateCharacter(
+    originalName: string,
+    character: ParsedCharacter,
+  ): Promise<ParsedCharacter> {
+    const sourceName = originalName.trim();
+    const name = character.name.trim();
+    if (!sourceName || !name || INVALID_CHARACTER_NAME.test(name)) {
+      throw new InvalidCharacterNameError('Character name is empty or contains forbidden symbols.');
+    }
+
+    const normalized = normalizeCharacter({ ...character, name });
+    const persisted = { ...normalized, lastUpdated: Date.now() };
+    if (name === sourceName) {
+      await this.realtimeData.set(playerPath(sourceName), persisted);
+      return normalized;
+    }
+
+    if (await this.characterExists(name)) {
+      throw new CharacterNameConflictError(`Character "${name}" already exists.`);
+    }
+    await this.realtimeData.update(DATA_ROOT.PLAYERS, {
+      [name]: persisted,
+      [sourceName]: null,
+    });
+    return normalized;
   }
 
   async loadCharacter(name: string): Promise<ParsedCharacter | null> {
@@ -53,12 +85,9 @@ export class CharacterService {
   }
 
   async updatePlayerSpells(playerName: string, spellData: SpellData): Promise<void> {
-    const player = await this.loadCharacter(playerName);
-    if (!player) return;
-    await this.saveCharacter({
-      ...player,
+    await this.updateLoadedCharacter(playerName, (player) => ({
       spells: this.spellRules.upsert(player.spells, spellData),
-    });
+    }));
   }
 
   async updatePlayerHealth(name: string, currentHp: number, temporaryHp: number): Promise<void> {
@@ -84,39 +113,27 @@ export class CharacterService {
   }
 
   async restorePlayerSpells(playerName: string): Promise<void> {
-    const player = await this.loadCharacter(playerName);
-    if (!player) return;
-    await this.saveCharacter({
-      ...player,
+    await this.updateLoadedCharacter(playerName, (player) => ({
       ...this.spellRules.restore(player.spells, player.spellSlots),
-    });
+    }));
   }
 
   async setSpellSlotPool(playerName: string, pool: SpellSlotPool): Promise<void> {
-    const player = await this.loadCharacter(playerName);
-    if (!player) return;
-    await this.saveCharacter({
-      ...player,
+    await this.updateLoadedCharacter(playerName, (player) => ({
       spellSlots: this.spellRules.upsertSlot(player.spellSlots, pool),
-    });
+    }));
   }
 
   async upsertResource(playerName: string, resource: CharacterResource): Promise<void> {
-    const player = await this.loadCharacter(playerName);
-    if (!player) return;
-    await this.saveCharacter({
-      ...player,
+    await this.updateLoadedCharacter(playerName, (player) => ({
       resources: this.resourceRules.upsert(player.resources, resource),
-    });
+    }));
   }
 
   async removeResource(playerName: string, resourceId: string): Promise<void> {
-    const player = await this.loadCharacter(playerName);
-    if (!player) return;
-    await this.saveCharacter({
-      ...player,
+    await this.updateLoadedCharacter(playerName, (player) => ({
       resources: this.resourceRules.remove(player.resources, resourceId),
-    });
+    }));
   }
 
   async useResource(playerName: string, resourceId: string, amount = 1): Promise<boolean> {
@@ -133,22 +150,16 @@ export class CharacterService {
     playerName: string,
     rest: Exclude<ResourceRecovery, 'manual'>,
   ): Promise<void> {
-    const player = await this.loadCharacter(playerName);
-    if (!player) return;
-    await this.saveCharacter({
-      ...player,
+    await this.updateLoadedCharacter(playerName, (player) => ({
       resources: this.resourceRules.restore(player.resources, rest),
-    });
+    }));
   }
 
   async completeShortRest(playerName: string): Promise<void> {
-    const player = await this.loadCharacter(playerName);
-    if (!player) return;
-    await this.saveCharacter({
-      ...player,
+    await this.updateLoadedCharacter(playerName, (player) => ({
       spellSlots: this.spellRules.restoreShortRestSlots(player.spellSlots),
       resources: this.resourceRules.restore(player.resources, 'short-rest'),
-    });
+    }));
   }
 
   async completeLongRest(playerName: string, maxHp: number): Promise<void> {
@@ -166,12 +177,17 @@ export class CharacterService {
   }
 
   async removePlayerSpell(playerName: string, spellId: string): Promise<void> {
-    const player = await this.loadCharacter(playerName);
-    if (!player) return;
-
-    await this.saveCharacter({
-      ...player,
+    await this.updateLoadedCharacter(playerName, (player) => ({
       spells: this.spellRules.remove(player.spells, spellId),
-    });
+    }));
+  }
+  /** Centralizes load/patch/save; this is not a cross-client transaction. */
+  private async updateLoadedCharacter(
+    name: string,
+    patch: (character: ParsedCharacter) => Partial<ParsedCharacter>,
+  ): Promise<void> {
+    const character = await this.loadCharacter(name);
+    if (!character) return;
+    await this.saveCharacter({ ...character, ...patch(character) });
   }
 }

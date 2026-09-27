@@ -213,6 +213,44 @@ export class BattleService {
   }
 
   // --- Методы для игроков ---
+  async syncPlayerCharacter(originalName: string, player: ParsedCharacter): Promise<void> {
+    await this.roomInitialization;
+    const originalId = `player_${originalName}`;
+    const nextId = `player_${player.name}`;
+    const current = this.combatants()[originalId];
+    if (!current || current.type !== COMBATANT_TYPE.PLAYER) return;
+
+    const currentHp = Math.min(player.maxHp, Math.max(0, player.currentHp));
+    const updated: Combatant = {
+      ...current,
+      id: nextId,
+      name: player.name,
+      playerName: player.name,
+      ac: player.ac,
+      maxHp: player.maxHp,
+      currentHp,
+      temporaryHp: Math.max(0, player.temporaryHp ?? 0),
+      status: currentHp > 0
+        ? COMBATANT_STATUS.ALIVE
+        : current.status === COMBATANT_STATUS.DEAD
+          ? COMBATANT_STATUS.DEAD
+          : COMBATANT_STATUS.DOWNED,
+      avatar: player.avatar,
+      lastUpdated: Date.now(),
+    };
+    if (currentHp > 0) delete updated.deathSaves;
+
+    const initiativeOrder = this.initiativeOrder().map((id) =>
+      id === originalId ? nextId : id,
+    );
+    const updates: Record<string, unknown> = {
+      [`combatants/${nextId}`]: updated,
+      initiativeOrder: [...new Set(initiativeOrder)],
+      lastUpdated: Date.now(),
+    };
+    if (originalId !== nextId) updates[`combatants/${originalId}`] = null;
+    await this.realtimeData.update(this.roomPath, updates);
+  }
   async addPlayerToBattle(player: ParsedCharacter, initiative: number): Promise<void> {
     const id = `player_${player.name}`;
     if (this.combatants()[id]) {

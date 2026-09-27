@@ -1,3 +1,4 @@
+import { getAbilityModifier } from './character-stat.util';
 import { CharacterStats, CharacterWeapon } from '../models/character.model';
 
 type CharacterStatKey = keyof CharacterStats;
@@ -25,13 +26,14 @@ export function getWeaponAttackBonus(
   weapon: CharacterWeapon,
   stats: CharacterStats,
   level: number,
+  proficiencyBonus = getCharacterProficiencyBonus(level),
 ): number | null {
   const formula = typeof weapon.damage === 'string' ? weapon.damage : '';
   const ability = WEAPON_STAT_PATTERNS.find(({ pattern }) => pattern.test(formula))?.key;
   if (!ability) return null;
 
-  const abilityModifier = Math.floor((stats[ability] - 10) / 2);
-  return abilityModifier + getCharacterProficiencyBonus(level);
+  const abilityModifier = getAbilityModifier(stats[ability]);
+  return abilityModifier + proficiencyBonus;
 }
 
 export function formatSignedModifier(value: number): string {

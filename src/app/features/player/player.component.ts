@@ -34,6 +34,11 @@ import { LanguageSwitcherComponent } from '../../shared/ui/language-switcher/lan
 import { AvatarComponent } from '../../shared/ui/avatar/avatar.component';
 import {
   formatSignedModifier,
+  clampInteger,
+  isPositiveInteger,
+  getAbilityModifier,
+  getSpellMaxUses,
+  getSpellUsesRemaining,
   getWeaponAttackBonus,
   parseJsonWithTrailingCommaRecovery,
 } from '../../core/utils';
@@ -49,12 +54,18 @@ import {
 } from './player.constants';
 import {
   CharacterWeaponView,
-  ItemUseConfirmation,
-  ResourceEffectConfirmation,
-  ResourceUseConfirmation,
   SpellDescriptionPart,
   SpellUseConfirmation,
 } from './player-view.model';
+
+import {
+  createSessionState,
+  createSheetState,
+  createAttackState,
+  createSpellState,
+  createResourceState,
+  createInventoryState,
+} from './player-state.model';
 
 @Component({
   selector: 'app-player',
@@ -73,7 +84,6 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PlayerComponent implements OnDestroy {
-  readonly sheetTool = signal<string | null>(null);
   // --- Внедрённые сервисы ---
   private readonly parser = inject(CharacterParserService);
   private readonly characterService = inject(CharacterService);
@@ -85,54 +95,22 @@ export class PlayerComponent implements OnDestroy {
 
   // --- Внутреннее состояние ---
   private characterSubscription?: Subscription;
-
-  // --- Состояние входа ---
-  readonly loginName = signal('');
-  readonly lastLoginName = signal(this.loadLastLoginName());
-  readonly loginError = signal<string | null>(null);
-  readonly isLoggedIn = signal(false);
-  readonly showUploadPrompt = signal(false);
+  private sessionVersion = 0;
+  readonly session = signal(createSessionState(this.loadLastLoginName()));
+  readonly sheet = signal(createSheetState());
+  readonly attackState = signal(createAttackState());
+  readonly spellState = signal(createSpellState());
+  readonly resourceState = signal(createResourceState());
+  readonly inventoryState = signal(createInventoryState());
 
   // --- Состояние персонажа ---
   readonly character = signal<ParsedCharacter | null>(null);
-  readonly error = signal<string | null>(null);
-  readonly expandedAbility = signal<string | null>(null);
-
-  // --- Навигация по вкладкам ---
-  readonly activeTab = signal<'character' | 'arena' | 'settings'>('character');
-
-  // --- Состояние арены/атаки ---
-  readonly selectedEnemyId = signal<string | null>(null);
-  readonly damageAmount = signal<number>(0);
-  readonly selectedWeaponIndex = signal<number>(0);
-  readonly attackMode = signal<'main' | 'additional'>('main');
-
-  // --- Состояние использования заклинаний ---
-  readonly usingSpellId = signal<string | null>(null);
-  readonly spellUseError = signal<string | null>(null);
-  readonly selectedSpellSlots = signal<Record<string, number>>({});
-  readonly spellUseConfirmation = signal<SpellUseConfirmation | null>(null);
-  readonly usingResourceId = signal<string | null>(null);
-  readonly resourceUseError = signal<string | null>(null);
-  readonly resourceUseConfirmation = signal<ResourceUseConfirmation | null>(null);
-  readonly resourceEffectConfirmation = signal<ResourceEffectConfirmation | null>(null);
-  readonly updatingResourceEffectId = signal<string | null>(null);
-  readonly selectedResourceForUse = signal<CharacterResource | null>(null);
-  readonly resourceUseAmount = signal(1);
-
-  readonly usingItem = signal(false);
-  readonly itemUseError = signal<string | null>(null);
-  readonly itemUseConfirmation = signal<ItemUseConfirmation | null>(null);
   private readonly itemConfirmationDialog =
     viewChild<ElementRef<HTMLDialogElement>>('itemConfirmationDialog');
   private readonly syncItemConfirmation = afterRenderEffect(() => {
     const dialog = this.itemConfirmationDialog()?.nativeElement;
     if (dialog && !dialog.open) dialog.showModal();
   });
-  readonly modalMode = signal<'use' | 'examine'>('use');
-  readonly showUseModal = signal(false);
-  readonly useQuantity = signal(1);
-  readonly selectedItemForUse = signal<InventoryItem | null>(null);
 
   readonly COMBATANT_TYPE = COMBATANT_TYPE;
   readonly COMBATANT_STATUS = COMBATANT_STATUS;
@@ -150,7 +128,12 @@ export class PlayerComponent implements OnDestroy {
     if (!character) return [];
 
     return character.weapons.map((weapon) => {
-      const attackBonus = getWeaponAttackBonus(weapon, character.stats, character.level);
+      const attackBonus = getWeaponAttackBonus(
+        weapon,
+        character.stats,
+        character.level,
+        character.proficiencyBonus,
+      );
       return {
         weapon,
         attackBonus: attackBonus === null ? null : formatSignedModifier(attackBonus),
@@ -159,6 +142,14 @@ export class PlayerComponent implements OnDestroy {
   });
   readonly spellSlots = computed(() => this.character()?.spellSlots ?? []);
   readonly characterResources = computed(() => this.character()?.resources ?? []);
+  readonly spellCastingResources = computed(() => {
+    const resourceIds = new Set(
+      (this.character()?.spells ?? [])
+        .map((spell) => spell.resourceId?.trim())
+        .filter((resourceId): resourceId is string => Boolean(resourceId)),
+    );
+    return this.characterResources().filter((resource) => resourceIds.has(resource.id));
+  });
   readonly skillsByStat = computed<Record<CharacterStatKey, CharacterSkill[]>>(() => {
     const grouped: Record<CharacterStatKey, CharacterSkill[]> = {
       str: [],
@@ -191,15 +182,15 @@ export class PlayerComponent implements OnDestroy {
 
   readonly selectedWeapon = computed(() => {
     const weapons = this.weapons();
-    return weapons[this.selectedWeaponIndex()] || null;
+    return weapons[this.attackState().weaponIndex] || null;
   });
 
   readonly selectedWeaponAttackBonus = computed(
-    () => this.weaponCards()[this.selectedWeaponIndex()]?.attackBonus ?? null,
+    () => this.weaponCards()[this.attackState().weaponIndex]?.attackBonus ?? null,
   );
 
   readonly selectedEnemy = computed(() => {
-    const id = this.selectedEnemyId();
+    const id = this.attackState().enemyId;
     if (!id) return null;
     return this.aliveEnemies().find((e) => e.id === id) ?? null;
   });
@@ -207,98 +198,137 @@ export class PlayerComponent implements OnDestroy {
   readonly canAttack = computed(() => {
     return (
       this.selectedEnemy() !== null &&
-      this.damageAmount() > 0 &&
-      this.aliveEnemies().some((e) => e.id === this.selectedEnemy()!.id)
+      this.attackState().damage > 0 &&
+      Number.isFinite(this.attackState().damage)
     );
   });
 
   ngOnDestroy(): void {
+    ++this.sessionVersion;
     this.characterSubscription?.unsubscribe();
   }
 
   onLoginInput(event: Event): void {
     const input = event.target as HTMLInputElement;
-    this.loginName.set(input.value);
+    this.session.update((state) => ({ ...state, name: input.value }));
   }
 
   login(): void {
-    const name = this.loginName().trim();
+    const version = ++this.sessionVersion;
+    const name = this.session().name.trim();
     if (!name) {
-      this.loginError.set(this.i18n.translate('player.error.enterName'));
+      this.session.update((state) => ({
+        ...state,
+        error: this.i18n.translate('player.error.enterName'),
+      }));
       return;
     }
+    this.resetWorkflows();
     this.characterService
       .characterExists(name)
-      .then((exists) => {
-        if (!exists) {
-          this.loginError.set(this.i18n.translate('player.error.notFound'));
-          this.showUploadPrompt.set(true);
+      .then(async (exists) => {
+        if (version !== this.sessionVersion) return;
+        const character = exists ? await this.characterService.loadCharacter(name) : null;
+        if (version !== this.sessionVersion) return;
+        if (!character) {
+          this.session.update((state) => ({
+            ...state,
+            uploadPrompt: true,
+            error: this.i18n.translate('player.error.notFound'),
+          }));
           return;
         }
-        return this.characterService.loadCharacter(name).then((charData) => {
-          if (!charData) return;
-          this.character.set(charData);
-          this.isLoggedIn.set(true);
-          this.loginError.set(null);
-          this.showUploadPrompt.set(false);
-          this.rememberSuccessfulLogin(charData.name);
-          this.subscribeToCharacterUpdates(name);
-          this.joinBattle(charData);
-        });
+        this.startCharacterSession(character);
       })
       .catch((error: unknown) => {
         this.logger.error('PlayerComponent.login', error);
-        this.loginError.set(this.i18n.translate('player.error.login'));
+        if (version !== this.sessionVersion) return;
+        this.session.update((state) => ({
+          ...state,
+          error: this.i18n.translate('player.error.login'),
+        }));
       });
   }
 
+  private startCharacterSession(character: ParsedCharacter): void {
+    this.resetWorkflows();
+    this.character.set(character);
+    this.session.update((state) => ({
+      ...state,
+      name: character.name,
+      loggedIn: true,
+      error: null,
+      uploadPrompt: false,
+    }));
+    this.rememberSuccessfulLogin(character.name);
+    this.subscribeToCharacterUpdates(character.name);
+    this.joinBattle(character);
+  }
+
+  private resetWorkflows(): void {
+    this.closeItemUseConfirmation();
+    this.sheet.set(createSheetState());
+    this.attackState.set(createAttackState());
+    this.spellState.set(createSpellState());
+    this.resourceState.set(createResourceState());
+    this.inventoryState.set(createInventoryState());
+  }
+
+  setSheetTool(tool: string | null): void {
+    this.sheet.update((state) => ({ ...state, tool }));
+  }
+
   loginAsLastPlayer(): void {
-    const name = this.lastLoginName();
+    const name = this.session().lastName;
     if (!name) return;
-    this.loginName.set(name);
+    this.session.update((state) => ({ ...state, name: name }));
     this.login();
   }
 
   onFileSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
+    const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
+    const version = ++this.sessionVersion;
+    this.sheet.update((state) => ({ ...state, error: null }));
+    this.resetWorkflows();
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onerror = () => {
+      if (version === this.sessionVersion) this.reportImportError(reader.error);
+    };
+    reader.onload = (event) => {
+      if (version !== this.sessionVersion) return;
       let parsed: ParsedCharacter;
       try {
         const rawJson = parseJsonWithTrailingCommaRecovery<LssCharacterSheet>(
-          e.target?.result as string,
+          event.target?.result as string,
         );
         parsed = this.parser.parseCharacter(rawJson);
       } catch (error) {
-        this.error.set(this.i18n.translate('player.error.parseJson'));
-        this.logger.error('PlayerComponent.onFileSelected', error);
+        this.reportImportError(error, 'player.error.parseJson');
         return;
       }
       this.characterService
         .loadCharacter(parsed.name)
-        .then((existingCharacter) => {
+        .then(async (existingCharacter) => {
+          if (version !== this.sessionVersion) return;
           const importedCharacter = existingCharacter?.avatar
             ? { ...parsed, avatar: existingCharacter.avatar }
             : parsed;
-          return this.characterService
-            .saveCharacter(importedCharacter)
-            .then(() => importedCharacter);
+          await this.characterService.saveCharacter(importedCharacter);
+          if (version !== this.sessionVersion) return;
+          this.startCharacterSession(importedCharacter);
         })
-        .then((savedCharacter) => {
-          this.character.set(savedCharacter);
-          this.isLoggedIn.set(true);
-          this.showUploadPrompt.set(false);
-          this.loginError.set(null);
-          this.loginName.set(parsed.name);
-          this.rememberSuccessfulLogin(parsed.name);
-          this.subscribeToCharacterUpdates(savedCharacter.name);
-          this.joinBattle(savedCharacter);
-        })
-        .catch((error: unknown) => this.logger.error('PlayerComponent.onFileSelected', error));
+        .catch((error: unknown) => {
+          if (version === this.sessionVersion) this.reportImportError(error);
+          else this.logger.error('PlayerComponent.onFileSelected', error);
+        });
     };
     reader.readAsText(file);
+  }
+
+  private reportImportError(error: unknown, key = 'player.error.importFile'): void {
+    this.logger.error('PlayerComponent.onFileSelected', error);
+    this.sheet.update((state) => ({ ...state, error: this.i18n.translate(key) }));
   }
 
   private loadLastLoginName(): string | null {
@@ -313,7 +343,7 @@ export class PlayerComponent implements OnDestroy {
   private rememberSuccessfulLogin(name: string): void {
     const normalizedName = name.trim();
     if (!normalizedName) return;
-    this.lastLoginName.set(normalizedName);
+    this.session.update((state) => ({ ...state, lastName: normalizedName }));
     try {
       globalThis.localStorage?.setItem(LAST_PLAYER_NAME_STORAGE_KEY, normalizedName);
     } catch (error) {
@@ -337,32 +367,16 @@ export class PlayerComponent implements OnDestroy {
   }
 
   logout(): void {
-    this.sheetTool.set(null);
-    this.closeItemUseConfirmation();
-    this.closeUseModal();
+    ++this.sessionVersion;
     this.characterSubscription?.unsubscribe();
+    this.characterSubscription = undefined;
+    this.resetWorkflows();
     this.character.set(null);
-    this.isLoggedIn.set(false);
-    this.loginName.set('');
-    this.showUploadPrompt.set(false);
-    this.loginError.set(null);
-    this.selectedEnemyId.set(null);
-    this.damageAmount.set(0);
-    this.usingSpellId.set(null);
-    this.spellUseError.set(null);
-    this.selectedSpellSlots.set({});
-    this.spellUseConfirmation.set(null);
-    this.usingResourceId.set(null);
-    this.resourceUseError.set(null);
-    this.resourceUseConfirmation.set(null);
-    this.resourceEffectConfirmation.set(null);
-    this.updatingResourceEffectId.set(null);
-    this.selectedResourceForUse.set(null);
-    this.resourceUseAmount.set(1);
+    this.session.set(createSessionState(this.session().lastName));
   }
 
   switchTab(tab: 'character' | 'arena' | 'settings'): void {
-    this.activeTab.set(tab);
+    this.sheet.update((state) => ({ ...state, tab: tab }));
   }
 
   getStatValue(stat: string): number {
@@ -372,13 +386,15 @@ export class PlayerComponent implements OnDestroy {
   }
 
   getStatModString(stat: string): string {
-    const value = this.getStatValue(stat);
-    const mod = this.parser.getModifier(value);
-    return mod > 0 ? `+${mod}` : `${mod}`;
+    const modifier = getAbilityModifier(this.getStatValue(stat));
+    return modifier === 0 ? '0' : formatSignedModifier(modifier);
   }
 
   toggleAbility(name: string): void {
-    this.expandedAbility.set(this.expandedAbility() === name ? null : name);
+    this.sheet.update((state) => ({
+      ...state,
+      expandedAbility: this.sheet().expandedAbility === name ? null : name,
+    }));
   }
 
   getSkillName(skill: CharacterSkill): string {
@@ -395,13 +411,9 @@ export class PlayerComponent implements OnDestroy {
     return this.i18n.translate('player.proficiency.' + skill.proficiency);
   }
 
-  getSpellMaxUses(spell: SpellData): number {
-    return Math.max(1, spell.maxUses ?? 1);
-  }
+  readonly getSpellMaxUses = getSpellMaxUses;
 
-  getSpellUsesRemaining(spell: SpellData): number {
-    return Math.max(0, spell.usesRemaining ?? this.getSpellMaxUses(spell));
-  }
+  readonly getSpellUsesRemaining = getSpellUsesRemaining;
 
   spellDescriptionParts(description: string): SpellDescriptionPart[] {
     return description
@@ -418,25 +430,49 @@ export class PlayerComponent implements OnDestroy {
 
   getSelectedSlotLevel(spell: SpellData): number {
     const available = this.getAvailableSlotLevels(spell);
-    const selected = this.selectedSpellSlots()[spell.id];
+    const selected = this.spellState().selectedSlots[spell.id];
     return available.includes(selected) ? selected : (available[0] ?? spell.level);
   }
 
   setSpellSlotLevel(spellId: string, event: Event): void {
-    const level = Math.max(1, Math.min(9, Number((event.target as HTMLSelectElement).value)));
-    this.selectedSpellSlots.update((slots) => ({ ...slots, [spellId]: level }));
+    const level = clampInteger((event.target as HTMLSelectElement).value, 1, 9);
+    this.spellState.update((state) => ({
+      ...state,
+      selectedSlots: { ...state.selectedSlots, [spellId]: level },
+    }));
   }
 
   hasSharedSpellSlots(): boolean {
     return this.spellSlots().length > 0;
   }
 
+  hasSlotBasedSpells(): boolean {
+    return (this.character()?.spells ?? []).some(
+      (spell) => spell.isPrepared && !spell.isCantrip && !spell.resourceId?.trim(),
+    );
+  }
+
   canUseSpell(spell: SpellData): boolean {
     if (!spell.isPrepared) return false;
+    const resource = this.spellResource(spell);
+    if (resource) {
+      return resource.isUnlimited || resource.current >= this.spellResourceCost(spell, resource);
+    }
+    if (spell.resourceId) return false;
     if (spell.isCantrip) return true;
     return this.hasSharedSpellSlots()
       ? this.getAvailableSlotLevels(spell).length > 0
       : this.getSpellUsesRemaining(spell) > 0;
+  }
+
+  spellResource(spell: SpellData): CharacterResource | null {
+    const resourceId = spell.resourceId?.trim();
+    if (!resourceId) return null;
+    return this.characterResources().find((resource) => resource.id === resourceId) ?? null;
+  }
+
+  spellResourceCost(spell: SpellData, resource: CharacterResource): number {
+    return Math.max(1, Math.floor(spell.resourceCost ?? resource.spendAmount ?? 1));
   }
 
   linkedSpellResources(spell: SpellData): CharacterResource[] {
@@ -449,115 +485,136 @@ export class PlayerComponent implements OnDestroy {
 
   useSpell(spell: SpellData): void {
     const character = this.character();
-    if (!character || !this.canUseSpell(spell) || this.usingSpellId() !== null) return;
-
-    const usesSharedSlot = !spell.isCantrip && this.hasSharedSpellSlots();
-    const selectedSlotLevel = usesSharedSlot ? this.getSelectedSlotLevel(spell) : undefined;
-
-    this.usingSpellId.set(spell.id);
-    this.spellUseError.set(null);
-    this.spellUseConfirmation.set(null);
-    this.characterService
-      .usePlayerSpell(character.name, spell.id, selectedSlotLevel)
-      .then((success) => {
-        if (!success) {
-          this.spellUseError.set(this.i18n.translate('player.error.spellUnavailable'));
-          return;
-        }
-
-        this.spellUseConfirmation.set({
-          spellName: spell.name,
-          isCantrip: spell.isCantrip,
-          slotLevel: selectedSlotLevel ?? null,
-        });
-      })
-      .catch((error: unknown) => {
-        this.logger.error('PlayerComponent.useSpell', error);
-        this.spellUseError.set(this.i18n.translate('player.error.spellUse'));
-      })
-      .finally(() => this.usingSpellId.set(null));
+    if (!character || !this.canUseSpell(spell) || this.spellState().pendingId !== null) return;
+    const resource = this.spellResource(spell);
+    if (resource) {
+      this.useSpellWithResource(spell, resource);
+      return;
+    }
+    const slotLevel =
+      !spell.isCantrip && this.hasSharedSpellSlots() ? this.getSelectedSlotLevel(spell) : undefined;
+    void this.performSpellUse(
+      spell.id,
+      () => this.characterService.usePlayerSpell(character.name, spell.id, slotLevel),
+      { spellName: spell.name, isCantrip: spell.isCantrip, slotLevel: slotLevel ?? null },
+      'spellUnavailable',
+      'spellUse',
+      'PlayerComponent.useSpell',
+    );
   }
 
   closeSpellUseConfirmation(): void {
-    this.spellUseConfirmation.set(null);
+    this.spellState.update((state) => ({ ...state, confirmation: null }));
   }
 
   useSpellWithResource(spell: SpellData, resource: CharacterResource): void {
     const character = this.character();
-    const amount = Math.max(1, resource.spendAmount ?? 1);
+    const amount = this.spellResourceCost(spell, resource);
     if (
       !character ||
       !spell.isPrepared ||
-      (!resource.isUnlimited && resource.current < amount) ||
-      this.usingSpellId() !== null
+      this.spellState().pendingId !== null ||
+      (!resource.isUnlimited && resource.current < amount)
     )
       return;
+    void this.performSpellUse(
+      spell.id,
+      () => this.characterService.useResource(character.name, resource.id, amount),
+      { spellName: spell.name, isCantrip: false, slotLevel: null, resourceName: resource.name },
+      'freeUseSpent',
+      'freeUse',
+      'PlayerComponent.useSpellWithResource',
+    );
+  }
 
-    this.usingSpellId.set(spell.id);
-    this.spellUseError.set(null);
-    this.spellUseConfirmation.set(null);
-    this.characterService
-      .useResource(character.name, resource.id, amount)
-      .then((success) => {
-        if (!success) {
-          this.spellUseError.set(this.i18n.translate('player.error.freeUseSpent'));
-          return;
-        }
-        this.spellUseConfirmation.set({
-          spellName: spell.name,
-          isCantrip: false,
-          slotLevel: null,
-          resourceName: resource.name,
-        });
-      })
-      .catch((error: unknown) => {
-        this.logger.error('PlayerComponent.useSpellWithResource', error);
-        this.spellUseError.set(this.i18n.translate('player.error.freeUse'));
-      })
-      .finally(() => this.usingSpellId.set(null));
+  private async performSpellUse(
+    spellId: string,
+    request: () => Promise<boolean>,
+    confirmation: SpellUseConfirmation,
+    unavailableKey: string,
+    failureKey: string,
+    logContext: string,
+  ): Promise<void> {
+    const version = this.sessionVersion;
+    this.spellState.update((state) => ({
+      ...state,
+      pendingId: spellId,
+      error: null,
+      confirmation: null,
+    }));
+    try {
+      const success = await request();
+      if (version !== this.sessionVersion) return;
+      this.spellState.update((state) => ({
+        ...state,
+        confirmation: success ? confirmation : null,
+        error: success ? null : this.i18n.translate('player.error.' + unavailableKey),
+      }));
+    } catch (error) {
+      this.logger.error(logContext, error);
+      if (version !== this.sessionVersion) return;
+      this.spellState.update((state) => ({
+        ...state,
+        error: this.i18n.translate('player.error.' + failureKey),
+      }));
+    } finally {
+      if (version === this.sessionVersion) {
+        this.spellState.update((state) => ({ ...state, pendingId: null }));
+      }
+    }
+  }
+
+  canUseResource(resource: CharacterResource): boolean {
+    const amount = resource.spendMode === 'variable' ? 1 : (resource.spendAmount ?? 1);
+    return (
+      resource.isUnlimited === true || (isPositiveInteger(amount) && resource.current >= amount)
+    );
   }
 
   useResource(resourceId: string, requestedAmount?: number): void {
     const character = this.character();
     const resource = this.characterResources().find((candidate) => candidate.id === resourceId);
-    if (
-      !character ||
-      !resource ||
-      (!resource.isUnlimited && resource.current <= 0) ||
-      this.usingResourceId()
-    )
+    if (!character || !resource || !this.canUseResource(resource) || this.resourceState().pendingId)
       return;
     if (this.activeResourceEffect(resource.id)) return;
 
     if (resource.spendMode === 'variable' && requestedAmount === undefined) {
-      this.selectedResourceForUse.set(resource);
-      this.resourceUseAmount.set(1);
-      this.resourceUseError.set(null);
+      this.resourceState.update((state) => ({
+        ...state,
+        selected: resource,
+        amount: 1,
+        error: null,
+      }));
       return;
     }
     const amount = resource.isUnlimited
       ? 1
-      : Math.max(1, Math.min(resource.current, requestedAmount ?? resource.spendAmount ?? 1));
+      : resource.spendMode === 'variable'
+        ? (requestedAmount ?? 1)
+        : (resource.spendAmount ?? 1);
+    if (!isPositiveInteger(amount) || (!resource.isUnlimited && amount > resource.current)) return;
     this.performResourceUse(character.name, resource, amount);
   }
 
   confirmResourceUse(): void {
-    const resource = this.selectedResourceForUse();
+    const resource = this.resourceState().selected;
     if (!resource) return;
-    const amount = this.resourceUseAmount();
+    const amount = this.resourceState().amount;
     this.closeResourceUseDialog();
     this.useResource(resource.id, amount);
   }
 
   closeResourceUseDialog(): void {
-    this.selectedResourceForUse.set(null);
-    this.resourceUseAmount.set(1);
+    this.resourceState.update((state) => ({ ...state, selected: null, amount: 1 }));
   }
 
   setResourceUseAmount(event: Event): void {
-    const resource = this.selectedResourceForUse();
-    const value = Math.floor(Number((event.target as HTMLInputElement).value) || 1);
-    this.resourceUseAmount.set(Math.max(1, Math.min(resource?.current ?? 1, value)));
+    const amount = clampInteger(
+      (event.target as HTMLInputElement).value,
+      1,
+      this.resourceState().selected?.current ?? 1,
+    );
+    this.resourceState.update((state) => ({ ...state, amount }));
   }
 
   activeResourceEffect(resourceId: string): ActiveStatusEffect | null {
@@ -565,36 +622,55 @@ export class PlayerComponent implements OnDestroy {
   }
 
   extendResourceEffect(resourceId: string): void {
+    const version = this.sessionVersion;
     const combatant = this.playerCombatant();
     const resource = this.characterResources().find((candidate) => candidate.id === resourceId);
     const effect = this.activeResourceEffect(resourceId);
-    if (!combatant || !resource?.activeEffect || !effect || this.updatingResourceEffectId()) return;
+    if (!combatant || !resource?.activeEffect || !effect || this.resourceState().updatingEffectId)
+      return;
     const duration = this.resourceEffectDuration(resource);
     if (!duration) return;
-    this.updatingResourceEffectId.set(resourceId);
-    this.resourceEffectConfirmation.set(null);
+    this.resourceState.update((state) => ({
+      ...state,
+      updatingEffectId: resourceId,
+      effectConfirmation: null,
+    }));
     this.battleService
       .refreshStatusEffect(combatant.id, effect.id, duration.triggers, duration.label)
       .then((success) => {
+        if (version !== this.sessionVersion) return;
         if (!success) {
-          this.resourceUseError.set(this.i18n.translate('player.error.extendResource'));
+          this.resourceState.update((state) => ({
+            ...state,
+            error: this.i18n.translate('player.error.extendResource'),
+          }));
           return;
         }
-        this.resourceEffectConfirmation.set({
-          resourceName: resource.name,
-          durationLabel: duration.label,
-          icon: resource.icon ?? resource.activeEffect?.icon ?? '⚡',
-        });
+        this.resourceState.update((state) => ({
+          ...state,
+          effectConfirmation: {
+            resourceName: resource.name,
+            durationLabel: duration.label,
+            icon: resource.icon ?? resource.activeEffect?.icon ?? '⚡',
+          },
+        }));
       })
       .catch((error: unknown) => {
         this.logger.error('PlayerComponent.extendResourceEffect', error);
-        this.resourceUseError.set(this.i18n.translate('player.error.extendResource'));
+        if (version !== this.sessionVersion) return;
+        this.resourceState.update((state) => ({
+          ...state,
+          error: this.i18n.translate('player.error.extendResource'),
+        }));
       })
-      .finally(() => this.updatingResourceEffectId.set(null));
+      .finally(() => {
+        if (version === this.sessionVersion)
+          this.resourceState.update((state) => ({ ...state, updatingEffectId: null }));
+      });
   }
 
   closeResourceEffectConfirmation(): void {
-    this.resourceEffectConfirmation.set(null);
+    this.resourceState.update((state) => ({ ...state, effectConfirmation: null }));
   }
 
   endResourceEffect(resourceId: string): void {
@@ -611,32 +687,51 @@ export class PlayerComponent implements OnDestroy {
     resource: CharacterResource,
     amount: number,
   ): void {
-    this.usingResourceId.set(resource.id);
-    this.resourceUseError.set(null);
-    this.resourceUseConfirmation.set(null);
+    const version = this.sessionVersion;
+    this.resourceState.update((state) => ({
+      ...state,
+      pendingId: resource.id,
+      error: null,
+      confirmation: null,
+    }));
     this.characterService
       .useResource(playerName, resource.id, amount)
       .then(async (success) => {
+        if (version !== this.sessionVersion) return;
         if (!success) {
-          this.resourceUseError.set(this.i18n.translate('player.error.resourceDepleted'));
+          this.resourceState.update((state) => ({
+            ...state,
+            error: this.i18n.translate('player.error.resourceDepleted'),
+          }));
           return;
         }
         const activated = await this.activateResourceEffect(resource);
-        this.resourceUseConfirmation.set({
-          resourceName: resource.name,
-          icon: resource.icon ?? resource.activeEffect?.icon ?? '⚡',
-          isUnlimited: resource.isUnlimited === true,
-          remaining: resource.isUnlimited ? 0 : Math.max(0, resource.current - amount),
-          max: resource.max,
-          spent: resource.isUnlimited ? 0 : amount,
-          activated,
-        });
+        if (version !== this.sessionVersion) return;
+        this.resourceState.update((state) => ({
+          ...state,
+          confirmation: {
+            resourceName: resource.name,
+            icon: resource.icon ?? resource.activeEffect?.icon ?? '⚡',
+            isUnlimited: resource.isUnlimited === true,
+            remaining: resource.isUnlimited ? 0 : Math.max(0, resource.current - amount),
+            max: resource.max,
+            spent: resource.isUnlimited ? 0 : amount,
+            activated,
+          },
+        }));
       })
       .catch((error: unknown) => {
         this.logger.error('PlayerComponent.useResource', error);
-        this.resourceUseError.set(this.i18n.translate('player.error.spendResource'));
+        if (version !== this.sessionVersion) return;
+        this.resourceState.update((state) => ({
+          ...state,
+          error: this.i18n.translate('player.error.spendResource'),
+        }));
       })
-      .finally(() => this.usingResourceId.set(null));
+      .finally(() => {
+        if (version === this.sessionVersion)
+          this.resourceState.update((state) => ({ ...state, pendingId: null }));
+      });
   }
 
   private async activateResourceEffect(resource: CharacterResource): Promise<boolean> {
@@ -676,11 +771,11 @@ export class PlayerComponent implements OnDestroy {
   }
 
   closeResourceUseConfirmation(): void {
-    this.resourceUseConfirmation.set(null);
+    this.resourceState.update((state) => ({ ...state, confirmation: null }));
   }
 
   selectEnemy(enemyId: string): void {
-    this.selectedEnemyId.set(enemyId);
+    this.attackState.update((state) => ({ ...state, enemyId: enemyId }));
   }
 
   isSelectableEnemy(combatant: Combatant): boolean {
@@ -693,106 +788,122 @@ export class PlayerComponent implements OnDestroy {
   }
 
   clearSelection(): void {
-    this.selectedEnemyId.set(null);
-    this.damageAmount.set(0);
-    this.attackMode.set('main');
+    this.attackState.update((state) => ({ ...state, enemyId: null, damage: 0, mode: 'main' }));
   }
 
   onWeaponChange(event: Event): void {
     const select = event.target as HTMLSelectElement;
-    this.selectedWeaponIndex.set(+select.value);
+    this.attackState.update((state) => ({ ...state, weaponIndex: +select.value }));
   }
 
   setAttackMode(mode: 'main' | 'additional'): void {
-    this.attackMode.set(mode);
+    this.attackState.update((state) => ({ ...state, mode: mode }));
   }
 
   onDamageInput(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const value = +input.value;
-    if (!isNaN(value) && value >= 0) {
-      this.damageAmount.set(value);
-    } else {
-      this.damageAmount.set(0);
-    }
+    const damage = clampInteger((event.target as HTMLInputElement).value, 0);
+    this.attackState.update((state) => ({ ...state, damage }));
   }
 
   useItem(item: InventoryItem): void {
-    if (this.usingItem()) return;
-    this.itemUseError.set(null);
-    this.selectedItemForUse.set(item);
-    this.useQuantity.set(1);
-    this.modalMode.set('use');
-    this.showUseModal.set(true);
+    if (this.inventoryState().pending) return;
+    this.inventoryState.update((state) => ({
+      ...state,
+      error: null,
+      selected: item,
+      quantity: 1,
+      mode: 'use',
+      open: true,
+    }));
   }
 
   confirmAndUseItem(): void {
-    const item = this.selectedItemForUse();
+    const version = this.sessionVersion;
+    const item = this.inventoryState().selected;
     const char = this.character();
-    if (!item || this.modalMode() !== 'use' || !char || this.usingItem()) return;
-    const quantity = this.useQuantity();
-    this.usingItem.set(true);
-    this.itemUseError.set(null);
+    if (!item || this.inventoryState().mode !== 'use' || !char || this.inventoryState().pending)
+      return;
+    const quantity = this.inventoryState().quantity;
+    this.inventoryState.update((state) => ({ ...state, pending: true, error: null }));
 
     this.inventoryService
       .consumeItem(char.name, item.id, quantity)
       .then((success) => {
+        if (version !== this.sessionVersion) return;
         // A completed request must not reopen a dialog after logout or navigation away.
-        if (this.character()?.name !== char.name || this.selectedItemForUse()?.id !== item.id)
+        if (this.character()?.name !== char.name || this.inventoryState().selected?.id !== item.id)
           return;
         if (!success) {
-          this.itemUseError.set(this.i18n.translate('player.error.notEnoughItems'));
+          this.inventoryState.update((state) => ({
+            ...state,
+            error: this.i18n.translate('player.error.notEnoughItems'),
+          }));
           return;
         }
         this.closeUseModal();
-        this.itemUseConfirmation.set({ itemName: item.name, icon: item.icon || '🎒', quantity });
+        this.inventoryState.update((state) => ({
+          ...state,
+          confirmation: { itemName: item.name, icon: item.icon || '🎒', quantity },
+        }));
       })
       .catch((error: unknown) => {
         this.logger.error('PlayerComponent.confirmAndUseItem', error);
-        this.itemUseError.set(this.i18n.translate('player.items.useError'));
+        if (version !== this.sessionVersion) return;
+        this.inventoryState.update((state) => ({
+          ...state,
+          error: this.i18n.translate('player.items.useError'),
+        }));
       })
-      .finally(() => this.usingItem.set(false));
+      .finally(() => {
+        if (version === this.sessionVersion)
+          this.inventoryState.update((state) => ({ ...state, pending: false }));
+      });
   }
 
   closeItemUseConfirmation(): void {
     this.itemConfirmationDialog()?.nativeElement.close();
-    this.itemUseConfirmation.set(null);
+    this.inventoryState.update((state) => ({ ...state, confirmation: null }));
   }
 
   closeUseModal(): void {
-    this.showUseModal.set(false);
-    this.itemUseError.set(null);
-    this.selectedItemForUse.set(null);
-    this.useQuantity.set(1);
-    this.modalMode.set('use');
+    this.inventoryState.update((state) => ({
+      ...state,
+      open: false,
+      error: null,
+      selected: null,
+      quantity: 1,
+      mode: 'use',
+    }));
   }
 
   examineItem(item: InventoryItem): void {
-    this.selectedItemForUse.set(item);
-    this.modalMode.set('examine');
-    this.showUseModal.set(true);
+    this.inventoryState.update((state) => ({
+      ...state,
+      selected: item,
+      mode: 'examine',
+      open: true,
+    }));
   }
 
   onUseQuantityInput(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const value = +input.value;
-    const maxQty = this.selectedItemForUse()?.quantity ?? 1;
-    if (isNaN(value) || value < 1) {
-      this.useQuantity.set(1);
-      return;
-    }
-    this.useQuantity.set(Math.min(value, maxQty));
+    const quantity = clampInteger(
+      (event.target as HTMLInputElement).value,
+      1,
+      this.inventoryState().selected?.quantity ?? 1,
+    );
+    this.inventoryState.update((state) => ({ ...state, quantity }));
   }
 
   attack(): void {
+    const version = this.sessionVersion;
     if (!this.canAttack()) return;
     const enemy = this.selectedEnemy();
     if (!enemy) return;
     this.battleService
-      .takeDamage(enemy.id, this.damageAmount())
+      .takeDamage(enemy.id, this.attackState().damage)
       .then(() => {
-        this.damageAmount.set(0);
-        this.attackMode.set('additional');
+        if (version !== this.sessionVersion) return;
+        this.attackState.update((state) => ({ ...state, damage: 0, mode: 'additional' }));
       })
       .catch((error: unknown) => this.logger.error('PlayerComponent.attack', error));
   }

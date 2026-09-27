@@ -1,4 +1,7 @@
+import { getAbilityModifier } from './character-stat.util';
 import {
+  CharacterSavingThrow,
+  CharacterStats,
   CharacterWeapon,
   ParsedCharacter,
 } from '../models/character.model';
@@ -16,6 +19,7 @@ import {
 import { CHARACTER_STAT_KEYS } from '../constants/character-skill.constants';
 import { formatWeaponDamageFormula } from './weapon-formula.util';
 import { getAutomaticSpellSlots } from './spell-slot-progression.util';
+import { getCharacterProficiencyBonus } from './weapon-attack.util';
 
 const RECOVERY_TYPES: readonly ResourceRecovery[] = ['short-rest', 'long-rest', 'manual'];
 const EFFECT_DURATIONS: readonly ResourceEffectDuration[] = [
@@ -27,6 +31,47 @@ const EFFECT_DURATIONS: readonly ResourceEffectDuration[] = [
 function finiteInteger(value: unknown, fallback: number, minimum = 0): number {
   const number = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(number) ? Math.max(minimum, Math.floor(number)) : fallback;
+}
+
+function finiteSignedInteger(value: unknown, fallback: number): number {
+  const number = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(number) ? Math.trunc(number) : fallback;
+}
+
+export function normalizeCharacterStats(value: unknown): CharacterStats {
+  const candidate = value && typeof value === 'object'
+    ? value as Partial<Record<CharacterStatKey, unknown>>
+    : {};
+  return Object.fromEntries(
+    CHARACTER_STAT_KEYS.map((stat) => [stat, finiteInteger(candidate[stat], 10, 1)]),
+  ) as unknown as CharacterStats;
+}
+
+export function normalizeSavingThrows(
+  value: unknown,
+  stats: CharacterStats,
+  proficiencyBonus: number,
+): CharacterSavingThrow[] {
+  const source = Array.isArray(value) ? value : [];
+  const byStat = new Map<CharacterStatKey, Partial<CharacterSavingThrow>>();
+  for (const raw of source) {
+    if (!raw || typeof raw !== 'object') continue;
+    const candidate = raw as Partial<CharacterSavingThrow>;
+    if (!CHARACTER_STAT_KEYS.includes(candidate.stat as CharacterStatKey)) continue;
+    byStat.set(candidate.stat as CharacterStatKey, candidate);
+  }
+
+  return CHARACTER_STAT_KEYS.map((stat) => {
+    const candidate = byStat.get(stat);
+    const proficient = candidate?.proficient === true;
+    const defaultModifier = getAbilityModifier(stats[stat])
+      + (proficient ? proficiencyBonus : 0);
+    return {
+      stat,
+      proficient,
+      modifier: finiteSignedInteger(candidate?.modifier, defaultModifier),
+    };
+  });
 }
 
 export function normalizeSpellSlots(value: unknown): SpellSlotPool[] {
@@ -154,7 +199,11 @@ export function normalizeCharacterSkills(value: unknown): CharacterSkill[] {
     ) {
       continue;
     }
-    if (candidate.proficiency !== 'proficient' && candidate.proficiency !== 'expertise') {
+    if (
+      candidate.proficiency !== 'none'
+      && candidate.proficiency !== 'proficient'
+      && candidate.proficiency !== 'expertise'
+    ) {
       continue;
     }
 
@@ -172,16 +221,27 @@ export function normalizeCharacterSkills(value: unknown): CharacterSkill[] {
 }
 
 export function normalizeCharacter(character: ParsedCharacter): ParsedCharacter {
+  const level = Math.max(1, finiteInteger(character.level, 1, 1));
+  const stats = normalizeCharacterStats(character.stats);
+  const proficiencyBonus = Math.max(
+    0,
+    finiteInteger(character.proficiencyBonus, getCharacterProficiencyBonus(level)),
+  );
   const maxHp = Math.max(1, finiteInteger(character.maxHp, 10, 1));
   const spellSlots = character.spellSlots === undefined
-    ? getAutomaticSpellSlots(character.class, character.level)
+    ? getAutomaticSpellSlots(character.class, level)
     : normalizeSpellSlots(character.spellSlots);
   return {
     ...character,
-    level: Math.max(1, finiteInteger(character.level, 1, 1)),
+    level,
+    stats,
+    proficiencyBonus,
+    savingThrows: normalizeSavingThrows(character.savingThrows, stats, proficiencyBonus),
     maxHp,
     currentHp: Math.min(maxHp, finiteInteger(character.currentHp, maxHp)),
     temporaryHp: finiteInteger(character.temporaryHp, 0),
+    ac: finiteInteger(character.ac, 10),
+    speed: finiteInteger(character.speed, 30),
     weapons: normalizeCharacterWeapons(character.weapons),
     abilities: Array.isArray(character.abilities) ? character.abilities : [],
     resistances: Array.isArray(character.resistances) ? character.resistances : [],

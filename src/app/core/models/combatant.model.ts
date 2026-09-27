@@ -86,4 +86,6 @@ export interface SpellData {
   isPrepared: boolean;
   maxUses?: number;
   usesRemaining?: number;
+  resourceId?: string;
+  resourceCost?: number;
 }

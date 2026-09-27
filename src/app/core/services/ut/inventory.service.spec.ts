@@ -45,10 +45,7 @@ describe('InventoryService', () => {
       saveCharacter: vi.fn().mockResolvedValue(undefined),
     };
     TestBed.configureTestingModule({
-      providers: [
-        InventoryService,
-        { provide: CharacterService, useValue: characterService },
-      ],
+      providers: [InventoryService, { provide: CharacterService, useValue: characterService }],
     });
     service = TestBed.inject(InventoryService);
   });
@@ -82,9 +79,7 @@ describe('InventoryService', () => {
   });
 
   it('creates a separate entry when a reusable template is not stackable', async () => {
-    characterService.loadCharacter.mockResolvedValue(
-      character([item({ isStackable: false })]),
-    );
+    characterService.loadCharacter.mockResolvedValue(character([item({ isStackable: false })]));
     vi.spyOn(crypto, 'randomUUID').mockReturnValue('00000000-0000-4000-8000-000000000004');
 
     await service.giveItem('Aria', {
@@ -174,6 +169,29 @@ describe('InventoryService', () => {
     await expect(service.consumeItem('Aria', 'missing', 1)).resolves.toBe(false);
     await expect(service.consumeItem('Aria', 'potion-1', 2)).resolves.toBe(false);
 
+    expect(characterService.saveCharacter).not.toHaveBeenCalled();
+  });
+
+  it.each([0, -1, 1.5, NaN, Infinity])(
+    'rejects invalid item quantity %s without loading or saving',
+    async (quantity) => {
+      await expect(service.consumeItem('Aria', 'potion-1', quantity)).resolves.toBe(false);
+      await service.giveItem('Aria', { name: 'Potion', quantity });
+      expect(characterService.loadCharacter).not.toHaveBeenCalled();
+      expect(characterService.saveCharacter).not.toHaveBeenCalled();
+    },
+  );
+
+  it('does not mutate a loaded inventory when removing an item', async () => {
+    const inventory = [item(), item({ id: 'rope-1' })];
+    characterService.loadCharacter.mockResolvedValue(character(inventory));
+    await service.removeItem('Aria', 0);
+    expect(inventory.map((entry) => entry.id)).toEqual(['potion-1', 'rope-1']);
+  });
+
+  it.each([NaN, Infinity, 0.5, -1])('rejects invalid removal index %s', async (index) => {
+    characterService.loadCharacter.mockResolvedValue(character([item()]));
+    await service.removeItem('Aria', index);
     expect(characterService.saveCharacter).not.toHaveBeenCalled();
   });
 });

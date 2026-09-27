@@ -26,6 +26,7 @@ describe('weapon attack helpers', () => {
     expect(getWeaponAttackBonus(weapon('1d8 + \u0421\u0418\u041b'), stats, 1)).toBe(5);
     expect(getWeaponAttackBonus(weapon('1d4 + DEX'), stats, 5)).toBe(5);
     expect(getWeaponAttackBonus(weapon('1d6 + \u0425\u0410\u0420'), stats, 9)).toBe(8);
+    expect(getWeaponAttackBonus(weapon('1d8 + STR'), stats, 1, 7)).toBe(10);
   });
 
   it('returns no bonus when the weapon formula has no ability marker', () => {

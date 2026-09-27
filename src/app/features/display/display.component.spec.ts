@@ -175,8 +175,10 @@ describe('DisplayComponent', () => {
     const fixture = TestBed.createComponent(DisplayComponent);
     fixture.detectChanges();
 
-    const image = fixture.nativeElement.querySelector<HTMLImageElement>('.story-display__image');
-    const backdrop = fixture.nativeElement.querySelector<HTMLImageElement>(
+    const image = (fixture.nativeElement as HTMLElement).querySelector<HTMLImageElement>(
+      '.story-display__image',
+    );
+    const backdrop = (fixture.nativeElement as HTMLElement).querySelector<HTMLImageElement>(
       '.story-display__backdrop img',
     );
     expect(image).not.toBeNull();

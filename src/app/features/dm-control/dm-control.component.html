@@ -46,17 +46,24 @@
     </button>
     <button
       type="button"
+      [class.dm-workspace-tabs__button--active]="activePanel() === 'characters'"
+      (click)="activePanel.set('characters')"
+    >
+      <b>5</b> 🧙 {{ 'dm.tabs.characters' | transloco }}
+    </button>
+    <button
+      type="button"
       [class.dm-workspace-tabs__button--active]="activePanel() === 'portraits'"
       (click)="activePanel.set('portraits')"
     >
-      <b>5</b> ◉ {{ 'dm.tabs.portraits' | transloco }}
+      <b>6</b> ◉ {{ 'dm.tabs.portraits' | transloco }}
     </button>
     <button
       type="button"
       [class.dm-workspace-tabs__button--active]="activePanel() === 'story'"
       (click)="activePanel.set('story')"
     >
-      <b>6</b> 🎭 {{ 'dm.tabs.story' | transloco }}
+      <b>7</b> 🎭 {{ 'dm.tabs.story' | transloco }}
       @if (storyPresentation.slides().length > 0) {
         <span>{{ storyPresentation.slides().length }}</span>
       }
@@ -126,6 +133,11 @@
   }
   @if (activePanel() === 'scenes') {
     <app-dm-scene-library />
+  }
+  @if (activePanel() === 'characters') {
+    @defer {
+      <app-dm-character-editor />
+    }
   }
   @if (activePanel() === 'portraits') {
     @defer {

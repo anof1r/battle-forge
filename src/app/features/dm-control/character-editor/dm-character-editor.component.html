@@ -1,0 +1,279 @@
+<section class="character-editor" [attr.aria-label]="'characterEditor.title' | transloco">
+  <header class="bf-page-intro character-editor__intro">
+    <span class="bf-eyebrow">{{ 'characterEditor.eyebrow' | transloco }}</span>
+    <h2>{{ 'characterEditor.title' | transloco }}</h2>
+    <p>{{ 'characterEditor.intro' | transloco }}</p>
+  </header>
+
+  @if (feedback()) {
+    <p class="character-editor__message character-editor__message--success" role="status">
+      {{ feedback() }}
+    </p>
+  }
+  @if (error()) {
+    <p class="character-editor__message character-editor__message--error" role="alert">
+      {{ error() }}
+    </p>
+  }
+
+  <div class="character-editor__layout">
+    <aside class="character-editor__players">
+      <header>
+        <div>
+          <h3>{{ 'characterEditor.savedCharacters' | transloco }}</h3>
+          <span>{{ players().length }}</span>
+        </div>
+        <button
+          type="button"
+          class="character-editor__refresh"
+          [disabled]="loading() || saving()"
+          (click)="refreshPlayers()"
+        >
+          {{ 'common.refresh' | transloco }}
+        </button>
+      </header>
+
+      @if (loading()) {
+        <p class="character-editor__empty">{{ 'characterEditor.loading' | transloco }}</p>
+      } @else {
+        <div class="character-editor__player-list">
+          @for (player of players(); track player.name) {
+            <button
+              type="button"
+              class="character-editor__player"
+              [class.character-editor__player--selected]="selectedPlayerName() === player.name"
+              [attr.aria-pressed]="selectedPlayerName() === player.name"
+              (click)="selectPlayer(player.name)"
+            >
+              <bf-avatar [avatar]="player.avatar" [name]="player.name" [size]="50" />
+              <span>
+                <strong>{{ player.name }}</strong>
+                <small>{{ player.race }} · {{ player.class }} · {{ 'common.levelValue' | transloco: { level: player.level } }}</small>
+              </span>
+              <b>{{ player.currentHp }}/{{ player.maxHp }}</b>
+            </button>
+          } @empty {
+            <p class="character-editor__empty">{{ 'characterEditor.noCharacters' | transloco }}</p>
+          }
+        </div>
+      }
+    </aside>
+
+    <main class="character-editor__workspace">
+      @if (draft(); as character) {
+        <form class="character-editor__form" (submit)="$event.preventDefault(); saveCharacter()">
+          <header class="character-editor__selected">
+            @if (selectedPlayer(); as selected) {
+              <bf-avatar [avatar]="selected.avatar" [name]="selected.name" [size]="70" />
+            }
+            <div>
+              <span>{{ 'characterEditor.editing' | transloco }}</span>
+              <h3>{{ character.name || ('characterEditor.unnamed' | transloco) }}</h3>
+              <p>{{ 'characterEditor.preserveHint' | transloco }}</p>
+            </div>
+          </header>
+
+          <section class="character-editor__section">
+            <header>
+              <h3>{{ 'characterEditor.identity' | transloco }}</h3>
+              <p>{{ 'characterEditor.identityHint' | transloco }}</p>
+            </header>
+            <div class="character-editor__fields character-editor__fields--identity">
+              <label>
+                <span>{{ 'characterEditor.name' | transloco }}</span>
+                <input
+                  type="text"
+                  [value]="character.name"
+                  [disabled]="saving()"
+                  (input)="setText('name', $event)"
+                />
+              </label>
+              <label>
+                <span>{{ 'characterEditor.class' | transloco }}</span>
+                <input
+                  type="text"
+                  [value]="character.class"
+                  [disabled]="saving()"
+                  (input)="setText('class', $event)"
+                />
+              </label>
+              <label>
+                <span>{{ 'characterEditor.race' | transloco }}</span>
+                <input
+                  type="text"
+                  [value]="character.race"
+                  [disabled]="saving()"
+                  (input)="setText('race', $event)"
+                />
+              </label>
+              <label>
+                <span>{{ 'common.level' | transloco }}</span>
+                <input
+                  type="number"
+                  min="1"
+                  [value]="character.level"
+                  [disabled]="saving()"
+                  (input)="setCoreNumber('level', $event)"
+                />
+              </label>
+            </div>
+          </section>
+
+          <section class="character-editor__section">
+            <header>
+              <h3>{{ 'characterEditor.combatStats' | transloco }}</h3>
+              <p>{{ 'characterEditor.combatStatsHint' | transloco }}</p>
+            </header>
+            <div class="character-editor__fields character-editor__fields--combat">
+              <label>
+                <span>{{ 'common.currentHp' | transloco }}</span>
+                <input type="number" min="0" [value]="character.currentHp" [disabled]="saving()" (input)="setCoreNumber('currentHp', $event)" />
+              </label>
+              <label>
+                <span>{{ 'common.maxHp' | transloco }}</span>
+                <input type="number" min="1" [value]="character.maxHp" [disabled]="saving()" (input)="setCoreNumber('maxHp', $event)" />
+              </label>
+              <label>
+                <span>{{ 'common.temporaryHpShort' | transloco }}</span>
+                <input type="number" min="0" [value]="character.temporaryHp" [disabled]="saving()" (input)="setCoreNumber('temporaryHp', $event)" />
+              </label>
+              <label>
+                <span>{{ 'common.ac' | transloco }}</span>
+                <input type="number" min="0" [value]="character.ac" [disabled]="saving()" (input)="setCoreNumber('ac', $event)" />
+              </label>
+              <label>
+                <span>{{ 'player.sheet.speed' | transloco }}</span>
+                <input type="number" min="0" [value]="character.speed" [disabled]="saving()" (input)="setCoreNumber('speed', $event)" />
+              </label>
+              <label>
+                <span>{{ 'characterEditor.proficiencyBonus' | transloco }}</span>
+                <input type="number" min="0" [value]="character.proficiencyBonus" [disabled]="saving()" (input)="setCoreNumber('proficiencyBonus', $event)" />
+              </label>
+            </div>
+          </section>
+
+          <section class="character-editor__section">
+            <header>
+              <h3>{{ 'player.sheet.stats' | transloco }}</h3>
+              <p>{{ 'characterEditor.abilitiesHint' | transloco }}</p>
+            </header>
+            <div class="character-editor__ability-grid">
+              @for (stat of statKeys; track stat) {
+                <label>
+                  <span>{{ 'character.stats.' + stat + '.name' | transloco }}</span>
+                  <b>{{ 'character.stats.' + stat + '.short' | transloco }}</b>
+                  <input
+                    type="number"
+                    min="1"
+                    [value]="character.stats[stat]"
+                    [disabled]="saving()"
+                    (input)="setStat(stat, $event)"
+                  />
+                </label>
+              }
+            </div>
+          </section>
+
+          <section class="character-editor__section">
+            <header class="character-editor__section-heading">
+              <div>
+                <h3>{{ 'characterEditor.savingThrows' | transloco }}</h3>
+                <p>{{ 'characterEditor.savingThrowsHint' | transloco }}</p>
+              </div>
+              <button
+                type="button"
+                class="character-editor__secondary"
+                [disabled]="saving()"
+                (click)="recalculateDerivedBonuses()"
+              >
+                {{ 'characterEditor.recalculate' | transloco }}
+              </button>
+            </header>
+            <div class="character-editor__save-grid">
+              @for (save of character.savingThrows; track save.stat) {
+                <div class="character-editor__save-row">
+                  <strong>{{ 'character.stats.' + save.stat + '.short' | transloco }}</strong>
+                  <label class="character-editor__checkbox">
+                    <input
+                      type="checkbox"
+                      [checked]="save.proficient"
+                      [disabled]="saving()"
+                      (change)="setSavingThrowProficiency(save.stat, $event)"
+                    />
+                    <span>{{ 'characterEditor.proficient' | transloco }}</span>
+                  </label>
+                  <label>
+                    <span>{{ 'characterEditor.modifier' | transloco }}</span>
+                    <input
+                      type="number"
+                      [value]="save.modifier"
+                      [disabled]="saving()"
+                      (input)="setSavingThrowModifier(save.stat, $event)"
+                    />
+                  </label>
+                </div>
+              }
+            </div>
+          </section>
+
+          <section class="character-editor__section">
+            <header>
+              <h3>{{ 'characterEditor.skills' | transloco }}</h3>
+              <p>{{ 'characterEditor.skillsHint' | transloco }}</p>
+            </header>
+            <div class="character-editor__skills">
+              <div class="character-editor__skill-row character-editor__skill-row--header" aria-hidden="true">
+                <span>{{ 'characterEditor.skill' | transloco }}</span>
+                <span>{{ 'characterEditor.ability' | transloco }}</span>
+                <span>{{ 'characterEditor.proficiency' | transloco }}</span>
+                <span>{{ 'characterEditor.modifier' | transloco }}</span>
+              </div>
+              @for (skill of character.skills; track skill.id) {
+                <div class="character-editor__skill-row">
+                  <strong>{{ skillLabel(skill) }}</strong>
+                  <span>{{ 'character.stats.' + skill.baseStat + '.short' | transloco }}</span>
+                  <label>
+                    <span class="character-editor__mobile-label">{{ 'characterEditor.proficiency' | transloco }}</span>
+                    <select
+                      [value]="skill.proficiency"
+                      [disabled]="saving()"
+                      (change)="setSkillProficiency(skill.id, $event)"
+                    >
+                      <option value="none">{{ 'characterEditor.notProficient' | transloco }}</option>
+                      <option value="proficient">{{ 'characterEditor.proficient' | transloco }}</option>
+                      <option value="expertise">{{ 'characterEditor.expertise' | transloco }}</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span class="character-editor__mobile-label">{{ 'characterEditor.modifier' | transloco }}</span>
+                    <input
+                      type="number"
+                      [value]="skill.modifier"
+                      [disabled]="saving()"
+                      (input)="setSkillModifier(skill.id, $event)"
+                    />
+                  </label>
+                </div>
+              }
+            </div>
+          </section>
+
+          <footer class="character-editor__actions">
+            <button type="button" class="character-editor__secondary" [disabled]="saving()" (click)="resetDraft()">
+              {{ 'common.reset' | transloco }}
+            </button>
+            <button type="submit" class="character-editor__primary" [disabled]="saving()">
+              {{ (saving() ? 'common.saving' : 'common.saveChanges') | transloco }}
+            </button>
+          </footer>
+        </form>
+      } @else {
+        <div class="character-editor__placeholder">
+          <span aria-hidden="true">🧙</span>
+          <h3>{{ 'characterEditor.chooseCharacter' | transloco }}</h3>
+          <p>{{ 'characterEditor.chooseCharacterHint' | transloco }}</p>
+        </div>
+      }
+    </main>
+  </div>
+</section>

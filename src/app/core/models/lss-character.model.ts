@@ -4,6 +4,9 @@ export interface LssValue<T> {
 
 export interface LssStat {
   score?: number;
+  isProf?: boolean | 0 | 1;
+  bonus?: number;
+  customModifier?: number | string;
 }
 
 export interface LssStatsBlock {

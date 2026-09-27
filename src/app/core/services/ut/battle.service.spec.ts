@@ -231,6 +231,54 @@ describe('BattleService', () => {
     );
   });
 
+  it('renames an active player and synchronizes edited combat statistics', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(NOW);
+    const aria = createCombatant({
+      id: 'player_Aria',
+      type: COMBATANT_TYPE.PLAYER,
+      name: 'Aria',
+      playerName: 'Aria',
+      initiative: 17,
+      currentHp: 5,
+      maxHp: 24,
+      deathSaves: { successes: 1, failures: 0 },
+    });
+    await setup(createRoom({
+      combatants: { player_Aria: aria, 'enemy-1': createCombatant() },
+      initiativeOrder: ['player_Aria', 'enemy-1'],
+    }));
+    realtimeData.clearCalls();
+
+    await service.syncPlayerCharacter('Aria', {
+      ...createPlayer(),
+      name: 'Luna',
+      ac: 19,
+      maxHp: 40,
+      currentHp: 99,
+      temporaryHp: 4,
+    });
+
+    expect(realtimeData.updateMock).toHaveBeenCalledOnce();
+    expect(realtimeData.updateMock).toHaveBeenCalledWith(ROOM_PATH, {
+      'combatants/player_Luna': expect.objectContaining({
+        id: 'player_Luna',
+        name: 'Luna',
+        playerName: 'Luna',
+        initiative: 17,
+        ac: 19,
+        maxHp: 40,
+        currentHp: 40,
+        temporaryHp: 4,
+        status: COMBATANT_STATUS.ALIVE,
+        lastUpdated: NOW,
+      }),
+      'combatants/player_Aria': null,
+      initiativeOrder: ['player_Luna', 'enemy-1'],
+      lastUpdated: NOW,
+    });
+    const written = realtimeData.updateMock.mock.calls[0][1] as Record<string, Combatant>;
+    expect(written['combatants/player_Luna']).not.toHaveProperty('deathSaves');
+  });
   it('synchronizes an updated creature avatar with every matching active combatant', async () => {
     vi.spyOn(Date, 'now').mockReturnValue(NOW);
     await setup(createRoom({
