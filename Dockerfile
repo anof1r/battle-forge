@@ -30,7 +30,7 @@ COPY --from=server-build --chown=node:node /workspace/server/node_modules ./node
 COPY --from=server-build --chown=node:node /workspace/server/dist ./dist
 COPY --from=client-build --chown=node:node /workspace/dist/battle-forge/browser ./public
 
-RUN mkdir -p /app/media/avatars/players /app/media/avatars/creatures \
+RUN mkdir -p /app/media/avatars/players /app/media/avatars/creatures /app/media/slides \
     && chown -R node:node /app/media
 
 USER node

@@ -88,13 +88,13 @@ Open5E search requires internet access. The saved personal libraries do not.
 - Switch `/display` between battle and story mode at any time from the persistent presentation bar.
 - Navigate previous/next slides without leaving another DM workspace.
 - Fit landscape and portrait images completely inside Full HD and 2K displays without cropping; a blurred backdrop fills unused space.
-- Keep image bytes local: external object storage is not required.
-- Synchronize the deck and selected slide between same-origin DM and display tabs through `BroadcastChannel`.
+- Keep image bytes local: uploads are converted to WebP and stored in the `battle-forge-media` Docker volume (`media/slides`), so no external object storage is required.
+- Synchronize the deck, the selected slide, and the battle/story mode between every DM, display, and other client through MongoDB (`dm-library/slides`, `settings/presentation`).
 - Associate a persistent story section with each image using the filename without its extension (`1.png` → section `1`).
 - Write the DM script with a safe Markdown subset: headings, paragraphs, bold, italic, inline code, quotes, ordered/unordered lists, and separators.
 - After saving, the editor collapses into a rendered teleprompter; press **Edit** to change the section again.
 
-Story images live only in browser memory and must be loaded again after a full reload. The story text is stored in MongoDB. Image synchronization is intended for DM and display tabs on the same device/browser; it is not transferred through MongoDB to another computer.
+Slide images survive reloads and restarts and are shown on any device that opens `/display`. Slide records and the teleprompter text are stored in MongoDB; image files live in the media volume, so back that volume up together with the database (the JSON export contains slide records but not image files).
 
 ### Player screen
 
@@ -167,7 +167,7 @@ Multiclass slot calculation is intentionally not automated in the current alpha.
 | Character sheets, inventory, spells, slots, resources    | local MongoDB via NestJS and Socket.IO                      |
 | Creature, scene, item, spell, and enemy-action libraries | local MongoDB via NestJS and Socket.IO under `dm-library`   |
 | Story script sections                                    | local MongoDB via NestJS and Socket.IO under the main story |
-| Story image deck                                         | Browser memory and same-device `BroadcastChannel`           |
+| Story image deck                                         | MongoDB records + `media/slides` in the Docker media volume |
 | Last successful player name                              | Browser `localStorage`                                      |
 
 external object storage is not used.
@@ -377,13 +377,13 @@ Battle Forge — локально ориентированный помощни�
 - Переключение `/display` между боем и историей из постоянной панели мастера.
 - Переключение слайдов без выхода из другой рабочей зоны DM.
 - Полное размещение горизонтальных и вертикальных изображений на Full HD/2K без обрезки; свободное место заполняется размытым фоном.
-- Картинки не отправляются в external object storage.
-- Синхронизация колоды и текущего слайда между вкладками DM/display через `BroadcastChannel`.
+- Картинки конвертируются в WebP и хранятся в Docker-томе `battle-forge-media` (`media/slides`), external object storage не нужен.
+- Колода, текущий слайд и режим бой/история синхронизируются между всеми клиентами через MongoDB (`dm-library/slides`, `settings/presentation`).
 - Сюжетный текст связывается с именем картинки без расширения: `1.png` → раздел `1`.
 - Безопасный Markdown: заголовки, абзацы, жирный, курсив, код, цитаты, списки и разделители. Сырой HTML экранируется.
 - После сохранения редактор скрывается и остаётся отрендеренный суфлёр; кнопка **Редактировать** возвращает форму.
 
-Изображения живут в памяти браузера и после полной перезагрузки загружаются заново. Текст сюжета сохраняется в MongoDB. Колода предназначена для вкладок одного браузера/устройства и не передаётся через MongoDB на другой компьютер.
+Картинки переживают перезагрузки и рестарты и показываются на любом устройстве с `/display`. Записи слайдов и текст суфлёра лежат в MongoDB, файлы — в media-томе, поэтому бэкапьте том вместе с базой (JSON-экспорт содержит записи слайдов, но не файлы).
 
 ### Экран игрока
 
@@ -456,7 +456,7 @@ Battle Forge не обращается к закрытым авторизова�
 | Листы, инвентарь, заклинания, ячейки и ресурсы      | local MongoDB via NestJS and Socket.IO                           |
 | Существа, сцены, предметы, заклинания и атаки мобов | local MongoDB via NestJS and Socket.IO, ветка `dm-library`       |
 | Текст основной истории                              | local MongoDB via NestJS and Socket.IO                           |
-| Колода сюжетных картинок                            | Память браузера и `BroadcastChannel` одного устройства           |
+| Колода сюжетных картинок                            | Записи в MongoDB + `media/slides` в Docker-томе                  |
 | Имя последнего игрока                               | `localStorage` браузера                                          |
 
 external object storage не используется.

@@ -699,9 +699,11 @@
     "feedback": {
       "imagesAdded": "Images added: {{ count }}",
       "noImages": "No supported images were found.",
+      "uploading": "Uploading images…",
       "saved": "Story “{{ section }}” saved."
     },
     "error": {
+      "upload": "Could not upload images: {{ count }}.",
       "save": "Could not save the story. The text remains in the editor—try again."
     }
   },

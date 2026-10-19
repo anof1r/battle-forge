@@ -160,39 +160,57 @@ describe('DisplayComponent', () => {
     );
   });
 
-  it('shows a local story image fullscreen while preserving battle state in the background', () => {
-    status.set(BATTLE_STATUS.BATTLE);
-    enemies.set([enemy]);
-    presentationMode.set('story');
-    activeStorySlide.set({
-      id: 'tavern',
-      order: 0,
-      name: 'Таверна.webp',
-      blob: new Blob(['tavern']),
-      objectUrl: 'blob:tavern',
+  describe('story presentation', () => {
+    beforeEach(() => {
+      status.set(BATTLE_STATUS.BATTLE);
+      enemies.set([enemy]);
+      presentationMode.set('story');
+      activeStorySlide.set({
+        id: 'tavern',
+        order: 0,
+        name: 'tavern.webp',
+        sectionId: 'tavern',
+        media: { key: 'slides/tavern.webp', version: 1 },
+        createdAt: 1,
+        lastUpdated: 1,
+        url: '/media/slides/tavern.webp?v=1',
+      });
     });
 
-    const fixture = TestBed.createComponent(DisplayComponent);
-    fixture.detectChanges();
+    it('shows the server image fullscreen with a blurred backdrop', () => {
+      // Arrange
+      const fixture = TestBed.createComponent(DisplayComponent);
 
-    const image = (fixture.nativeElement as HTMLElement).querySelector<HTMLImageElement>(
-      '.story-display__image',
-    );
-    const backdrop = (fixture.nativeElement as HTMLElement).querySelector<HTMLImageElement>(
-      '.story-display__backdrop img',
-    );
-    expect(image).not.toBeNull();
-    expect(image?.getAttribute('src')).toBe('blob:tavern');
-    expect(image?.getAttribute('alt')).toBe('Таверна.webp');
-    expect(backdrop?.getAttribute('src')).toBe('blob:tavern');
-    expect(backdrop?.getAttribute('alt')).toBe('');
-    expect(fixture.nativeElement.querySelector('.arena')).toBeNull();
+      // Act
+      fixture.detectChanges();
 
-    presentationMode.set('battle');
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.story-display')).toBeNull();
-    expect(fixture.nativeElement.querySelector('.arena')).not.toBeNull();
+      // Assert
+      const host = fixture.nativeElement as HTMLElement;
+      const image = host.querySelector<HTMLImageElement>('.story-display__image');
+      const backdrop = host.querySelector<HTMLImageElement>('.story-display__backdrop img');
+      expect(image?.getAttribute('src')).toBe('/media/slides/tavern.webp?v=1');
+      expect(image?.getAttribute('alt')).toBe('tavern.webp');
+      expect(backdrop?.getAttribute('src')).toBe('/media/slides/tavern.webp?v=1');
+      expect(backdrop?.getAttribute('alt')).toBe('');
+      expect(host.querySelector('.arena')).toBeNull();
+    });
+
+    it('returns to the battle arena when the mode switches back', () => {
+      // Arrange
+      const fixture = TestBed.createComponent(DisplayComponent);
+      fixture.detectChanges();
+
+      // Act
+      presentationMode.set('battle');
+      fixture.detectChanges();
+
+      // Assert
+      const host = fixture.nativeElement as HTMLElement;
+      expect(host.querySelector('.story-display')).toBeNull();
+      expect(host.querySelector('.arena')).not.toBeNull();
+    });
   });
+
   it('shows the full initiative queue and puts the current participant in the header', () => {
     status.set(BATTLE_STATUS.BATTLE);
     const player: Combatant = {

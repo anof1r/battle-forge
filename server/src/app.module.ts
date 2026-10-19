@@ -7,6 +7,7 @@ import { readEnvironment } from './config/environment';
 import { DataModule } from './data/data.module';
 import { HealthController } from './health/health.controller';
 import { Open5eModule } from './open5e/open5e.module';
+import { SlidesModule } from './slides/slides.module';
 
 const environment = readEnvironment();
 
@@ -33,6 +34,7 @@ const environment = readEnvironment();
     DataModule,
     AvatarsModule,
     Open5eModule,
+    SlidesModule,
   ],
   controllers: [HealthController],
 })

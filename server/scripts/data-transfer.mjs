@@ -6,6 +6,7 @@ const collections = [
   { path: 'players', keys: ['players'] },
   { path: 'dm-library/creatures', keys: ['dm-library', 'creatures'] },
   { path: 'dm-library/scenes', keys: ['dm-library', 'scenes'] },
+  { path: 'dm-library/slides', keys: ['dm-library', 'slides'] },
   { path: 'dm-library/items', keys: ['dm-library', 'items'] },
   { path: 'dm-library/spells', keys: ['dm-library', 'spells'] },
   { path: 'dm-library/enemy-actions', keys: ['dm-library', 'enemy-actions'] },

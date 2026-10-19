@@ -8,11 +8,13 @@ export const DATA_ROOT = {
   SPELL_TEMPLATES: 'dm-library/spells',
   ENEMY_ACTION_TEMPLATES: 'dm-library/enemy-actions',
   MAIN_STORY_SECTIONS: 'dm-library/stories/main/sections',
+  STORY_SLIDES: 'dm-library/slides',
   SETTINGS: 'settings',
 } as const;
 
 export const MAIN_ROOM_ID = 'main-room';
 export const DISPLAY_SETTINGS_PATH = `${DATA_ROOT.SETTINGS}/display`;
+export const PRESENTATION_STATE_PATH = `${DATA_ROOT.SETTINGS}/presentation`;
 
 export function roomPath(roomId: string): string {
   return `${DATA_ROOT.ROOMS}/${roomId}`;
@@ -44,4 +46,8 @@ export function enemyActionTemplatePath(templateId: string): string {
 
 export function mainStorySectionPath(sectionId: string): string {
   return `${DATA_ROOT.MAIN_STORY_SECTIONS}/${sectionId}`;
+}
+
+export function storySlidePath(slideId: string): string {
+  return `${DATA_ROOT.STORY_SLIDES}/${slideId}`;
 }

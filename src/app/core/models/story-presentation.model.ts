@@ -1,31 +1,39 @@
 export type DisplayPresentationMode = 'battle' | 'story';
 
-export interface StorySlide {
+/** Reference to an image stored under the server media volume. */
+export interface StorySlideMedia {
+  key: string;
+  version: number;
+}
+
+/** Persisted slide record stored under `dm-library/slides`. */
+export interface StorySlideRecord {
   id: string;
   name: string;
+  /** Key of the teleprompter section linked to this slide. */
+  sectionId: string;
   order: number;
-  blob: Blob;
-  objectUrl: string;
+  media: StorySlideMedia;
+  createdAt: number;
+  lastUpdated: number;
 }
 
-export interface StorySlideTransfer {
-  id: string;
-  name: string;
-  /** Optional only for compatibility with tabs running an older app version. */
-  order?: number;
-  blob: Blob;
+export interface StorySlide extends StorySlideRecord {
+  url: string;
 }
 
-export type StoryPresentationMessage =
-  | { type: 'request-state' }
-  | {
-      type: 'deck-state';
-      mode: DisplayPresentationMode;
-      activeSlideId: string | null;
-      slides: StorySlideTransfer[];
-    }
-  | {
-      type: 'presentation-state';
-      mode: DisplayPresentationMode;
-      activeSlideId: string | null;
-    };
+/** Shared document describing what the display shows right now (`settings/presentation`). */
+export interface StoryPresentationState {
+  mode: DisplayPresentationMode;
+  activeSlideId?: string | null;
+  lastUpdated: number;
+}
+
+export interface StorySlideUploadResponse {
+  slide: StorySlideRecord;
+}
+
+export interface StorySlideUploadResult {
+  added: number;
+  failed: number;
+}

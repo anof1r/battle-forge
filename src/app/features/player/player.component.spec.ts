@@ -5,6 +5,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 import { TranslocoService } from '@jsverse/transloco';
 import { COMBATANT_STATUS, COMBATANT_TYPE } from '../../core/constants/combatant.constants';
 import { ParsedCharacter } from '../../core/models/character.model';
+import { LANGUAGE_STORAGE_KEY } from '../../core/i18n/i18n.constants';
 import { Combatant, SpellData } from '../../core/models/combatant.model';
 import { InventoryItem } from '../../core/models/inventory-item.model';
 import { BattleService } from '../../core/services/battle.service';
@@ -136,6 +137,7 @@ describe('PlayerComponent', () => {
 
   beforeEach(() => {
     localStorage.clear();
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, 'ru');
     characterService = {
       characterExists: vi.fn(),
       loadCharacter: vi.fn().mockResolvedValue(null),

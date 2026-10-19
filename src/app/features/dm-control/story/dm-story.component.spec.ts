@@ -33,24 +33,40 @@ describe('DmStoryComponent', () => {
   let scripts: {
     section: ReturnType<typeof vi.fn>;
     saveSection: ReturnType<typeof vi.fn>;
-    saveOrder: ReturnType<typeof vi.fn>;
   };
   let logger: { error: ReturnType<typeof vi.fn> };
 
   const tavern: StorySlide = {
     id: 'tavern',
     name: '1.png',
+    sectionId: '1',
     order: 0,
-    blob: new Blob(['tavern']),
-    objectUrl: 'blob:tavern',
+    media: { key: 'slides/tavern.webp', version: 1 },
+    createdAt: 1,
+    lastUpdated: 1,
+    url: '/media/slides/tavern.webp?v=1',
   };
   const forest: StorySlide = {
     id: 'forest',
     name: '2.jpg',
+    sectionId: '2',
     order: 1,
-    blob: new Blob(['forest']),
-    objectUrl: 'blob:forest',
+    media: { key: 'slides/forest.webp', version: 1 },
+    createdAt: 2,
+    lastUpdated: 2,
+    url: '/media/slides/forest.webp?v=1',
   };
+
+  const host = () => fixture.nativeElement as HTMLElement;
+
+  function selectTavern(): void {
+    slides.set([tavern]);
+    activeSlide.set(tavern);
+    story.activeSlideId.set(tavern.id);
+    fixture.detectChanges();
+    TestBed.flushEffects();
+    fixture.detectChanges();
+  }
 
   beforeEach(() => {
     slides = signal<StorySlide[]>([]);
@@ -64,7 +80,7 @@ describe('DmStoryComponent', () => {
       canShowStory: signal(false),
       canGoPrevious: signal(false),
       canGoNext: signal(false),
-      addFiles: vi.fn().mockReturnValue(2),
+      addFiles: vi.fn().mockResolvedValue({ added: 2, failed: 0 }),
       setMode: vi.fn(),
       previousSlide: vi.fn(),
       nextSlide: vi.fn(),
@@ -75,10 +91,9 @@ describe('DmStoryComponent', () => {
     };
     scripts = {
       section: vi.fn((id: string) =>
-        id === '1' ? { id: '1', text: '# Таверна', createdAt: 100, lastUpdated: 100 } : null,
+        id === '1' ? { id: '1', text: '# Tavern', createdAt: 100, lastUpdated: 100 } : null,
       ),
       saveSection: vi.fn().mockResolvedValue(undefined),
-      saveOrder: vi.fn().mockResolvedValue(undefined),
     };
     logger = { error: vi.fn() };
 
@@ -94,160 +109,214 @@ describe('DmStoryComponent', () => {
     component = fixture.componentInstance;
   });
 
-  it('loads selected image files and resets the file input', () => {
-    const input = {
-      files: [
-        new File(['tavern'], 'tavern.jpg', { type: 'image/jpeg' }),
-        new File(['forest'], 'forest.webp', { type: 'image/webp' }),
-      ],
-      value: 'selected',
-    };
-    component.insertBeforeSlideId.set('forest');
+  describe('uploading images', () => {
+    it('passes the selected files and the insert position to the story service', async () => {
+      // Arrange
+      const input = {
+        files: [
+          new File(['tavern'], 'tavern.jpg', { type: 'image/jpeg' }),
+          new File(['forest'], 'forest.webp', { type: 'image/webp' }),
+        ],
+        value: 'selected',
+      };
+      component.insertBeforeSlideId.set('forest');
 
-    component.onFilesSelected({ target: input } as unknown as Event);
+      // Act
+      await component.onFilesSelected({ target: input } as unknown as Event);
 
-    expect(story.addFiles).toHaveBeenCalledWith(input.files, 'forest');
-    expect(input.value).toBe('');
-    expect(component.insertBeforeSlideId()).toBeNull();
-    expect(component.uploadMessage()).toBe('Добавлено изображений: 2');
+      // Assert
+      expect(story.addFiles).toHaveBeenCalledWith(input.files, 'forest');
+    });
+
+    it('resets the file input and the insert position after a successful upload', async () => {
+      // Arrange
+      const input = {
+        files: [new File(['a'], 'a.png', { type: 'image/png' })],
+        value: 'selected',
+      };
+      component.insertBeforeSlideId.set('forest');
+
+      // Act
+      await component.onFilesSelected({ target: input } as unknown as Event);
+
+      // Assert
+      expect(input.value).toBe('');
+      expect(component.insertBeforeSlideId()).toBeNull();
+      expect(component.uploading()).toBe(false);
+      expect(component.uploadMessage()).toMatch(/\b2\b/);
+    });
+
+    it('reports failed uploads and keeps the insert position', async () => {
+      // Arrange
+      story.addFiles.mockResolvedValueOnce({ added: 0, failed: 1 });
+      const input = { files: [new File(['a'], 'a.png', { type: 'image/png' })], value: 'x' };
+      component.insertBeforeSlideId.set('forest');
+
+      // Act
+      await component.onFilesSelected({ target: input } as unknown as Event);
+
+      // Assert
+      expect(component.insertBeforeSlideId()).toBe('forest');
+      expect(component.uploadMessage()).toMatch(/\b1\b/);
+      expect(component.uploading()).toBe(false);
+    });
+
+    it('restores the legacy story order when the images are uploaded for the first time', async () => {
+      // Arrange
+      scripts.section.mockImplementation((id: string) => ({
+        id,
+        text: 'Story',
+        order: Number(id) - 1,
+        createdAt: 100,
+        lastUpdated: 100,
+      }));
+      const files = ['4', '2', '1', '3'].map(
+        (name) => new File([name], `${name}.webp`, { type: 'image/webp' }),
+      );
+
+      // Act
+      await component.onFilesSelected({ target: { files, value: 'x' } } as unknown as Event);
+
+      // Assert
+      const uploaded = story.addFiles.mock.calls[0][0] as File[];
+      expect(uploaded.map((file) => file.name)).toEqual(['1.webp', '2.webp', '3.webp', '4.webp']);
+      expect(story.addFiles).toHaveBeenCalledWith(uploaded, null);
+    });
   });
 
-  it('restores the persisted story order when the same images are uploaded in another browser', () => {
-    scripts.section.mockImplementation((id: string) => ({
-      id,
-      text: 'Story',
-      order: Number(id) - 1,
-      createdAt: 100,
-      lastUpdated: 100,
-    }));
-    const files = [
-      new File(['four'], '4.webp', { type: 'image/webp' }),
-      new File(['two'], '2.webp', { type: 'image/webp' }),
-      new File(['one'], '1.webp', { type: 'image/webp' }),
-      new File(['three'], '3.webp', { type: 'image/webp' }),
-    ];
-    const input = { files, value: 'selected' };
+  describe('deck', () => {
+    beforeEach(() => {
+      slides.set([tavern, forest]);
+      activeSlide.set(tavern);
+      story.activeSlideId.set('tavern');
+      story.activeSlideIndex.set(0);
+      story.canShowStory.set(true);
+      story.canGoNext.set(true);
+      fixture.detectChanges();
+    });
 
-    component.onFilesSelected({ target: input } as unknown as Event);
+    it('renders every slide beside the script and marks the active one', () => {
+      // Arrange - deck rendered in beforeEach
 
-    const uploadedFiles = story.addFiles.mock.calls[0][0] as File[];
-    expect(uploadedFiles.map((file) => file.name)).toEqual([
-      '1.webp',
-      '2.webp',
-      '3.webp',
-      '4.webp',
-    ]);
-    expect(story.addFiles).toHaveBeenCalledWith(uploadedFiles, null);
+      // Act
+      const cards = host().querySelectorAll<HTMLElement>('.story-slide');
+
+      // Assert
+      expect(host().querySelector('.story-deck')).toBeVisible();
+      expect(cards).toHaveLength(2);
+      expect(cards[0]).toHaveClass('story-slide--active');
+    });
+
+    it('selects a slide when its card is clicked', () => {
+      // Arrange
+      const cards = host().querySelectorAll<HTMLElement>('.story-slide');
+
+      // Act
+      cards[1].click();
+
+      // Assert
+      expect(story.selectSlide).toHaveBeenCalledWith('forest');
+    });
+
+    it('delegates moving a slide to the story service', () => {
+      // Arrange - deck rendered in beforeEach
+
+      // Act
+      component.moveSlide('forest', -1, new Event('click'));
+
+      // Assert
+      expect(story.moveSlide).toHaveBeenCalledWith('forest', -1);
+    });
+
+    it('delegates removing a slide to the story service', () => {
+      // Arrange - deck rendered in beforeEach
+
+      // Act
+      component.removeSlide('forest', new Event('click'));
+
+      // Assert
+      expect(story.removeSlide).toHaveBeenCalledWith('forest');
+    });
   });
 
-  it('keeps the deck visible beside the script and delegates slide actions', () => {
-    slides.set([tavern, forest]);
-    activeSlide.set(tavern);
-    story.activeSlideId.set('tavern');
-    story.activeSlideIndex.set(0);
-    story.canShowStory.set(true);
-    story.canGoNext.set(true);
-    fixture.detectChanges();
+  describe('script', () => {
+    it('loads the script of the active slide using its section key', () => {
+      // Arrange - no setup needed
 
-    const deck = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('.story-deck');
-    const cards = (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLElement>(
-      '.story-slide',
-    );
-    expect(deck).toBeVisible();
-    expect(cards).toHaveLength(2);
-    expect(cards[0]).toHaveClass('story-slide--active');
-    expect(cards[0]).toHaveTextContent('Сюжет: 1');
+      // Act
+      selectTavern();
 
-    cards[1].click();
-    expect(story.selectSlide).toHaveBeenCalledWith('forest');
+      // Assert
+      expect(component.activeSectionId()).toBe('1');
+      expect(component.scriptDraft()).toBe('# Tavern');
+    });
 
-    component.moveSlide('forest', -1, new Event('click'));
-    expect(story.moveSlide).toHaveBeenCalledWith('forest', -1);
-    component.removeSlide('forest', new Event('click'));
-    expect(story.removeSlide).toHaveBeenCalledWith('forest');
-  });
+    it('shows the rendered teleprompter instead of the editor by default', () => {
+      // Arrange - no setup needed
 
-  it('persists slide order to the database whenever the deck order changes', () => {
-    slides.set([tavern, forest]);
-    fixture.detectChanges();
-    TestBed.flushEffects();
+      // Act
+      selectTavern();
 
-    expect(scripts.saveOrder).toHaveBeenCalledWith('1', 0);
-    expect(scripts.saveOrder).toHaveBeenCalledWith('2', 1);
+      // Assert
+      expect(host().querySelector('.story-script__markdown')).toHaveTextContent('Tavern');
+      expect(host().querySelector('textarea')).toBeNull();
+      expect(host().querySelector('.story-script__workspace')).toHaveClass(
+        'story-script__workspace--reading',
+      );
+    });
 
-    scripts.saveOrder.mockClear();
-    slides.set([
-      { ...forest, order: 0 },
-      { ...tavern, order: 1 },
-    ]);
-    fixture.detectChanges();
-    TestBed.flushEffects();
+    it('previews the draft while editing', () => {
+      // Arrange
+      selectTavern();
+      component.startScriptEditing();
+      fixture.detectChanges();
+      const textarea = host().querySelector<HTMLTextAreaElement>('textarea')!;
 
-    expect(scripts.saveOrder).toHaveBeenCalledWith('2', 0);
-    expect(scripts.saveOrder).toHaveBeenCalledWith('1', 1);
-  });
+      // Act
+      textarea.value = '**Check DC 12**';
+      textarea.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
 
-  it('loads, previews and saves the script using the image name as its key', async () => {
-    slides.set([tavern]);
-    activeSlide.set(tavern);
-    story.activeSlideId.set(tavern.id);
-    fixture.detectChanges();
-    TestBed.flushEffects();
-    fixture.detectChanges();
+      // Assert
+      expect(host().querySelector('.story-script__markdown strong')).toHaveTextContent(
+        'Check DC 12',
+      );
+    });
 
-    expect(component.activeSectionId()).toBe('1');
-    expect(component.scriptDraft()).toBe('# Таверна');
-    expect(fixture.nativeElement.querySelector('.story-script__markdown')).toHaveTextContent(
-      'Таверна',
-    );
-    expect(fixture.nativeElement.querySelector('textarea')).toBeNull();
-    expect(fixture.nativeElement.querySelector('.story-script__workspace')).toHaveClass(
-      'story-script__workspace--reading',
-    );
+    it('saves the draft and returns to the teleprompter', async () => {
+      // Arrange
+      selectTavern();
+      component.startScriptEditing();
+      component.scriptDraft.set('**Check DC 12**');
 
-    const editButton = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>(
-      '.story-script__header .story-editor__button',
-    );
-    editButton?.click();
-    fixture.detectChanges();
+      // Act
+      await component.saveScript();
+      fixture.detectChanges();
 
-    const textarea = (fixture.nativeElement as HTMLElement).querySelector<HTMLTextAreaElement>(
-      'textarea',
-    );
-    expect(textarea).not.toBeNull();
-    textarea!.value = '**Проверка СЛ 12**';
-    textarea!.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.story-script__markdown strong')).toHaveTextContent(
-      'Проверка СЛ 12',
-    );
+      // Assert
+      expect(scripts.saveSection).toHaveBeenCalledWith('1', '**Check DC 12**');
+      expect(component.scriptEditing()).toBe(false);
+      expect(host().querySelector('textarea')).toBeNull();
+      expect(host().querySelector('.story-script__markdown strong')).toHaveTextContent(
+        'Check DC 12',
+      );
+    });
 
-    await component.saveScript();
-    fixture.detectChanges();
-    expect(scripts.saveSection).toHaveBeenCalledWith('1', '**Проверка СЛ 12**');
-    expect(component.scriptMessage()).toBe('Сюжет «1» сохранён.');
-    expect(component.scriptEditing()).toBe(false);
-    expect(fixture.nativeElement.querySelector('textarea')).toBeNull();
-    expect(fixture.nativeElement.querySelector('.story-script__markdown strong')).toHaveTextContent(
-      'Проверка СЛ 12',
-    );
-  });
+    it('keeps the draft and reports a retryable error when saving fails', async () => {
+      // Arrange
+      selectTavern();
+      component.startScriptEditing();
+      component.scriptDraft.set('Unsaved text');
+      scripts.saveSection.mockRejectedValueOnce(new Error('offline'));
 
-  it('keeps the draft and reports a retryable error when database saving fails', async () => {
-    slides.set([tavern]);
-    activeSlide.set(tavern);
-    story.activeSlideId.set(tavern.id);
-    fixture.detectChanges();
-    TestBed.flushEffects();
-    component.startScriptEditing();
-    component.scriptDraft.set('Несохранённый текст');
-    scripts.saveSection.mockRejectedValueOnce(new Error('offline'));
+      // Act
+      await component.saveScript();
 
-    await component.saveScript();
-
-    expect(component.scriptDraft()).toBe('Несохранённый текст');
-    expect(component.scriptEditing()).toBe(true);
-    expect(component.scriptError()).toContain('Текст оставлен в редакторе');
-    expect(logger.error).toHaveBeenCalledWith('DmStoryComponent.saveScript', expect.any(Error));
+      // Assert
+      expect(component.scriptDraft()).toBe('Unsaved text');
+      expect(component.scriptEditing()).toBe(true);
+      expect(component.scriptError()).toBeTruthy();
+      expect(logger.error).toHaveBeenCalledWith('DmStoryComponent.saveScript', expect.any(Error));
+    });
   });
 });

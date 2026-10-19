@@ -2,9 +2,9 @@
   <main class="story-display" [attr.aria-label]="'display.storyIllustration' | transloco">
     @if (activeStorySlide(); as slide) {
       <div class="story-display__backdrop" aria-hidden="true">
-        <img [src]="slide.objectUrl" alt="" />
+        <img [src]="slide.url" alt="" />
       </div>
-      <img class="story-display__image" [src]="slide.objectUrl" [alt]="slide.name" />
+      <img class="story-display__image" [src]="slide.url" [alt]="slide.name" />
     } @else {
       <div class="story-display__empty">
         <span aria-hidden="true">🖼</span>

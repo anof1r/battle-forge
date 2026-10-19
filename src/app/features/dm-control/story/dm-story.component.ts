@@ -26,21 +26,18 @@ export class DmStoryComponent {
   private readonly logger = inject(LoggerService);
   private readonly i18n = inject(TranslocoService);
   private loadedSectionVersion = '';
-  private readonly persistedSlideOrders = new Map<string, number>();
 
   readonly draggedSlideId = signal<string | null>(null);
   readonly insertBeforeSlideId = signal<string | null>(null);
   readonly uploadMessage = signal<string | null>(null);
+  readonly uploading = signal(false);
   readonly scriptDraft = signal('');
   readonly scriptSaving = signal(false);
   readonly scriptEditing = signal(false);
   readonly scriptMessage = signal<string | null>(null);
   readonly scriptError = signal<string | null>(null);
 
-  readonly activeSectionId = computed(() => {
-    const slide = this.story.activeSlide();
-    return slide ? storySectionIdFromFileName(slide.name) : null;
-  });
+  readonly activeSectionId = computed(() => this.story.activeSlide()?.sectionId ?? null);
   readonly savedScript = computed(() => {
     const sectionId = this.activeSectionId();
     return sectionId ? (this.scripts.section(sectionId)?.text ?? '') : '';
@@ -50,10 +47,7 @@ export class DmStoryComponent {
   readonly hasDuplicateSectionId = computed(() => {
     const sectionId = this.activeSectionId();
     if (!sectionId) return false;
-    return (
-      this.story.slides().filter((slide) => storySectionIdFromFileName(slide.name) === sectionId)
-        .length > 1
-    );
+    return this.story.slides().filter((slide) => slide.sectionId === sectionId).length > 1;
   });
 
   constructor() {
@@ -69,34 +63,33 @@ export class DmStoryComponent {
       this.scriptMessage.set(null);
       this.scriptError.set(null);
     });
-
-    effect(() => {
-      for (const slide of this.story.slides()) {
-        const sectionId = storySectionIdFromFileName(slide.name);
-        if (this.persistedSlideOrders.get(sectionId) === slide.order) continue;
-        this.persistedSlideOrders.set(sectionId, slide.order);
-        this.scripts.saveOrder(sectionId, slide.order).catch((error: unknown) => {
-          this.logger.error('DmStoryComponent.saveOrder', error);
-        });
-      }
-    });
   }
 
-  onFilesSelected(event: Event): void {
+  async onFilesSelected(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
-    const files = this.sortFilesByPersistedOrder(Array.from(input.files ?? []));
+    const files = this.sortFilesByLegacyOrder(Array.from(input.files ?? []));
     input.value = '';
-    if (files.length === 0) return;
-    const added = this.story.addFiles(files, this.insertBeforeSlideId());
-    if (added > 0) this.insertBeforeSlideId.set(null);
-    this.uploadMessage.set(
-      added > 0
-        ? this.i18n.translate('story.feedback.imagesAdded', { count: added })
-        : this.i18n.translate('story.feedback.noImages'),
-    );
+    if (files.length === 0 || this.uploading()) return;
+
+    this.uploading.set(true);
+    this.uploadMessage.set(this.i18n.translate('story.feedback.uploading'));
+    try {
+      const { added, failed } = await this.story.addFiles(files, this.insertBeforeSlideId());
+      if (added > 0) this.insertBeforeSlideId.set(null);
+      const messages = [
+        added > 0 ? this.i18n.translate('story.feedback.imagesAdded', { count: added }) : '',
+        failed > 0 ? this.i18n.translate('story.error.upload', { count: failed }) : '',
+      ].filter(Boolean);
+      this.uploadMessage.set(
+        messages.length > 0 ? messages.join(' ') : this.i18n.translate('story.feedback.noImages'),
+      );
+    } finally {
+      this.uploading.set(false);
+    }
   }
 
-  private sortFilesByPersistedOrder(files: readonly File[]): File[] {
+  /** Slides uploaded for the first time keep the order previously saved with their scripts. */
+  private sortFilesByLegacyOrder(files: readonly File[]): File[] {
     return files
       .map((file, inputIndex) => {
         const sectionId = storySectionIdFromFileName(file.name);
@@ -152,10 +145,6 @@ export class DmStoryComponent {
   removeSlide(slideId: string, event: Event): void {
     event.stopPropagation();
     this.story.removeSlide(slideId);
-  }
-
-  storySectionIdFromFileName(fileName: string): string {
-    return storySectionIdFromFileName(fileName);
   }
 
   onScriptInput(event: Event): void {

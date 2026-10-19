@@ -5,6 +5,7 @@ export const DATA_COLLECTION_PATHS = [
   'players',
   'dm-library/creatures',
   'dm-library/scenes',
+  'dm-library/slides',
   'dm-library/items',
   'dm-library/spells',
   'dm-library/enemy-actions',

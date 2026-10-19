@@ -71,7 +71,13 @@
             </label>
             <label class="story-editor__upload">
               <span>＋ {{ 'story.addImages' | transloco }}</span>
-              <input type="file" accept="image/*" multiple (change)="onFilesSelected($event)" />
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                [disabled]="uploading()"
+                (change)="onFilesSelected($event)"
+              />
             </label>
           </div>
         </div>
@@ -108,7 +114,7 @@
                 (dragend)="stopDragging()"
               >
                 <div class="story-slide__preview">
-                  <img [src]="slide.objectUrl" [alt]="slide.name" />
+                  <img [src]="slide.url" [alt]="slide.name" />
                   <span class="story-slide__number">{{ slide.order + 1 }}</span>
                   @if (story.activeSlideId() === slide.id) {
                     <span class="story-slide__live">{{ 'story.onScreen' | transloco }}</span>
@@ -118,7 +124,7 @@
                   <p class="story-slide__name" [attr.title]="slide.name">{{ slide.name }}</p>
                   <small
                     >{{ 'story.script' | transloco }}:
-                    {{ storySectionIdFromFileName(slide.name) }}</small
+                    {{ slide.sectionId }}</small
                   >
                 </div>
                 <div class="story-slide__actions">

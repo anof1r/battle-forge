@@ -1,2 +1,3 @@
-/** Same-origin channel used to mirror the local story deck to the display tab. */
-export const STORY_PRESENTATION_CHANNEL = 'battle-forge-story-presentation';
+export const STORY_SLIDES_ENDPOINT = '/api/slides';
+export const STORY_MEDIA_ENDPOINT = '/media';
+export const STORY_SLIDE_MEDIA_KEY = /^slides\/[0-9a-f-]+\.webp$/i;

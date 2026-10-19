@@ -1,11 +1,12 @@
 import { LanguageService } from './core/i18n/language.service';
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-root',
   imports: [RouterOutlet],
   templateUrl: './app.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './app.scss',
 })
 export class App {

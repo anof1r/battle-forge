@@ -3,6 +3,6 @@ export interface StoryScriptSection {
   text: string;
   createdAt: number;
   lastUpdated: number;
-  /** Persisted slide order; absent until the DM reorders the deck at least once. */
+  /** Legacy position from before slides were stored on the server; only used to order a first upload. */
   order?: number;
 }

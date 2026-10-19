@@ -51,24 +51,6 @@ export class StoryScriptService {
     await this.realtimeData.set(mainStorySectionPath(id), section);
   }
 
-  async saveOrder(sectionId: string, order: number): Promise<void> {
-    const id = sectionId.trim();
-    if (!id) throw new Error('Story section id is required.');
-
-    const existing = this.section(id);
-    if (existing?.order === order) return;
-
-    const now = Date.now();
-    const section: StoryScriptSection = {
-      id,
-      text: existing?.text ?? '',
-      order,
-      createdAt: existing?.createdAt ?? now,
-      lastUpdated: now,
-    };
-    await this.realtimeData.set(mainStorySectionPath(id), section);
-  }
-
   private normalize(id: string, section: Partial<StoryScriptSection>): StoryScriptSection {
     return {
       id,
